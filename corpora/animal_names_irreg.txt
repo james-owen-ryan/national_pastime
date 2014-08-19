@@ -1,0 +1,10 @@
+Bison
+Buffalo
+Canaries
+Caribou
+Elk
+Finches
+Goldfinches
+Foxes
+Moose
+Wolves
