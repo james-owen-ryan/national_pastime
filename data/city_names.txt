@@ -1,0 +1,243 @@
+Akron
+Albany
+Albuquerque
+Alexandria
+Allegheny
+Allentown
+Altoona
+Amarillo
+Anaheim
+Anchorage
+Andover
+Arlington
+Atlanta
+Auburn
+Augusta
+Aurora
+Austin
+Bakersfield
+Baltimore
+Bangor
+Barnstable
+Bath
+Baton Rouge
+Bay City
+Bayonne
+Berkeley
+Beverly
+Binghamton
+Birmingham
+Boston
+Bridgeport
+Brockton
+Brooklyn
+Buffalo
+Burlington
+Cambridge
+Camden
+Canton
+Carlisle
+Charlescity
+Charleston
+Charlestown
+Charlotte
+Chattanooga
+Chelsea
+Chicago
+Chicopee
+Cincinnati
+Cleveland
+Cohoes
+Colorado Springs
+Columbia
+Columbus
+Concord
+Corpus Christi
+Covington
+Cumberland
+Dallas
+Danvers
+Davenport
+Dayton
+Denver
+Des Moines
+Detroit
+Dorchester
+Dover
+Dubuque
+Duluth
+East St. Louis
+Easton
+El Paso
+Elizabeth
+Elmira
+Erie
+Evansville
+Fall River
+Fayetteville
+Flint
+Fort Lauderdale
+Fort Wayne
+Fort Worth
+Frederick
+Fremont
+Fresno
+Galveston
+Gardiner
+Garland
+Gary
+Georgetown
+Glendale
+Gloucester
+Grand Rapids
+Greensboro
+Harrisburg
+Hartford
+Haverhill
+Hialeah
+Hoboken
+Holyoke
+Honolulu
+Houston
+Hudson
+Huntington Beach
+Indianapolis
+Jackson
+Jacksonville
+Jersey City
+Johnstown
+Kansas City
+Kensington
+Knoxville
+Lafayette
+Lancaster
+Las Vegas
+Lawrence
+Leavenworth
+Lexington
+Lincoln
+Little Rock
+Lockport
+Long Beach
+Los Angeles
+Louisville
+Lowell
+Lubbock
+Lynchburg
+Lynn
+Madison
+Manchester
+Marblehead
+Memphis
+Mesa
+Metairie
+Miami
+Middleborough
+Middletown
+Milwaukee
+Minneapolis
+Mobile
+Montgomery
+Moyamensing
+Nantucket
+Nashua
+Nashville
+New Albany
+New Bedford
+New Brunswick
+New Haven
+New London
+New Orleans
+New York
+Newark
+Newburgh
+Newburyport
+Newport
+Norfolk
+North Providence
+Northern Liberties
+Norwich
+Oakland
+Oklahoma City
+Omaha
+Oswego
+Passaic
+Paterson
+Patterson
+Pawtucket
+Peoria
+Petersburg
+Philadelphia
+Phoenix
+Pittsburgh
+Plymouth
+Portland
+Portland (OR)
+Portsmouth
+Pottsville
+Poughkeepsie
+Providence
+Quincy
+Raleigh
+Reading
+Richmond
+Riverside
+Rochester
+Rockford
+Roxbury
+Sacramento
+Saginaw
+Salem
+Salt Lake City
+San Antonio
+San Diego
+San Francisco
+San Jose
+Santa Ana
+Savannah
+Schenectady
+Scranton
+Seattle
+Shreveport
+Sioux City
+Somerville
+South Bend
+Southwark
+Spokane
+Spring Garden
+Springfield
+St. Joseph
+St. Louis
+St. Paul
+St. Petersburg
+Steubenville
+Stockton
+Syracuse
+Tacoma
+Tampa
+Taunton
+Terre Haute
+Toledo
+Topeka
+Trenton
+Troy
+Tucson
+Tulsa
+Utica
+Virginia Beach
+Warren
+Warwick
+Washington
+Waterbury
+West Troy
+Wheeling
+Wichita
+Wilkes-Barre
+Williamsburgh
+Williamsport
+Wilmington
+Worcester
+Yonkers
+York
+Youngstown
+Zanesville

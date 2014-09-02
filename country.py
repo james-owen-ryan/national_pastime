@@ -1,31 +1,64 @@
+import pickle
+import os
+import random
+
+from city import City
+from league import League
+from game import AtBat
+
+
 class Country(object):
     """A country in a baseball-centric game world."""
 
-    def __init__(self):
+    def __init__(self, year):
         """Instantiate a country object."""
         self.name = 'United States of America'
         self.year = year
-        self.cities = []
+        self.players = []
         self.leagues = []
         self.league_names = []
         # Nicknames for major league teams, used to prevent duplicates
         self.major_nicknames = []
-
         self.champions = []
         self.champions_timeline = []
+        self.cities = self.init_cities()
+        self.leagues = self.init_leagues()
 
-        for name in [n for n in set([c for c in eval('pops')[year]])]:
-            City(country=self, name=name)
+    def init_cities(self):
+        """Instantiate objects for all cities in the database.
 
-        y = [year for year in city_unique_names]
-        y.append(self.year)
-        y.sort()
-        most_recent = y[y.index(self.year)-1]
-        self.city_uniques = city_unique_names[most_recent]
+        This method..."""
+        # Load all of our city data
+        city_names = self.load_city_names()
+        city_latitudes, city_longitudes = (
+            self.load_city_geographic_coordinates()
+        )
+        city_yearly_populations = self.load_city_yearly_populations()
+        city_unique_team_nicknames = self.load_city_unique_team_nicknames(
+            city_names=city_names
+        )
+        # Instantiate a City object for each city, and append each of
+        # these objects to a list
+        cities = []
+        for city in city_names:
+            latitude = city_latitudes[city]
+            longitude = city_longitudes[city]
+            populations = city_yearly_populations[city]
+            unique_team_nicknames = city_unique_team_nicknames[city]
+            city = City(country=self, name=city, latitude=latitude,
+                        longitude=longitude, populations=populations,
+                        yearly_unique_team_nicknames=unique_team_nicknames)
+            cities.append(city)
+        # Return the list of City objects
+        return cities
 
+    def init_leagues(self):
+        leagues = []
         # for i in range(int(round(normal(1, 0.35)))):
         for i in xrange(1):
-            League(country=self)
+            l = League(country=self)
+            leagues.append(l)
+        return leagues
 
     def __str__(self):
 
@@ -83,14 +116,97 @@ class Country(object):
         for l in self.leagues:
             l.conduct_offseason()
 
-        y = [year for year in city_unique_names]
-        y.append(self.year)
-        y.sort()
-        most_recent = y[y.index(self.year)-1]
-        self.city_uniques = city_unique_names[most_recent]
-
         for city in self.cities:
             try:
                 city.progress()
             except KeyError:
                 pass
+
+    @staticmethod
+    def load_city_names():
+        # Load the list of city names for which we currently have data
+        city_names = [name.strip('\n') for name in open(
+            os.getcwd()+'/data/city_names.txt', 'r')
+        ]
+        return city_names
+
+    @staticmethod
+    def load_city_geographic_coordinates():
+        # Load city geographic coordinates
+        city_latitudes = pickle.load(
+            open(os.getcwd()+'/data/city_latitudes.dat', 'rb')
+        )
+        city_longitudes = pickle.load(
+            open(os.getcwd()+'/data/city_longitudes.dat', 'rb')
+        )
+        return city_latitudes, city_longitudes
+
+    @staticmethod
+    def load_city_yearly_populations():
+        # Load city yearly populations
+        city_yearly_populations = pickle.load(
+            open(os.getcwd()+'/data/city_yearly_populations.dat', 'rb')
+        )
+        return city_yearly_populations
+
+    @staticmethod
+    def load_city_unique_team_nicknames(city_names):
+        # This is a list that I've curated myself that associates
+        # cities with peculiar nicknames that would work especially
+        # well for that city, e.g., Minneapolis Millers
+        raw_file = open(
+            os.getcwd() + "/data/city_unique_team_nicknames.txt"
+        )
+        lines = [line.strip('\n') for line in raw_file.readlines()]
+        city_unique_nicknames = {}
+        for city in city_names:
+            city_index = lines.index(city)
+            # If there is no entry for this city, assign to this city
+            # a dictionary mapping each year to an empty list
+            if city_index+1 == len(lines) or not lines[city_index+1]:
+                city_unique_nicknames[city] = {
+                    year: [] for year in xrange(1845, 1990)
+                }
+            # If there is an entry for this city, read the part of the
+            # file pertaining to the city line by line
+            current_index = city_index
+            unique_nicknames = {}
+            while current_index+1 < len(lines) and lines[current_index+1]:
+                current_index += 1
+                current_line = lines[current_index]
+                if current_line[1] != '\t':  # Reached a new year
+                    current_year = int(current_line[1:])
+                    unique_nicknames[current_year] = []
+                elif current_line[1] == '\t':  # Reached a new nickname
+                    unique_nicknames[current_year].append(current_line[2:])
+            # Once we've reached a blank line, we've exhaustively assembled
+            # all the city's nicknames -- now we need to fill in entries for
+            # missing years, for which we'll copy the entry from the most
+            # recent year that has an entry
+            years = unique_nicknames.keys()
+            years.sort()
+            for year in xrange(1845, 1990):
+                if year not in unique_nicknames:
+                    if not any(y for y in years if year > y):
+                        unique_nicknames[year] = []
+                    else:
+                        # Copy the most recent yearly entry
+                        year_to_copy = min([y for y in years if year > y],
+                                           key=lambda q: year-q)
+                        unique_nicknames[year] = unique_nicknames[year_to_copy]
+            city_unique_nicknames[city] = unique_nicknames
+        return city_unique_nicknames
+
+us = Country(year=1885)
+p = min(us.players, key=lambda p: p.pitch_control)
+slappy = min(us.players, key=lambda b: b.swing_timing_error)
+random.shuffle(us.players)
+fatty = next(p for p in us.players if p.weight > 200 and p.swing_timing_error < .1)
+random.shuffle(us.players)
+ump = next(z for z in us.players if z.hometown.name in ("Minneapolis", "St. Paul", "Duluth"))
+catcher = max(us.players, key=lambda qqq: qqq.pitch_receiving)
+ab = AtBat(inning=None, pitcher=p, batter=fatty, catcher=catcher, fielders=None, umpire=ump)
+# l = us.leagues[0]
+# ht = l.teams[0]
+# at = l.teams[-1]
+# Game(league=l, home_team=ht, away_team=at)

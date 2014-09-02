@@ -1,3 +1,10 @@
+import random
+import math
+from random import normalvariate as normal
+
+from team import Team
+from season import Season
+
 class League(object):
     
     def __init__(self, country):
@@ -25,7 +32,9 @@ class League(object):
         print ("\n\nA new baseball major league has been formed in {hq}! It's been christened the "
                "{league}, and features the following charter teams: {all_but_last}, and {last}.".format(
                     hq=self.central.name, league=self.name,
-                    all_but_last=', '.join(team.name for team in self.teams[:-1]), last=self.teams[-1].name))
+                    all_but_last=', '.join(team.name for team in self.teams[:-1]), last=self.teams[-1].name)
+        )
+        raw_input("")
         
         self.charter_teams = [t for t in self.teams]
 
@@ -78,7 +87,7 @@ class League(object):
             
         # Enfranchise qualifying candidate cities
         
-        thresh = int(exp(log(self.central.pop)*0.71))
+        thresh = int(math.exp(math.log(self.central.pop)*0.71))
         for city in vals:
             x = random.randint(0, thresh)
             if x < vals[city]:
@@ -105,7 +114,8 @@ class League(object):
         if self.country.year < 1945:
             central = self.central
             for c in [c for c in self.country.cities if c not in self.cities]:
-                if c.lat == central.lat and c.long == central.long:
+                if (c.latitude == central.latitude and
+                            c.longitude == central.longitude):
                     v = c.pop
                 elif central.get_dist(c) < 1:
                     v = c.pop
@@ -172,7 +182,7 @@ class League(object):
         x = random.randint(0, 45)
         if x <= room:
             cands = []
-            thresh = int(exp(log(central.pop)*0.71))
+            thresh = int(math.exp(math.log(central.pop)*0.71))
             for city in vals:
                 x = random.randint(0, thresh)
                 if x < vals[city]:

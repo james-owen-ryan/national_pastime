@@ -1,0 +1,1378 @@
+
+Akron
+
+Albany
+
+Albuquerque
+
+Alexandria
+
+Allegheny
+
+Allentown
+
+Altoona
+
+Amarillo
+
+Anaheim
+
+Anchorage
+
+Andover
+
+Arlington
+
+Atlanta
+
+Auburn
+
+Augusta
+
+Aurora
+
+Austin
+
+Bakersfield
+
+Baltimore
+
+Bangor
+
+Barnstable
+
+Bath
+
+Baton Rouge
+
+Bay City
+
+Bayonne
+
+Berkeley
+
+Beverly
+
+Binghamton
+
+Birmingham
+
+Boston
+	1840
+		Tea Party
+		Plymouth Rock
+		Harbor
+	1875
+		Tea Partys
+		Plymouth Rocks
+		Harbors
+		Beaneaters
+	1890
+		Tea Partys
+		Plymouth Rocks
+		Harbors
+		Harbormen
+		Beaneaters
+	1900
+		Tea Partys
+		Plymouth Rocks
+		Harbors
+		Beaneaters
+	1950
+		Tea Partys
+		Plymouth Rocks
+		Harbors
+		Beaneaters
+	1967
+		Tea Partys
+		Plymouth Rocks
+		Harbors
+		Beaneaters
+
+Bridgeport
+
+Brockton
+
+Brooklyn
+	1840
+		Atlantic
+		Williamsburg
+	1875
+		Atlantics
+		Williamsburgs
+		Trolley Dodgers
+		Trolleys
+	1890
+		Atlantics
+		Williamsburgs
+		Trolley Dodgers
+		Trolleys
+	1900
+		Atlantics
+		Williamsburgs
+		Trolley Dodgers
+		Trolleys
+	1950
+		Atlantics
+		Williamsburgs
+		Trolley Dodgers
+		Trolleys
+	1967
+		Atlantics
+		Williamsburgs
+		Trolley Dodgers
+		Trolleys
+
+Buffalo
+
+Burlington
+
+Cambridge
+
+Camden
+
+Canton
+
+Carlisle
+
+Charlescity
+
+Charleston
+
+Charlestown
+
+Charlotte
+
+Chattanooga
+
+Chelsea
+
+Chicago
+	1840
+		Windy City
+		Lake Michigan
+	1875
+		Windy Citys
+		Lake Michigans
+		Winds
+	1890
+		Windy Citys
+		Lake Michigans
+		Winds
+		Skyscrapers
+		Skylines
+		Steel Frames
+	1900
+		Windy Citys
+		Lake Michigans
+		Winds
+		Skyscrapers
+		Skylines
+		Steel Frames
+	1950
+		Windy Citys
+		Lake Michigans
+		Winds
+		Skyscrapers
+		Skylines
+		Steel Frames
+	1967
+		Windy Citys
+		Lake Michigans
+		Winds
+		Skyscrapers
+		Skylines
+		Steel Frames
+
+Chicopee
+
+Cincinnati
+
+Cleveland
+	1840
+		Lake Erie
+		Forest City
+	1875
+		Lake Eries
+		Forest Citys
+	1890
+		Lake Eries
+		Forest Citys
+	1900
+		Lake Eries
+		Forest Citys
+	1950
+		Lake Eries
+		Forest Citys
+	1967
+		Lake Eries
+		Forest Citys
+
+Cohoes
+
+Colorado Springs
+
+Columbia
+
+Columbus
+
+Concord
+
+Corpus Christi
+
+Covington
+
+Cumberland
+
+Dallas
+
+Danvers
+
+Davenport
+
+Dayton
+
+Denver
+	1875
+		Rockies
+		Mountains
+		Mountaineers
+		Summits
+		Mile Highs
+		Avalanches
+	1890
+		Rockies
+		Mountains
+		Mountaineers
+		Summits
+		Mile Highs
+		Avalanches
+	1900
+		Rockies
+		Mountains
+		Mountaineers
+		Summits
+		Mile Highs
+		Avalanches
+	1950
+		Rockies
+		Mountains
+		Mountaineers
+		Summits
+		Mile Highs
+		Avalanches
+	1967
+		Rockies
+		Mountains
+		Mountaineers
+		Summits
+		Mile Highs
+		Avalanches
+
+Des Moines
+
+Detroit
+	1840
+		Great Lakes
+	1875
+		Electrics
+		Great Lakes
+		Great Lakers
+	1890
+		Electrics
+		Great Lakes
+		Great Lakers
+	1900
+		Electrics
+		Great Lakes
+		Great Lakers
+		Motorists
+		Motor Citys
+		Pistons
+		Engines
+		Mechanics
+		Cars
+		Automobiles
+	1950
+		Electrics
+		Great Lakes
+		Great Lakers
+	1967
+		Electrics
+		Great Lakes
+		Great Lakers
+
+Dorchester
+
+Dover
+
+Dubuque
+
+Duluth
+	1840
+		Superior
+		Northern
+		Northwest
+	1875
+		Superiors
+		Northerns
+		Northwests
+		Pines
+	1890
+		Superiors
+		Northerns
+		Northwests
+		Pines
+	1900
+		Superiors
+		Northerns
+		Northwests
+		Pines
+	1950
+		Superiors
+		Northerns
+		Northwests
+		Pines
+	1967
+		Superiors
+		Northerns
+		Northwests
+		Pines
+
+East St. Louis
+
+Easton
+
+El Paso
+
+Elizabeth
+
+Elmira
+
+Erie
+
+Evansville
+
+Fall River
+
+Fayetteville
+
+Flint
+
+Fort Lauderdale
+
+Fort Wayne
+
+Fort Worth
+
+Frederick
+
+Fremont
+
+Fresno
+
+Galveston
+
+Gardiner
+
+Garland
+
+Gary
+
+Georgetown
+
+Glendale
+
+Gloucester
+
+Grand Rapids
+
+Greensboro
+
+Harrisburg
+
+Hartford
+
+Haverhill
+
+Hialeah
+
+Hoboken
+
+Holyoke
+
+Honolulu
+	1875
+		Islanders
+		Luaus
+		Hawaiians
+		Volcanos
+		Volcanics
+		Polynesians
+	1890
+		Islanders
+		Luaus
+		Hawaiians
+		Volcanos
+		Volcanics
+		Polynesians
+	1900
+		Islanders
+		Luaus
+		Hawaiians
+		Volcanos
+		Volcanics
+		Polynesians
+	1950
+		Islanders
+		Luaus
+		Hawaiians
+		Volcanos
+		Volcanics
+		Polynesians
+	1967
+		Islanders
+		Luaus
+		Hawaiians
+		Volcanos
+		Volcanics
+		Polynesians
+
+Houston
+
+Hudson
+
+Huntington Beach
+
+Indianapolis
+	1840
+		Indian
+		Western
+	1875
+		Indians
+	1890
+		Indian
+	1900
+		Indian
+	1950
+		Indian
+	1967
+		Indian
+
+Jackson
+
+Jacksonville
+
+Jersey City
+
+Johnstown
+
+Kansas City
+	1875
+		Cowboys
+	1890
+		Cowboys
+	1900
+		Cowboys
+	1950
+		Cowboys
+	1967
+		Cowboys
+
+Kensington
+
+Knoxville
+
+Lafayette
+
+Lancaster
+
+Las Vegas
+	1950
+		Gamblers
+		Dice
+		Casinos
+		Lights
+		Neon Lights
+		Bright Lights
+		Bets
+		Brights
+		Bright Nights
+		Double Downs
+		Strips
+	1967
+		Gamblers
+		Dice
+		Casinos
+		Lights
+		Neon Lights
+		Bright Lights
+		Bets
+		Brights
+		Bright Nights
+		Double Downs
+		Strips
+
+Lawrence
+
+Leavenworth
+
+Lexington
+
+Lincoln
+
+Little Rock
+
+Lockport
+
+Long Beach
+	1950
+		Surfers
+		Waves
+		Suns
+		Suburbs
+	1967
+		Surfers
+		Waves
+		Suns
+		Suburbs
+
+Los Angeles
+	1840
+		Pacific
+	1875
+		Pacifics
+		Angels
+		Seals
+		Sea Lions
+		Suns
+	1890
+		Pacifics
+		Angels
+		Seals
+		Sea Lions
+		Suns
+	1900
+		Pacifics
+		Angels
+		Seals
+		Sea Lions
+		Suns
+	1950
+		Pacifics
+		Angels
+		Seals
+		Sea Lions
+		Suns
+		Stars
+		Hollywoods
+		Silver Screens
+		Motorists
+	1967
+		Pacifics
+		Angels
+		Seals
+		Sea Lions
+		Suns
+		Stars
+		Hollywoods
+		Silver Screens
+		Motorists
+
+Louisville
+	1875
+		Colonels
+	1890
+		Colonels
+	1900
+		Colonels
+	1950
+		Colonels
+	1967
+		Colonels
+
+Lowell
+
+Lubbock
+
+Lynchburg
+
+Lynn
+
+Madison
+
+Manchester
+
+Marblehead
+
+Memphis
+
+Mesa
+
+Metairie
+
+Miami
+
+Middleborough
+
+Middletown
+
+Milwaukee
+	1875
+		Brewers
+		Germans
+		Packers
+		Badgers
+		Dairies
+	1890
+		Brewers
+		Germans
+		Packers
+		Badgers
+		Dairies
+	1900
+		Brewers
+		Germans
+		Packers
+		Badgers
+		Dairies
+	1950
+		Brewers
+		Germans
+		Packers
+		Badgers
+		Dairies
+	1967
+		Brewers
+		Germans
+		Packers
+		Badgers
+		Dairies
+
+Minneapolis
+	1840
+		Lake City
+		Mississippi
+		Cherokee
+		Indian
+		Aquatic
+		Gopher
+		Northern
+		Twin City
+		Northwest
+	1875
+		Lake Citys
+		Mississippis
+		Cherokees
+		Indians
+		Aquatics
+		Gophers
+		Northerns
+		Twin Citys
+		Northwests
+		Mallards
+		Millers
+		Mills
+		Lakes
+		Lakers
+	1890
+		Lake Citys
+		Mississippis
+		Cherokees
+		Indians
+		Aquatics
+		Gophers
+		Northerns
+		Twin Citys
+		Northwests
+		Mallards
+		Millers
+		Mills
+		Lakes
+		Lakers
+	1900
+		Lake Citys
+		Mississippis
+		Cherokees
+		Indians
+		Aquatics
+		Gophers
+		Northerns
+		Twin Citys
+		Northwests
+		Mallards
+		Millers
+		Mills
+		Lakes
+		Lakers
+	1950
+		Lake Citys
+		Mississippis
+		Cherokees
+		Indians
+		Aquatics
+		Gophers
+		Northerns
+		Twin Citys
+		Northwests
+		Mallards
+		Millers
+		Mills
+		Lakes
+		Lakers
+	1967
+		Lake Citys
+		Mississippis
+		Cherokees
+		Indians
+		Aquatics
+		Gophers
+		Northerns
+		Twin Citys
+		Northwests
+		Mallards
+		Millers
+		Mills
+		Lakes
+		Lakers
+
+Mobile
+
+Montgomery
+
+Moyamensing
+
+Nantucket
+
+Nashua
+
+Nashville
+
+New Albany
+
+New Bedford
+
+New Brunswick
+
+New Haven
+
+New London
+
+New Orleans
+	1840
+		Gulf Coast
+		French Quarter
+	1875
+		Gulf Coasts
+		French Quarters
+		Crawdads
+		Saints
+		Monsieurs
+		Craws
+		Pelicans
+		Gulf Coasts
+	1890
+		Gulf Coasts
+		French Quarters
+		Crawdads
+		Saints
+		Monsieurs
+		Craws
+		Pelicans
+		Gulf Coasts
+	1900
+		Gulf Coasts
+		French Quarters
+		Crawdads
+		Saints
+		Monsieurs
+		Craws
+		Pelicans
+		Gulf Coasts
+	1950
+		Gulf Coasts
+		French Quarters
+		Crawdads
+		Saints
+		Monsieurs
+		Craws
+		Pelicans
+		Gulf Coasts
+	1967
+		Gulf Coasts
+		French Quarters
+		Crawdads
+		Saints
+		Monsieurs
+		Craws
+		Pelicans
+		Gulf Coasts
+
+New York
+	1840
+		Gotham
+		Empire
+		Knickerbocker
+		Atlantic
+		Harlem
+		Manhattan
+		Islander
+		Downtown
+		Uptown
+	1875
+		Gothams
+		Empires
+		Knickerbockers
+		Atlantics
+		Harlems
+		Manhattans
+		Islanders
+		Downtowns
+		Uptowns
+		Advertisements
+		Times Squares
+		Metropolitans
+		Immigrants
+	1890
+		Gothams
+		Empires
+		Knickerbockers
+		Atlantics
+		Harlems
+		Manhattans
+		Islanders
+		Downtowns
+		Uptowns
+		Advertisements
+		Times Squares
+		Metropolitans
+		Immigrants
+		Skyscrapers
+		Skylines
+		Steel Frames
+	1900
+		Gothams
+		Empires
+		Knickerbockers
+		Atlantics
+		Harlems
+		Manhattans
+		Islanders
+		Downtowns
+		Uptowns
+		Advertisements
+		Times Squares
+		Metropolitans
+		Immigrants
+		Skyscrapers
+		Skylines
+		Steel Frames
+	1950
+		Gothams
+		Empires
+		Knickerbockers
+		Atlantics
+		Harlems
+		Manhattans
+		Islanders
+		Downtowns
+		Uptowns
+		Advertisements
+		Times Squares
+		Metropolitans
+		Immigrants
+		Skyscrapers
+		Skylines
+		Steel Frames
+	1967
+		Gothams
+		Empires
+		Knickerbockers
+		Atlantics
+		Harlems
+		Manhattans
+		Islanders
+		Downtowns
+		Uptowns
+		Advertisements
+		Times Squares
+		Metropolitans
+		Immigrants
+		Skyscrapers
+		Skylines
+		Steel Frames
+
+Newark
+
+Newburgh
+
+Newburyport
+
+Newport
+
+Norfolk
+
+North Providence
+
+Northern Liberties
+
+Norwich
+
+Oakland
+
+Oklahoma City
+
+Omaha
+
+Oswego
+
+Passaic
+
+Paterson
+
+Patterson
+
+Pawtucket
+
+Peoria
+
+Petersburg
+
+Philadelphia
+	1840
+		Convention
+		Constitution
+		Penn
+		Northern Liberties
+		Southwark
+		Franklin
+	1875
+		Conventions
+		Constitutions
+		Penns
+		Franklins
+		76ers
+		Centennials
+	1890
+		Conventions
+		Constitutions
+		Penns
+		Franklins
+		76ers
+		Centennials
+	1900
+		Conventions
+		Constitutions
+		Penns
+		Franklins
+		76ers
+		Centennials
+	1950
+		Conventions
+		Constitutions
+		Penns
+		Franklins
+		76ers
+		Centennials
+	1967
+		Conventions
+		Constitutions
+		Penns
+		Franklins
+		76ers
+		Centennials
+
+Phoenix
+
+Pittsburgh
+
+Plymouth
+
+Portland
+
+Portland (OR)
+
+Portsmouth
+
+Pottsville
+
+Poughkeepsie
+
+Providence
+
+Quincy
+
+Raleigh
+
+Reading
+
+Richmond
+
+Riverside
+
+Rochester
+
+Rockford
+	1840
+		Forest City
+	1875
+		Forest Citys
+	1890
+		Forest Citys
+	1900
+		Forest Citys
+	1950
+		Forest Citys
+	1967
+		Forest Citys
+
+Roxbury
+
+Sacramento
+
+Saginaw
+
+Salem
+
+Salt Lake City
+	1875
+		Prophets
+		Mormons
+		Salt Lakers
+		Mountaineers
+		Summits
+	1890
+		Prophets
+		Mormons
+		Salt Lakers
+		Mountaineers
+		Summits
+	1900
+		Prophets
+		Mormons
+		Salt Lakers
+		Mountaineers
+		Summits
+	1950
+		Prophets
+		Mormons
+		Salt Lakers
+		Mountaineers
+		Summits
+	1967
+		Prophets
+		Mormons
+		Salt Lakers
+		Mountaineers
+		Summits
+
+San Antonio
+
+San Diego
+
+San Francisco
+	1840
+		Western
+		West Coast
+		Pacific
+	1875
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Prospectors
+		Seals
+		Sea Lions
+		Whales
+		Sharks
+	1890
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Prospectors
+		Seals
+		Sea Lions
+		Whales
+		Sharks
+	1900
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Prospectors
+		Seals
+		Sea Lions
+		Whales
+		Sharks
+	1950
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Prospectors
+		Seals
+		Sea Lions
+		Whales
+		Sharks
+	1967
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Prospectors
+		Seals
+		Sea Lions
+		Whales
+		Sharks
+
+San Jose
+
+Santa Ana
+
+Savannah
+
+Schenectady
+
+Scranton
+
+Seattle
+	1875
+		Umbrellas
+		Raindrops
+		Clouds
+		Grays
+		Mariners
+	1890
+		Umbrellas
+		Raindrops
+		Clouds
+		Grays
+		Mariners
+	1900
+		Umbrellas
+		Raindrops
+		Clouds
+		Grays
+		Mariners
+	1950
+		Umbrellas
+		Raindrops
+		Clouds
+		Grays
+		Mariners
+	1967
+		Umbrellas
+		Raindrops
+		Clouds
+		Grays
+		Mariners
+
+Shreveport
+
+Sioux City
+
+Somerville
+
+South Bend
+
+Southwark
+
+Spokane
+
+Spring Garden
+
+Springfield
+
+St. Joseph
+
+St. Louis
+	1840
+		Mississippi
+		Western
+	1875
+		Mississippis
+		Saints
+		Riverboats
+		Westerns
+	1890
+		Mississippis
+		Saints
+		Riverboats
+	1900
+		Mississippis
+		Saints
+		Riverboats
+	1950
+		Mississippis
+		Saints
+		Riverboats
+	1967
+		Riverboats
+		Archs
+
+St. Paul
+	1840
+		Apostle
+		Pig's Eye
+		Mississippi
+		Twin City
+		Northern
+		Northwest
+	1875
+		Apostles
+		Pig's Eyes
+		Mississippis
+		Twin Citys
+		Northerns
+		Northwests
+		Saints
+	1890
+		Apostles
+		Pig's Eyes
+		Mississippis
+		Twin Citys
+		Northerns
+		Northwests
+		Saints
+	1900
+		Apostles
+		Pig's Eyes
+		Mississippis
+		Twin Citys
+		Northerns
+		Northwests
+		Saints
+	1950
+		Apostles
+		Pig's Eyes
+		Mississippis
+		Twin Citys
+		Northerns
+		Northwests
+		Saints
+	1967
+		Apostles
+		Pig's Eyes
+		Mississippis
+		Twin Citys
+		Northerns
+		Northwests
+		Saints
+
+St. Petersburg
+
+Steubenville
+
+Stockton
+
+Syracuse
+
+Tacoma
+
+Tampa
+
+Taunton
+
+Terre Haute
+
+Toledo
+
+Topeka
+
+Trenton
+
+Troy
+
+Tucson
+
+Tulsa
+
+Utica
+
+Virginia Beach
+
+Warren
+
+Warwick
+
+Washington
+	1840
+		National
+		American
+		Capitol
+		District
+		Columbia
+		Monument
+		Political
+	1875
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+	1890
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+	1900
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+	1950
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+	1967
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+
+Waterbury
+
+West Troy
+
+Wheeling
+
+Wichita
+
+Wilkes-Barre
+
+Williamsburgh
+
+Williamsport
+
+Wilmington
+
+Worcester
+
+Yonkers
+
+York
+
+Youngstown
+
+Zanesville
