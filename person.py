@@ -33,6 +33,9 @@ class Person(object):
 
         # Put here for now
         self.bat = Bat()
+        self.primary_position = None
+        self.position = None  # Position currently at -- used during game
+        self.location = None  # Exact x, y coordinates on the field
 
     def init_physical_attributes(self):
         self.height = int(normal(69, 2))  # Average for 1870s
@@ -275,6 +278,27 @@ class Person(object):
         self.control += int(round(normal(d, 1)))
         # self.changeup += int(round(normal(d, 1)))
         # self.curveball += int(round(normal(d, 1)))
+
+    def get_in_position(self):
+        """Get into defensive position prior to a pitch."""
+        if self.position == "P":
+            self.location = [0, 60.5]
+        elif self.position == "C":
+            self.location = [0, -2]
+        elif self.position == "1B":
+            self.location = [69, 79]
+        elif self.position == "2B":
+            self.location = [32, 132]
+        elif self.position == "SS":
+            self.location = [-32, 132]
+        elif self.position == "3B":
+            self.location = [-65, 75]
+        elif self.position == "RF":
+            self.location = [30, 180]
+        elif self.position == "CF":
+            self.location = [2, 225]
+        elif self.position == "LF":
+            self.location = [-30, 180]
 
     def decide_pitch(self, batter, count):
 

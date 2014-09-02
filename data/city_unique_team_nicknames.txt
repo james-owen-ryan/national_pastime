@@ -830,7 +830,6 @@ New York
 		Downtowns
 		Uptowns
 		Advertisements
-		Times Squares
 		Metropolitans
 		Immigrants
 	1890
@@ -844,7 +843,6 @@ New York
 		Downtowns
 		Uptowns
 		Advertisements
-		Times Squares
 		Metropolitans
 		Immigrants
 		Skyscrapers

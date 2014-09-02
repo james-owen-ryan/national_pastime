@@ -50,9 +50,9 @@ class Inning(object):
         self.game.innings.append(self)
         self.number = number
         # Players currently on base
-        self.first = None
-        self.second = None
-        self.third = None
+        self.on_first = None
+        self.on_second = None
+        self.on_third = None
         # Other miscellany
         self.outs = 0
         self.at_bats = []
@@ -60,34 +60,35 @@ class Inning(object):
         self.frame = 'Top'
         print "\t {} \n".format(self)
         raw_input("")
-        batting_team = self.game.away_team
-        pitching_team = self.game.home_team
-        while self.outs < 3:
-            # batting_team.consider_changes(game=self.game)
-            # .pitching_team.consider_changes(game=self.game)
-            # self.simulate_deadball_events()
-            ab = AtBat(inning=self, pitcher=pitching_team.pitcher,
-                       batter=batting_team.batter, fielders=pitching_team.fielders)
-            print ab.outcome
-            print "1B: {}  2B: {}  3B: {}".format(self.first, self.second, self.third)
-            raw_input("")
-        self.outs = 0
-        # Enact bottom frame
-        self.frame = 'Bottom'
-        print "\t {} \n".format(self)
-        raw_input("")
-        batting_team = self.game.home_team
-        pitching_team = self.game.away_team
-        if not batting_team.runs > pitching_team.runs:
-            while self.outs < 3:
-                # self.batting_team.consider_changes(game=self.game)
-                # self.pitching_team.consider_changes(game=self.game)
-                # self.simulate_deadball_events()
-                ab = AtBat(inning=self, pitcher=pitching_team.pitcher,
-                           batter=batting_team.batter, fielders=pitching_team.fielders)
-                print ab.outcome
-                print "1B: {}  2B: {}  3B: {}".format(self.first, self.second, self.third)
-                raw_input('')
+        self.batting_team = self.game.away_team
+        self.pitching_team = self.game.home_team
+
+        # while self.outs < 3:
+        #     # batting_team.consider_changes(game=self.game)
+        #     # .pitching_team.consider_changes(game=self.game)
+        #     # self.simulate_deadball_events()
+        #     ab = AtBat(inning=self, pitcher=pitching_team.pitcher,
+        #                batter=batting_team.batter, fielders=pitching_team.fielders)
+        #     print ab.outcome
+        #     print "1B: {}  2B: {}  3B: {}".format(self.first, self.second, self.third)
+        #     raw_input("")
+        # self.outs = 0
+        # # Enact bottom frame
+        # self.frame = 'Bottom'
+        # print "\t {} \n".format(self)
+        # raw_input("")
+        # batting_team = self.game.home_team
+        # pitching_team = self.game.away_team
+        # if not batting_team.runs > pitching_team.runs:
+        #     while self.outs < 3:
+        #         # self.batting_team.consider_changes(game=self.game)
+        #         # self.pitching_team.consider_changes(game=self.game)
+        #         # self.simulate_deadball_events()
+        #         ab = AtBat(inning=self, pitcher=pitching_team.pitcher,
+        #                    batter=batting_team.batter, fielders=pitching_team.fielders)
+        #         print ab.outcome
+        #         print "1B: {}  2B: {}  3B: {}".format(self.first, self.second, self.third)
+        #         raw_input('')
 
     def __str__(self):
         ordinals = {
@@ -119,6 +120,8 @@ class AtBat(object):
         else:
             self.umpire = umpire
         self.pitches = []
+        for fielder in self.fielders:
+            fielder.get_in_position()
 
     def enact(self, pitch_coords=None, count=None, power=0.8):
         p = self.pitcher
