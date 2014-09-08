@@ -4,7 +4,9 @@ import random
 
 from city import City
 from league import League
-from game import AtBat
+from ballpark import Ballpark
+from game import Game, Inning, Frame, AtBat
+from rules import Rules
 
 
 class Country(object):
@@ -198,15 +200,24 @@ class Country(object):
         return city_unique_nicknames
 
 us = Country(year=1885)
-p = min(us.players, key=lambda p: p.pitch_control)
-slappy = min(us.players, key=lambda b: b.swing_timing_error)
+pitcher = min(us.players, key=lambda p: p.pitch_control)
+slap = min(us.players, key=lambda b: b.swing_timing_error)
 random.shuffle(us.players)
 fatty = next(p for p in us.players if p.weight > 200 and p.swing_timing_error < .1)
 random.shuffle(us.players)
 ump = next(z for z in us.players if z.hometown.name in ("Minneapolis", "St. Paul", "Duluth"))
 catcher = max(us.players, key=lambda qqq: qqq.pitch_receiving)
-ab = AtBat(inning=None, pitcher=p, batter=fatty, catcher=catcher, fielders=None, umpire=ump)
-# l = us.leagues[0]
-# ht = l.teams[0]
-# at = l.teams[-1]
-# Game(league=l, home_team=ht, away_team=at)
+other_fielders = random.sample(us.players, 7)
+for i in xrange(len(other_fielders)):
+    d = {0: "1B", 1: "2B", 2: "SS", 3: "3B", 4: "RF", 5: "CF", 6: "LF"}
+    other_fielders[i].position = d[i]
+fielders = other_fielders + [pitcher, catcher]
+catcher.position = "C"
+pitcher.position = "P"
+l = us.leagues[0]
+ballpark = Ballpark(city=l.teams[0].city, tenants=[l.teams[0]])
+game = Game(ballpark=ballpark, league=l, home_team=l.teams[0], away_team=l.teams[1], rules=Rules())
+inning = Inning(game=game, number=5)
+frame = Frame(inning=inning, bottom=True)
+ab = AtBat(frame=frame)
+ab.draw_playing_field()

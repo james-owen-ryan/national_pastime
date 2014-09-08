@@ -51,7 +51,7 @@ class League(object):
        # if self.country.year > int(round(normal(1918,8))):
        #     sport_name = 'Baseball'
        # else:
-       #     sport_name = 'Base Ball'
+       #     sport_name = 'Base Baseball'
             
         stem = random.choice(['League', 'Association'])
         

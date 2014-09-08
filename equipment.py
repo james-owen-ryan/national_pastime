@@ -1,6 +1,7 @@
 from random import normalvariate as normal
 
-class Ball(object):
+
+class Baseball(object):
 
     def __init__(self):
 

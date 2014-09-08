@@ -109,12 +109,27 @@ class Team(object):
     def init_players(self):
 
         # find hitters
-        self.fielders = random.sample(self.city.players, 8)
+        self.fielders = random.sample(self.city.players, 7)
         # find pitcher
-        self.pitcher = random.sample(self.city.players, 1)[0]
-        self.players = self.fielders + [self.pitcher]
+        self.pitcher = min(self.city.players, key=lambda p: p.pitch_control)
+        self.catcher = max(self.city.players, key=lambda p: p.pitch_receiving)
+        self.players = self.fielders = self.fielders + [self.pitcher, self.catcher]
         for player in self.players:
             player.team = self
+        self.pitcher.position = "P"
+        self.catcher.position = "C"
+        self.fielders[0].position = "1B"
+        self.fielders[1].position = "2B"
+        self.fielders[2].position = "SS"
+        self.fielders[3].position = "3B"
+        for f in self.fielders[0:4]:
+            f.infielder = True
+        self.pitcher.infielder = self.catcher.infielder = True
+        self.fielders[4].position = "RF"
+        self.fielders[5].position = "CF"
+        self.fielders[6].position = "LF"
+        for f in self.fielders[3:]:
+            f.outfielder = True
 
     def __str__(self):
 

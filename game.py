@@ -1,12 +1,19 @@
 import random
+from outcome import Strike, Ball, Strikeout, BaseOnBalls
+
+COUNTS = {(0, 0): 00, (1, 0): 10, (2, 0): 20, (3, 0): 30,
+          (0, 1): 10, (1, 1): 11, (2, 1): 21, (3, 1): 31,
+          (0, 2): 02, (1, 2): 12, (2, 2): 22, (3, 2): 32}
 
 
 class Game(object):
 
-    def __init__(self, league, home_team, away_team):
+    def __init__(self, ballpark, home_team, away_team, league, rules):
+        self.ballpark = ballpark
         self.league = league
         self.home_team = home_team
         self.away_team = away_team
+        self.rules = rules  # Rules game will be played under
         # Prepare for game
         home_team.pitcher = home_team.pitcher
         away_team.pitcher = away_team.pitcher
@@ -16,10 +23,14 @@ class Game(object):
         away_team.batter = away_team.batting_order[0]
         self.home_team.runs = self.away_team.runs = 0
         self.innings = []
+        self.umpire = next(z for z in self.league.country.players if
+                           z.hometown.name in ("Minneapolis", "St. Paul", "Duluth"))
+
+    def enact(self):
         for inning_n in xrange(1, 10):
             Inning(game=self, number=inning_n)
         inning_n = 9
-        while home_team.runs == away_team.runs:
+        while self.home_team.runs == self.away_team.runs:
             inning_n += 1
             Inning(game=self, number=inning_n)
         if self.home_team.runs > self.away_team.runs:
@@ -49,81 +60,170 @@ class Inning(object):
         self.game = game
         self.game.innings.append(self)
         self.number = number
+        self.frames = []
+
+    def enact(self):
+        top = Frame(inning=self, top=True)
+        top.enact()
+        if not (self.number >= 9 and
+                self.game.home_team.runs > self.game.away_team.runs):
+            bottom = Frame(inning=self, bottom=True)
+            bottom.enact()
+
+
+class Frame(object):
+
+    def __init__(self, inning, top=False, middle=False, bottom=False):
+        self.inning = inning
+        inning.frames.append(self)
+        self.game = inning.game
+        if top:
+            self.half = "Top"
+            self.batting_team = self.game.away_team
+            self.pitching_team = self.game.home_team
+        elif middle:
+            self.half = "Middle"
+        elif bottom:
+            self.half = "Bottom"
+            self.batting_team = self.game.home_team
+            self.pitching_team = self.game.away_team
         # Players currently on base
         self.on_first = None
         self.on_second = None
         self.on_third = None
         # Other miscellany
+        self.runs = 0  # Runs batting team has scored this inning
         self.outs = 0
-        self.at_bats = []
-        # Enact top frame
-        self.frame = 'Top'
-        print "\t {} \n".format(self)
-        raw_input("")
-        self.batting_team = self.game.away_team
-        self.pitching_team = self.game.home_team
+        self.at_bats = []  # Appended to by AtBat.__init__()
+        self.at_bat = None
 
-        # while self.outs < 3:
-        #     # batting_team.consider_changes(game=self.game)
-        #     # .pitching_team.consider_changes(game=self.game)
-        #     # self.simulate_deadball_events()
-        #     ab = AtBat(inning=self, pitcher=pitching_team.pitcher,
-        #                batter=batting_team.batter, fielders=pitching_team.fielders)
-        #     print ab.outcome
-        #     print "1B: {}  2B: {}  3B: {}".format(self.first, self.second, self.third)
-        #     raw_input("")
-        # self.outs = 0
-        # # Enact bottom frame
-        # self.frame = 'Bottom'
-        # print "\t {} \n".format(self)
-        # raw_input("")
-        # batting_team = self.game.home_team
-        # pitching_team = self.game.away_team
-        # if not batting_team.runs > pitching_team.runs:
-        #     while self.outs < 3:
-        #         # self.batting_team.consider_changes(game=self.game)
-        #         # self.pitching_team.consider_changes(game=self.game)
-        #         # self.simulate_deadball_events()
-        #         ab = AtBat(inning=self, pitcher=pitching_team.pitcher,
-        #                    batter=batting_team.batter, fielders=pitching_team.fielders)
-        #         print ab.outcome
-        #         print "1B: {}  2B: {}  3B: {}".format(self.first, self.second, self.third)
-        #         raw_input('')
+    def enact(self):
+        while self.outs < 3:
+            self.at_bat = AtBat(frame=self)
+
+    def advance_runners(self):
+        """Advance the batter to first and any preceding runners, as necessary."""
+        if self.on_first and self.on_second and self.on_third:
+            self.batting_team.runs += 1  # Third advances and scores
+            self.on_third = self.on_second
+            self.on_second = self.on_first
+            self.on_first = self.at_bat.batter
+        elif self.inning.first and self.inning.second:
+            self.on_third = self.on_second
+            self.on_second = self.on_first
+            self.on_first = self.at_bat.batter
+        elif self.on_first:
+            self.on_second = self.on_first
+            self.on_first = self.at_bat.batter
+        else:
+            self.on_first = self.at_bat.batter
 
     def __str__(self):
         ordinals = {
             1: 'first', 2: 'second', 3: 'third', 4: 'fourth', 5: 'fifth',
             6: 'sixth', 7: 'seventh', 8: 'eighth', 9: 'ninth'
         }
-        if self.frame == "Top":
+        if self.half == "Top":
             return "{} of the {} inning -- {} up to bat".format(
-                self.frame, ordinals[self.number], self.game.away_team
+                self.half, ordinals[self.inning.number], self.game.away_team
             )
         else:
             return "{} of the {} inning -- {} up to bat".format(
-                self.frame, ordinals[self.number], self.game.home_team
+                self.half, ordinals[self.inning.number], self.game.home_team
             )
 
 
 class AtBat(object):
 
-    def __init__(self, inning, pitcher, batter, catcher, fielders, umpire=None):
-        self.inning = inning
-        # self.game = inning.game
-        # self.inning.at_bats.append(self)
-        self.batter = batter
-        self.pitcher = pitcher
-        self.catcher = catcher
-        self.fielders = fielders
-        if not umpire:
-            self.umpire = pitcher.hometown.players[-1]
-        else:
-            self.umpire = umpire
+    def __init__(self, frame):
+        self.frame = frame
+        self.frame.at_bats.append(self)
+        self.game = frame.game
+        self.batter = frame.batting_team.batter
+        self.pitcher = frame.pitching_team.pitcher
+        self.catcher = frame.pitching_team.catcher
+        self.fielders = frame.pitching_team.fielders
+        self.umpire = self.game.umpire
         self.pitches = []
-        for fielder in self.fielders:
-            fielder.get_in_position()
+        # Blank count to start
+        self.balls = self.strikes = 0
+        self.count = 00
+        # Modified below
+        self.result = None
 
-    def enact(self, pitch_coords=None, count=None, power=0.8):
+    def enact(self):
+        resolved = False
+        while not resolved:
+            self.count = COUNTS[(self.balls, self.strikes)]
+            # Fielders get in position
+            for fielder in self.fielders:
+                fielder.get_in_position()
+            # Pitcher prepares delivery
+            kind, x, y = self.pitcher.decide_pitch(at_bat=self)
+            # The pitch...
+            pitch = self.pitcher.pitch(at_bat=self, x=x, y=y, kind=kind)
+            batter_will_swing = self.batter.decide_whether_to_swing(pitch)
+            if not batter_will_swing:
+                if not pitch.bean:
+                    # Catcher attempts to receive pitch
+                    pitch.caught = self.catcher.receive_pitch(pitch)
+                    # Umpire makes his call
+                    pitch.call = pitch.would_be_call
+                    if pitch.call == "Strike":
+                        Strike(pitch=pitch)
+                    elif pitch.call == "Ball":
+                        Ball(pitch=pitch)
+            # The swing...
+            elif batter_will_swing:
+                power, upward_force, pull = (
+                    self.batter.decide_how_to_swing(pitch)
+                )
+                swing = self.batter.swing(pitch, power, upward_force,
+                                          pull)
+                if not swing.contact:
+                    # Swing and a miss!
+                    Strike(pitch=pitch)
+                else:
+                    # Contact is made
+                    batted_ball = swing.result
+                    time_since_contact = 0.0
+                    # Fielders read the batted ball and decide immediate goals
+
+
+
+    def draw_playing_field(self):
+        import turtle
+        self.turtle = turtle
+        turtle.setworldcoordinates(-1000, -1000, 1000, 1000)
+        turtle.ht()
+        turtle.tracer(10000)
+        turtle.penup()
+        turtle.goto(-226, 226)
+        turtle.pendown()
+        h, k = 226, 400  # Our vertex is the center-field wall
+        a = -0.0034
+        for x in xrange(0, 453):
+            y = (a * (x - h)**2) + k
+            turtle.goto(x-226, y)
+        turtle.goto(0, -60)
+        turtle.goto(-226, 226)
+        turtle.penup()
+        turtle.goto(0, 0)
+        turtle.pendown()
+        turtle.dot()
+        turtle.goto(66.5, 66.5)
+        turtle.dot()
+        turtle.goto(0, 127)
+        turtle.dot()
+        turtle.goto(-66.5, 66.5)
+        turtle.dot()
+        turtle.goto(0, 0)
+        turtle.goto(226, 226)
+        turtle.goto(0, 0)
+        turtle.goto(-226, 226)
+        turtle.update()
+
+    def test(self, pitch_coords=None, count=None, power=0.8):
         p = self.pitcher
         b = self.batter
         c = self.catcher
@@ -136,12 +236,12 @@ class AtBat(object):
             count = 00
         self.count = count
         print "\n\tCount: {}\n".format(count)
-        kind, x, y = p.decide_pitch(batter=b,
-                                    count=count)
+        for fielder in self.fielders:
+            fielder.get_in_position()
+        _, x, y = p.decide_pitch(at_bat=self)  # _ is kind
         if pitch_coords:
             x, y = pitch_coords
-        pitch = p.pitch(batter=b, catcher=c, at_bat=self,
-                        x=x, y=y, kind=kind)
+        pitch = p.pitch(at_bat=self, x=x, y=y)
         print "Pitcher intends {} at [{}, {}]".format(
             pitch.pitcher_intention, pitch.pitcher_intended_x,
             pitch.pitcher_intended_y)
@@ -178,120 +278,25 @@ class AtBat(object):
             if swing.contact:
                 print "\n\tThe ball is hit!\n"
                 bb = swing.result
+                bb.get_landing_point_and_hang_time(timestep=0.1)
+                self.turtle.penup()
+                self.turtle.goto(bb.true_landing_point)
+                self.turtle.color("purple")
+                self.turtle.dot(3)
                 print "\n\tVertical launch angle: {}".format(bb.vertical_launch_angle)
                 print "\tHorizontal launch angle: {}".format(bb.horizontal_launch_angle)
                 print "\tDistance: {}".format(bb.true_distance)
                 print "\tLanding point: {}".format(bb.true_landing_point)
+                bb.get_distances_from_fielders_to_landing_point()
+                for fielder in self.fielders:
+                    print "\t\n{} distance to landing point: {}".format(
+                        fielder.position, fielder.dist_to_landing_point
+                    )
+                for fielder in self.fielders:
+                    if fielder.batted_ball_pecking_order:
+                        print "{} has pecking order {}".format(fielder.position, fielder.batted_ball_pecking_order)
                 return bb
             elif not swing.contact:
                 print "\n\tSwing and a miss!"
                 print "Reasons: {}\n".format(swing.swing_and_miss_reasons)
                 return swing
-
-
-    # def enact(self):
-    #     # if pitcher.intent == "bean":
-    #     #     batter.walk(beanball=True)
-    #     # if pitcher.intent == "walk":
-    #     #     batter.walk(intentional=True)
-    #     x = random.random()
-    #     if x < 0.1:
-    #         return self.home_run()
-    #     elif x < 0.4:
-    #         return self.strikeout(swing_and_a_miss=True)
-    #     elif x < 0.75:
-    #         return self.strikeout(called_third_strike=True)
-    #     elif x < 0.8:
-    #         return self.walk(beanball=True)
-    #     elif x < 0.9:
-    #         return self.walk(hit_by_pitch=True)
-    #     elif x < 0.95:
-    #         return self.walk(intentional=True)
-    #     else:
-    #         return self.walk()
-
-    def strikeout(self, called_third_strike=False, swing_and_a_miss=False):
-        # Articulate the outcome
-        if called_third_strike:
-            outcome = "{} called out on strikes".format(self.batter.ln)
-        elif swing_and_a_miss:
-            outcome = "{} strikes out".format(self.batter.ln)
-        # Increment batting team's outs
-        self.inning.outs += 1
-        # Get batting team's next batter
-        self.batter.team.batter = self.game.get_next_batter(self.batter.team)
-        return outcome
-
-    def walk(self, beanball=False, hit_by_pitch=False, intentional=False):
-        # Begin to articulate the outcome
-        if beanball:
-            outcome = "{} intentionally beans {}".format(
-                self.pitcher.ln, self.batter.ln
-            )
-        elif hit_by_pitch:
-            outcome = "{} hit by pitch".format(
-                self.batter.ln
-            )
-        elif intentional:
-            outcome = "{} intentionally walks {}".format(
-                self.pitcher.ln, self.batter.ln
-            )
-        else:
-            outcome = "{} walks".format(
-                self.batter.ln
-            )
-        # Advance this runner and any preceding runners, as necessary
-        if self.inning.first and self.inning.second and self.inning.third:
-            outcome += (
-                " [{} scores, {} to third, {} to second]".format(
-                    self.inning.third.ln, self.inning.second.ln, self.inning.first.ln
-                )
-            )
-            self.batter.team.runs += 1
-            self.inning.third = self.inning.second
-            self.inning.second = self.inning.first
-            self.inning.first = self.batter
-        elif self.inning.first and self.inning.second:
-            outcome += (
-                " [{} to third, {} to second]".format(
-                    self.inning.second.ln, self.inning.first.ln
-                )
-            )
-            self.inning.third = self.inning.second
-            self.inning.second = self.inning.first
-            self.inning.first = self.batter
-        elif self.inning.first:
-            outcome += " [{} to second]".format(self.inning.first.ln)
-            self.inning.second = self.inning.first
-            self.inning.first = self.batter
-        else:
-            self.inning.first = self.batter
-        # If it's a beanball, simulate extracurricular activity [TODO]
-        if beanball:
-            pass
-        # Get batting team's next batter
-        self.batter.team.batter = self.game.get_next_batter(self.batter.team)
-        return outcome
-
-    def home_run(self):
-        # Begin to articulate the outcome
-        outcome = "{} homers".format(self.batter.ln)
-        if self.inning.third or self.inning.second or self.inning.first:
-            outcome += " ["
-            # Score for any preceding runners
-            if self.inning.third:
-                outcome += "{} scores, ".format(self.inning.third.ln)
-                self.batter.team.runs += 1
-                self.inning.third = None
-            if self.inning.second:
-                outcome += "{} scores, ".format(self.inning.second.ln)
-                self.batter.team.runs += 1
-                self.inning.second = None
-            if self.inning.first:
-                outcome += "{} scores, ".format(self.inning.first.ln)
-                self.batter.team.runs += 1
-                self.inning.first = None
-            outcome = outcome[:-2] + "]"
-        # Get batting team's next batter
-        self.batter.team.batter = self.game.get_next_batter(self.batter.team)
-        return outcome

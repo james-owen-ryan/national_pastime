@@ -1,9 +1,10 @@
 import random
 import os
+import math
 from random import normalvariate as normal
 
 from play import Pitch, Swing
-from equipment import Bat, Ball
+from equipment import Bat, Baseball
 
 FORENAMES = [name[:-1] for name in open(
     os.getcwd()+'/corpora/male_names.txt', 'r')
@@ -31,11 +32,25 @@ class Person(object):
 
         self.strike_zone = self.init_strike_zone()
 
-        # Put here for now
+        # Miscellaneous -- put here for now
         self.bat = Bat()
         self.primary_position = None
+        # Dynamic attributes that change during a game
         self.position = None  # Position currently at -- used during game
         self.location = None  # Exact x, y coordinates on the field
+        self.outfielder = self.infielder = False
+        self.dist_to_landing_point = None
+        self.batted_ball_pecking_order = None
+        self.immediate_goal = None
+        self.dist_per_timestep = None  # Feet per timestep in approach to immediate goal
+        # Prepare statistical lists
+        self.pitches = []
+        self.pitching_strikeouts = []
+        self.pitching_walks = []
+        self.batting_strikeouts = []
+        self.batting_walks = []
+        self.putouts = []
+        self.outs = []  # Instances where a player was called out
 
     def init_physical_attributes(self):
         self.height = int(normal(69, 2))  # Average for 1870s
@@ -49,14 +64,33 @@ class Person(object):
         else:
             base = 0.85
         self.coordination = normal(base, base/10)
-        self.reflexes = normal(self.coordination, self.coordination/10)
-        # Ball tracking ability affects a player's ability to anticipate
-        # the trajectories and landing points of balls in movement
-        self.ball_tracking_ability = 0.9 + random.random()/10
         if self.coordination > 1:
             self.coordination = 1.0
+        # Determine reflexes, which is correlated to coordination
+        self.reflexes = normal(self.coordination, self.coordination/10)
         if self.reflexes > 1:
             self.reflexes = 1.0
+        # Determine footspeed, which is correlated to coordination and
+        # height (with 6'1 somewhat arbitrarily being the ideal height)
+        primitive_footspeed = (
+            (1.5 * self.coordination) - abs((self.height-73)/73.)
+        )
+        diff_from_avg = primitive_footspeed - 1.15
+        if diff_from_avg >= 0:
+            self.full_speed_sec_per_foot = (7.3 - normal(0, diff_from_avg)) / 180
+        else:
+            diff_from_avg /= 3
+            self.full_speed_sec_per_foot = (7.3 - normal(0, diff_from_avg)) / 180
+        # Determine baserunning speed,
+        # [TODO penalize long follow-through and lefties on speed to first]
+        self.speed_home_to_first = (
+            (self.full_speed_sec_per_foot*180) / (1.62 + normal(0, 0.01))
+        )
+        self.speed_rounding_a_base = None
+        # Baseball tracking ability affects a player's ability to anticipate
+        # the trajectories and landing points of balls in movement
+        self.ball_tracking_ability = 0.9 + random.random()/10
+        7.2 - abs(normal(0, 0.17*2))
         if random.random() < 0.1:
             self.lefty = True
             self.righty = False
@@ -65,10 +99,8 @@ class Person(object):
             self.righty = True
         self.prime = int(round(normal(29, 1)))
 
-
     def init_mental_attributes(self):
         self.cleverness = random.random()
-
 
     def init_baseball_attributes(self):
 
@@ -299,8 +331,12 @@ class Person(object):
             self.location = [2, 225]
         elif self.position == "LF":
             self.location = [-30, 180]
+        self.immediate_goal = None
 
-    def decide_pitch(self, batter, count):
+    def decide_pitch(self, at_bat):
+
+        batter = at_bat.batter
+        count = at_bat.count
 
         # Here, I'll want to add in sidespin and downspin, which
         # will determine how a ball curves and breaks, respectively
@@ -406,12 +442,14 @@ class Person(object):
                 x, y = 5, 4
                 return "fastball", x, y
 
-    def pitch(self, batter, catcher, at_bat, x, y, kind, drop=None, curve=None):
+    def pitch(self, at_bat, x, y, drop=None, curve=None):
 
         # TODO remove kind, add speed, break, curve -- then reason
         # over that to determine the kind; with increased speed comes
         # increased x and y error
 
+        batter = at_bat.batter
+        catcher = at_bat.catcher
         count = at_bat.count
         # Determine pitch speed and behavior
         kind = "fastball"
@@ -427,8 +465,7 @@ class Person(object):
             batter_handedness = "R"
         else:
             batter_handedness = "L"
-        pitch = Pitch(ball=Ball(), at_bat=at_bat, pitcher=self, batter=batter,
-                      catcher=catcher, handedness=handedness,
+        pitch = Pitch(ball=Baseball(), at_bat=at_bat, handedness=handedness,
                       batter_handedness=batter_handedness, count=count, kind=kind,
                       speed=speed, intended_x=x, intended_y=y, actual_x=actual_x,
                       actual_y=actual_y)
@@ -464,7 +501,7 @@ class Person(object):
                 self.strike_zone[1]):
             pitch.batter_hypothesis = "Strike"
         else:
-            pitch.batter_hypothesis = "Ball"
+            pitch.batter_hypothesis = "Baseball"
         # Decide whether to hit -- TODO: MAKE THIS ALSO CONSIDER PITCH SPEED
         if pitch.batter_hypothesis == "Strike":
             if pitch.count == 00:
@@ -528,7 +565,7 @@ class Person(object):
                     return True
                 else:
                     return False
-        elif pitch.batter_hypothesis == "Ball":
+        elif pitch.batter_hypothesis == "Baseball":
             if pitch.count == 00:
                 # Count before this pitch is 0-0
                 if random.random() < 0.01:
@@ -655,9 +692,9 @@ class Person(object):
         contact_y_coord = normal(0, self.swing_contact_error + abs(0.2-power)/15)
         if self.righty:
             handedness = "R"
-        elif self.lefty:
+        else:
             handedness = "L"
-        swing = Swing(batter=self, pitch=pitch, handedness=handedness,
+        swing = Swing(pitch=pitch, handedness=handedness,
                       power=power, upward_force=upward_force,
                       intended_pull=intended_pull, timing=timing,
                       contact_x_coord=contact_x_coord,
@@ -791,4 +828,71 @@ class Person(object):
             return False
         else:
             return True
+
+    def read_batted_ball_and_decide_immediate_goal(self, batted_ball):
+        """Anticipate the trajectory of a ball as it comes off the bat."""
+        play_the_ball = play_a_base = back_up_a_base = cut_off_throw = False
+        self.immediate_goal = None
+        # PLAN: Figure out for each player whether they should be playing the
+        # ball -- this will depend on vertical launch angle, horizontal launch
+        # angle, exit speed. If you do it right, only 2-3 people should be
+        # playing the ball. [I think this will remove the need for pecking order
+        # scheme from before.] Then, each player who's playing the ball makes
+        # a plan of how to play it, by figuring out the earliest point in
+        # its path such that the player can make it there in time (see field()
+        # in SublimeText). Having that, the player sets their goal as going
+        # to that spot and figures out the minimum speed they can move and
+        # get there in a reasonable time.
+        if self.position == "P":
+            if abs(batted_ball.horizontal_launch_angle) < 10:
+                pass
+
+
+
+        if play_the_ball:
+            # Determine earliest point in the ball's course such that the
+            # the ball will be at a fieldable height at that point and
+            # in a location that the player can reach in time, given where
+            # he has positioned himself prior to the pitch
+            timesteps = batted_ball.position_at_timestep.keys()
+            timesteps.sort()
+            for timestep in timesteps:
+                height_of_ball_at_timestep = (
+                    batted_ball.position_at_timestep[timestep][2]
+                )
+                if height_of_ball_at_timestep < 8.5:  # Ball is fieldable
+                    # Determine distance between fielder origin location and
+                    # ball location at that timestep
+                    x1, y1 = self.location
+                    x2, y2 = batted_ball.position_at_timestep[timestep][:2]
+                    x_diff = (x2-x1)**2
+                    y_diff = (y2-y1)**2
+                    dist_from_fielder_origin_at_timestep = math.sqrt(x_diff + y_diff)
+                    time_to_ball_location_at_time = (
+                        dist_from_fielder_origin_at_timestep *
+                        self.full_speed_sec_per_foot
+                    )
+                    if time_to_ball_location_at_time <= timestep-0.005:
+                        # Set location where fielding attempt will occur
+                        self.immediate_goal = batted_ball.position_at_timestep[timestep]
+                        # Set speed, in feet per timestep, that fielder will move
+                        # at in his approach to the immediate goal location
+                        self.current_dist_covered_per_timestep = (
+                            (dist_from_fielder_origin_at_timestep/timestep) * 0.1
+                        )
+                        break
+            if not self.immediate_goal:
+                # Can't make it to the ball during any point in its course of
+                # movement -- will have to field it after it stops
+                self.immediate_goal = batted_ball.position_at_timestep[timesteps[-1]]
+                # Obviously will want to run at full speed, given circumstances here
+                self.dist_per_timestep = (
+                    0.1/self.full_speed_sec_per_foot
+                )
+        elif play_a_base:
+            pass
+
+
+
+
 
