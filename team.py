@@ -3,6 +3,8 @@ import random
 import heapq
 from random import normalvariate as normal
 
+from equipment import Mitt
+
 COLORS = ['Blue', 'Blue', 'Blue', 'Gray', 'Gray', 'Gray', 'Red', 'Red',
           'Red', 'Brown', 'Brown', 'Brown',  'Green', 'Green', 'Orange',
           'Silver', 'Maroon', 'Black', 'Gold', 'Yellow', 'White', 'White',
@@ -76,6 +78,8 @@ class Team(object):
         # if not expansion:
         #     print '\n {team} have been enfranchised.'.format(team=self.name)
 
+        self.wins = self.losses = 0
+
     def init_name(self):
 
         if self.country.year < normal(1905, 2):
@@ -107,28 +111,51 @@ class Team(object):
         return nickname
 
     def init_players(self):
-
-        # find hitters
-        self.fielders = random.sample(self.city.players, 7)
-        # find pitcher
-        self.pitcher = min(self.city.players, key=lambda p: p.pitch_control)
-        self.catcher = max(self.city.players, key=lambda p: p.pitch_receiving)
-        self.players = self.fielders = self.fielders + [self.pitcher, self.catcher]
+        pool = [p for p in self.country.players if not p.team]
+        # Find pitcher
+        sub_pool = [p for p in pool if p.pitch_speed > 85]
+        self.pitcher = min(sub_pool, key=lambda p: p.pitch_control)
+        pool.remove(self.pitcher)
+        # Find catcher
+        self.catcher = max(pool, key=lambda p: p.pitch_receiving)
+        pool.remove(self.catcher)
+        # Find outfielders
+        lf = next(p for p in pool if p.fly_ball_fielding > 1.1 and p.full_speed_sec_per_foot*180 < 7.0 and
+                    p.swing_timing_error < 0.05)
+        pool.remove(lf)
+        cf = next(p for p in pool if p.fly_ball_fielding > 1.1 and p.full_speed_sec_per_foot*180 < 7.0 and
+                    p.swing_timing_error < 0.05)
+        pool.remove(cf)
+        rf = next(p for p in pool if p.bat_speed > 2.75 and p.swing_timing_error < 0.04)
+        pool.remove(rf)
+        # Find infielders
+        first = next(p for p in pool if p.bat_speed > 2.75 and p.swing_timing_error < 0.04)
+        pool.remove(first)
+        second = next(p for p in pool if p.bat_speed > 2.0 and p.swing_timing_error < 0.04 and
+                        p.ground_ball_fielding > 1.0)
+        pool.remove(second)
+        third = next(p for p in pool if p.bat_speed > 1.5 and p.swing_timing_error < 0.045 and
+                        p.full_speed_sec_per_foot*180 < 6.6)
+        pool.remove(third)
+        ss = next(p for p in pool if p.bat_speed > 1.8 and p.swing_timing_error < 0.035 and
+                        p.ground_ball_fielding > 1.1)
+        self.players = self.fielders = [self.pitcher, self.catcher, first, second, third, ss, lf, cf, rf]
         for player in self.players:
             player.team = self
         self.pitcher.position = "P"
         self.catcher.position = "C"
-        self.fielders[0].position = "1B"
-        self.fielders[1].position = "2B"
-        self.fielders[2].position = "SS"
-        self.fielders[3].position = "3B"
-        for f in self.fielders[0:4]:
+        self.catcher.glove = Mitt()
+        self.fielders[2].position = "1B"
+        self.fielders[3].position = "2B"
+        self.fielders[4].position = "3B"
+        self.fielders[5].position = "SS"
+        for f in self.fielders[2:6]:
             f.infielder = True
         self.pitcher.infielder = self.catcher.infielder = True
-        self.fielders[4].position = "RF"
-        self.fielders[5].position = "CF"
         self.fielders[6].position = "LF"
-        for f in self.fielders[3:]:
+        self.fielders[7].position = "CF"
+        self.fielders[8].position = "RF"
+        for f in self.fielders[6:]:
             f.outfielder = True
 
     def __str__(self):
@@ -195,7 +222,7 @@ class Team(object):
                 # fanbase memory and prior season losing season
                 if (sum([d for d in self.win_diffs[-fanbase_memory:]]) /
                     fanbase_memory < 0 and self.win_diffs[-1] < 0):
-                    # Some teams will never move
+                    # Some teams will never act
                     if self.tradition >= int(round(normal(200, 15))):
                         x = random.randint(0, self.tradition/4)
                     else:

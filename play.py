@@ -1,5 +1,5 @@
 from random import normalvariate as normal
-from batted_ball import BattedBall
+from batted_ball import BattedBall, FoulTip
 from outcome import Bean
 
 
@@ -26,14 +26,14 @@ class Pitch(object):
         else:
             self.batter_left_handed = True
             self.batter_right_handed = False
-        # The count prior to the delivery of this pitch
-        self.count = count
+        self.count = count  # Count prior to the delivery of this pitch
         self.kind = kind
         self.speed = speed
         self.pitcher_intended_x = intended_x
         self.pitcher_intended_y = intended_y
         self.actual_x = actual_x
         self.actual_y = actual_y
+        self.bean = False
         # Determine the pitcher's intention, ball or strike
         if (-2.83 < self.pitcher_intended_x < 2.83 and
                 self.batter.strike_zone[0] < self.pitcher_intended_y <
@@ -53,15 +53,15 @@ class Pitch(object):
         self.batter_hypothesized_x = None
         self.batter_hypothesized_y = None
         self.batter_hypothesis = None
-        # The result of this pitch will be either a Strike, Ball, Bean, or
-        # BattedBall object and will be modified to point to the appropriate
-        # object by that object's initializer
+        # The result of this pitch will be either a Strike (looking), Ball,
+        # Bean, or Swing object and will be modified to point to the
+        # appropriate object by that object's initializer
         self.result = None
         # This attribute, which relates the umpire's call of the pitch
         # is modified by umpire.call_pitch() -- it represents only a
         # hypothetical call unless the batter doesn't swing at the pitch
         self.would_be_call = self.umpire.call_pitch(self)
-        # The actual call will be set to the would-be call by AtBat.?????
+        # The actual call will be set to the would-be call by AtBat.enact()
         # if the batter doesn't swing
         self.call = None
         # Check if batter is hit by pitch
@@ -75,8 +75,6 @@ class Pitch(object):
                     self.actual_y < self.batter.height / 3.0):
                 self.bean = True
                 Bean(pitch=self)
-        else:
-            self.bean = False
         # If the pitch is not swung at, or it results in a foul tip, whether
         # or not it is caught will be modified by at_bat.enact() via
         # catcher.receive_pitch()
@@ -87,20 +85,16 @@ class Pitch(object):
         self.at_bat.pitches.append(self)
 
 
-class Bunt(object):
-
-    def __init__(self, at_bat, batter, pitch):
-        self.at_bat = at_bat
-
-
 class Swing(object):
 
-    def __init__(self, pitch, handedness, power, upward_force,
+    def __init__(self, pitch, handedness, power, incline,
                  intended_pull, timing, contact_x_coord, contact_y_coord):
         self.at_bat = pitch.at_bat
         self.batter = pitch.batter
         self.pitcher = pitch.pitcher
         self.pitch = pitch
+        self.bunt = False
+        pitch.result = self
         self.ball = pitch.ball
         if handedness == "R":
             self.right_handed = True
@@ -111,7 +105,7 @@ class Swing(object):
         self.bat = self.batter.bat
         self.power = power
         self.bat_speed = power * self.batter.bat_speed * self.bat.weight
-        self.upward_force = upward_force
+        self.incline = incline
         self.intended_pull = intended_pull
         self.timing = timing
         self.contact_x_coord = contact_x_coord
@@ -120,6 +114,7 @@ class Swing(object):
         self.swing_and_miss = False
         self.swing_and_miss_reasons = []
         self.contact = False
+        self.foul_tip = False
         self.power_reduction = 0.0
         # Check for whether contact is made -- if not, attribute that
         # as well as the reason for the swing and miss
@@ -162,30 +157,38 @@ class Swing(object):
         # Determine how exit speed will be decreased due to major
         # deviation from the sweet spot on the y-axis
         if contact_y_coord >= 0.07:
-            # Contact at the top of the bat
-            self.power_reduction += 0.3
+            # Contact at the top of the bat -- either a foul tip or
+            # contact with reduced power
+            if contact_y_coord >= 0.79:
+                self.foul_tip = True
+            else:
+                self.power_reduction += 0.3
         elif contact_y_coord <= -0.07:
-            # Contact at the bottom of the bat
-            self.power_reduction += 0.3
+            # Contact at the bottom of the bat -- either a foul tip or
+            # contact with reduced power
+            if contact_y_coord <= -0.79:
+                self.foul_tip = True
+            else:
+                self.power_reduction += 0.3
         if self.power_reduction > 0.99:
             self.power_reduction = 0.99
         # Determine the vertical launch angle of the ball, with
         # deviation from the sweet spot on the y-axis altering the
-        # intended launch angle, which is represented as upward_force
+        # intended launch angle, which is represented as incline
         if contact_y_coord == 0:
             # Contact at the sweet spot -- the launch angle is as intended
-            self.vertical_launch_angle = upward_force
+            self.vertical_launch_angle = incline
         elif contact_y_coord >= 0.08 or contact_y_coord <= -0.08:
             # Missed the ball
             self.vertical_launch_angle = None
         elif 0 < contact_y_coord < 0.07:
             # Contact above the sweet spot
-            multiplier = (90 - self.upward_force) / 0.08
-            self.vertical_launch_angle = upward_force + (contact_y_coord * multiplier)
+            multiplier = (90 - self.incline) / 0.08
+            self.vertical_launch_angle = incline + (contact_y_coord * multiplier)
         elif 0 >= contact_y_coord > -0.07:
             # Contact below the sweet spot
-            multiplier = (90 + upward_force) / 0.08
-            self.vertical_launch_angle = 0 + upward_force + (contact_y_coord * multiplier)
+            multiplier = (90 + incline) / 0.08
+            self.vertical_launch_angle = 0 + incline + (contact_y_coord * multiplier)
         elif contact_y_coord >= 0.07:
             # Contact at the top of the bat; produces 90 to 180 angle --
             # i.e., ball projects backward
@@ -244,7 +247,7 @@ class Swing(object):
         # is determined according to deviations from contact at the sweet
         # spot on the x-axis (see above)
         if self.contact:
-            q = self.bat.weight * 0.006  # ball_liveliness should matter here too
+            q = self.bat.weight * 0.006  # TODO ball_liveliness should matter here too
             max_exit_speed = (
                 (q * self.pitch.speed) + ((1+q) * self.bat_speed) * power
             )
@@ -252,8 +255,55 @@ class Swing(object):
         else:
             self.exit_speed = None
         if self.contact:
-            batted_ball = BattedBall(swing=self, exit_speed=self.exit_speed,
-                                     horizontal_launch_angle=self.horizontal_launch_angle,
-                                     vertical_launch_angle=self.vertical_launch_angle)
-            self.result = batted_ball
-            self.pitch.result = batted_ball
+            if self.foul_tip:
+                foul_tip = FoulTip(swing=self)
+                self.result = foul_tip
+            else:
+                batted_ball = BattedBall(
+                    swing=self, exit_speed=self.exit_speed,
+                    horizontal_launch_angle=self.horizontal_launch_angle,
+                    vertical_launch_angle=self.vertical_launch_angle)
+                self.result = batted_ball
+                self.batter.at_the_plate = False
+                self.batter.forced_to_advance = True
+
+
+class Bunt(object):
+
+    def __init__(self, at_bat, batter, pitch):
+        self.at_bat = at_bat
+        self.bunt = True
+
+
+class Throw(object):
+
+    def __init__(self, thrown_by, thrown_to, base, runner_to_putout, release_time,
+                 distance_to_target, release, power, height_error, lateral_error):
+        self.thrown_by = thrown_by
+        self.thrown_to = thrown_to
+        self.base = base
+        self.runner = runner_to_putout  # Runner that via the throw will be tagged or forced out
+        self.release_time = release_time
+        self.release = release
+        self.power = power
+        self.distance_to_target = distance_to_target
+        self.dist_per_timestep = thrown_by.throwing_dist_per_timestep * power
+        self.height_error = height_error
+        self.lateral_error = lateral_error
+        # Dynamic; modified during play
+        self.time_until_release = release_time
+        self.distance_traveled = 0.0
+        self.percent_to_target = 0.0
+        self.reached_target = False
+        self.resolved = False
+
+    def move(self):
+        if self.time_until_release > 0:
+            self.time_until_release -= 0.1
+        else:
+            self.distance_traveled += self.dist_per_timestep
+            self.percent_to_target = (
+                self.distance_traveled/self.distance_to_target
+            )
+            if self.percent_to_target >= 1.0:
+                self.reached_target = True

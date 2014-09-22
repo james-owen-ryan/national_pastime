@@ -47,7 +47,7 @@ class City(object):
 
         self.surnames = self.get_surnames()
 
-        for i in range(self.pop * 10):
+        for i in range(self.pop * 5):
             p = Person(birthplace=self)
             self.players.append(p)
             self.country.players.append(p)

@@ -1,6 +1,8 @@
 class Ballpark(object):
 
     # # Want these things included
+    # - ground rules! Can just be a set of (x, y) coordinates, and if
+    # batted_ball.location in ballpark.ground_rules, then instantiate GroundRuleDouble()
     # - mapping of coordinates to whether they are in the stands, on base paths, etc.
     # - mapping of coordinates to ground rule double areas
     # - type of grass, and coefficient of restitution for that grass and
@@ -36,8 +38,10 @@ class Ballpark(object):
         )
         # Get outfield and foul fence heights, which are necessary to
         # determine whether a ball hits a fence or flies over it
-        self.outfield_fence_heights = self.get_outfield_fence_heights()
-        self.foul_fence_heights = self.get_foul_fence_heights()
+        self.outfield_fence_height = self.get_outfield_fence_height()
+        self.foul_fence_height = self.get_foul_fence_height()
+
+        self.ground_rule_coords = set()
 
     @staticmethod
     def get_playing_field_boundaries():
@@ -86,21 +90,21 @@ class Ballpark(object):
         return playing_field_lower_bound, playing_field_upper_bound
 
     @staticmethod
-    def get_outfield_fence_heights():
+    def get_outfield_fence_height():
         # NOTE: this method assumes the initial generic playing field that
         # I devised, with 7-foot fences all around the stadium
-        outfield_fence_heights = {}
+        outfield_fence_height = {}
         for i in xrange(-225, 226):
-            outfield_fence_heights[i] = 7.0
-        outfield_fence_heights[-226] = 90.0  # Left foul pole
-        outfield_fence_heights[226] = 90.0  # Right foul pole
-        return outfield_fence_heights
+            outfield_fence_height[i] = 7.0
+        outfield_fence_height[-226] = 90.0  # Left foul pole
+        outfield_fence_height[226] = 90.0  # Right foul pole
+        return outfield_fence_height
 
     @staticmethod
-    def get_foul_fence_heights():
+    def get_foul_fence_height():
         # NOTE: this method assumes the initial generic playing field that
         # I devised, with 7-foot fences all around the stadium
-        foul_fence_heights = {}
+        foul_fence_height = {}
         for i in xrange(-226, 227):
-            foul_fence_heights[i] = 7.0
-        return foul_fence_heights
+            foul_fence_height[i] = 7.0
+        return foul_fence_height

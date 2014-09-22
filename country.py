@@ -9,6 +9,12 @@ from game import Game, Inning, Frame, AtBat
 from rules import Rules
 
 
+# POSSIBLE HARD-CODERS:
+#       "Single hit by Cyrille Buroker"
+#       "Home run hit by Steward Wainer!"  [Was waiting a long time to see this finally]
+#       FINALLY, a double is hit! By Bob McKibben (Philadelphia).
+
+
 class Country(object):
     """A country in a baseball-centric game world."""
 
@@ -199,7 +205,7 @@ class Country(object):
             city_unique_nicknames[city] = unique_nicknames
         return city_unique_nicknames
 
-us = Country(year=1885)
+us = Country(year=1890)
 pitcher = min(us.players, key=lambda p: p.pitch_control)
 slap = min(us.players, key=lambda b: b.swing_timing_error)
 random.shuffle(us.players)
@@ -215,9 +221,14 @@ fielders = other_fielders + [pitcher, catcher]
 catcher.position = "C"
 pitcher.position = "P"
 l = us.leagues[0]
-ballpark = Ballpark(city=l.teams[0].city, tenants=[l.teams[0]])
-game = Game(ballpark=ballpark, league=l, home_team=l.teams[0], away_team=l.teams[1], rules=Rules())
-inning = Inning(game=game, number=5)
-frame = Frame(inning=inning, bottom=True)
-ab = AtBat(frame=frame)
-ab.draw_playing_field()
+home_team = l.teams[0]
+ballpark = Ballpark(city=l.teams[0].city, tenants=[home_team])
+if any(t for t in l.teams if t.city.name in ("Minneapolis", "St. Paul", "Duluth") and t is not home_team):
+    away_team = next(t for t in l.teams if t.city.name in ("Minneapolis", "St. Paul", "Duluth") and
+                     t is not home_team)
+else:
+    away_team = l.teams[1]
+game = Game(ballpark=ballpark, league=l, home_team=home_team, away_team=away_team, rules=Rules()); game.enact()
+# inning = Inning(game=game, number=5); frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame); ab.enact(); print ab.result
+# ab.draw_playing_field()
+# frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame);

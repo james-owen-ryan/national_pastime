@@ -451,13 +451,13 @@ Indianapolis
 	1875
 		Indians
 	1890
-		Indian
+		Indians
 	1900
-		Indian
+		Indians
 	1950
-		Indian
+		Indians
 	1967
-		Indian
+		Indians
 
 Jackson
 
