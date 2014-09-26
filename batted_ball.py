@@ -1,4 +1,5 @@
 import math
+import random
 
 
 class BattedBall(object):
@@ -24,6 +25,8 @@ class BattedBall(object):
         self.true_distance = None
         self.true_landing_point = None
         self.hang_time = None
+        self.landing_timestep = None  # Used as annotation of potential for a fly out
+        self.second_landing_timestep = None  # Likewise, for games with bounding fly outs
         self.apex = 0.0
         self.location = [0, 0]
         self.height = 3.5
@@ -33,7 +36,9 @@ class BattedBall(object):
         self.fielder_with_chance = None
         self.fielded_by = None
         self.fielding_difficulty = None  # Modified by fielder.field_ball()
+        self.fielding_acts = []
         self.touched_by_fielder = False   # Modified by fielder.field_ball()
+        self.bobbled = False  # Modified by fielder.field_ball()
         self.passed_first_or_third_base = False
         self.landed = False  # Ball has landed at least once
         self.landed_foul = False  # Ball has landed foul, putting it out of play (depending on the rule set)
@@ -48,17 +53,13 @@ class BattedBall(object):
         self.left_playing_field = False
         self.ground_rule_incurred = False
         # Dynamic attributes that specify game actions while the ball is in play
-        self.dead = False  # Dead ball
+        self.fly_out_awarded = False  # So that multiple fly outs aren't awarded by umpire.officiate()
+        self.resolved = False  # Whether the current playing action has ended
         self.result = None
         self.running_to_first = self.at_bat.batter
         self.running_to_second = self.at_bat.frame.on_first
         self.running_to_third = self.at_bat.frame.on_second
         self.running_to_home = self.at_bat.frame.on_third
-
-        # print "i am a batted ball my running to 1b, 2b, 3b are {}, {}, {}".format(
-        #     self.running_to_first, self.running_to_second, self.running_to_third
-        # )
-
         self.retreating_to_first = None
         self.retreating_to_second = None
         self.retreating_to_third = None
@@ -84,6 +85,7 @@ class BattedBall(object):
         }
 
         self.compute_full_trajectory()
+        self.classify_self()
 
     def compute_full_trajectory(self):
         # Enact a timestep-by-timestep physics simulation of the ball's
@@ -136,6 +138,10 @@ class BattedBall(object):
                     self.true_distance = int(x * 3.28084)
                     self.true_landing_point = int(coordinate_x), int(coordinate_y)
                     self.hang_time = time_since_contact
+                if not self.landing_timestep:
+                    self.landing_timestep = time_since_contact-timestep  # The landing actually happened last timestep
+                elif not self.second_landing_timestep:
+                    self.second_landing_timestep = time_since_contact-timestep
                 vy *= -1  # Reverse vertical component of velocity
                 vy *= COR  # Adjust for coefficient of restitution of the turf
                 vx *= COF  # Adjust for friction of the turf
@@ -180,6 +186,116 @@ class BattedBall(object):
             self.true_distance = int(x * 3.28084)
             self.true_landing_point = int(coordinate_x), int(coordinate_y)
             self.hang_time = time_since_contact
+        if not self.landing_timestep:
+            self.landing_timestep = time_since_contact-timestep
+
+    def classify_self(self):
+        """Determine batted-ball type and destination."""
+        # Determine the type of batted ball
+        if self.vertical_launch_angle < 5 and self.apex > 10:
+            self.type = "Chopper"
+        elif self.vertical_launch_angle < 5:
+            self.type = "Ground ball"
+        elif float(self.true_distance)/self.apex >= 4:
+            self.type = "Line drive"
+        elif self.apex > self.true_distance:
+            self.type = "Pop-up"
+        else:
+            self.type = "Fly ball"
+        # Determine the destination area of the batted ball
+        if self.true_distance < 0:
+            self.destination = "behind home plate"
+        elif self.type == "Chopper" or self.type == "Ground ball":
+            if self.horizontal_launch_angle < -45:
+                self.destination = "left foul territory"
+            elif -45 <= self.horizontal_launch_angle < -22.5:
+                self.destination = "third"
+            elif -22.5 <= self.horizontal_launch_angle <= 0:
+                self.destination = "shortstop"
+            elif 0 < self.horizontal_launch_angle <= 22.5:
+                self.destination = "second"
+            elif 22.5 < self.horizontal_launch_angle <= 45:
+                self.destination = "first"
+            else:
+                self.destination = "right foul territory"
+        else:
+            if self.horizontal_launch_angle < -45:
+                if self.true_distance < 90:
+                    self.destination = "shallow left foul territory"
+                elif self.true_distance > 250:
+                    self.destination = "deep left foul territory"
+                else:
+                    self.destination = "left foul territory"
+            elif -45 <= self.horizontal_launch_angle < -22.5:
+                if self.true_distance < 100:
+                    self.destination = "third"
+                elif -45 <= self.horizontal_launch_angle < -27:
+                    if self.true_distance < 150:
+                        self.destination = "shallow left"
+                    elif self.true_distance > 250:
+                        self.destination = "deep left"
+                    else:
+                        self.destination = "left"
+                else:  # -27 <= self.horizontal_launch_angle <= -22.5
+                    if self.true_distance < 175:
+                        self.destination = "shallow left-center"
+                    elif self.true_distance > 275:
+                        self.destination = "deep left-center"
+                    else:
+                        self.destination = "left-center"
+            elif -22.5 <= self.horizontal_launch_angle <= 0:
+                if self.true_distance < 140:
+                    self.destination = "shortstop"
+                elif -22.5 <= self.horizontal_launch_angle < -9:
+                    if self.true_distance < 175:
+                        self.destination = "shallow left-center"
+                    elif self.true_distance > 275:
+                        self.destination = "deep left-center"
+                    else:
+                        self.destination = "left-center"
+                else:  # -9 <= self.horizontal_launch_angle <= 0
+                    if self.true_distance < 200:
+                        self.destination = "shallow center"
+                    elif self.true_distance > 300:
+                        self.destination = "deep center"
+                    else:
+                        self.destination = "center"
+            elif 0 < self.horizontal_launch_angle <= 22.5:
+                if self.true_distance < 140:
+                    self.destination = "second"
+                elif 0 <= self.horizontal_launch_angle < 9:
+                    if self.true_distance < 200:
+                        self.destination = "shallow center"
+                    elif self.true_distance > 300:
+                        self.destination = "deep center"
+                    else:
+                        self.destination = "center"
+                else:  # 9 <= self.horizontal_launch_angle <= 22.5
+                    if self.true_distance < 175:
+                        self.destination = "shallow right-center"
+                    elif self.true_distance > 275:
+                        self.destination = "deep right-center"
+                    else:
+                        self.destination = "right-center"
+            elif 22.5 < self.horizontal_launch_angle <= 45:
+                if self.true_distance < 100:
+                    self.destination = "first"
+                elif 22.5 <= self.horizontal_launch_angle < 27:
+                    if self.true_distance < 175:
+                        self.destination = "shallow right-center"
+                    elif self.true_distance > 275:
+                        self.destination = "deep right-center"
+                    else:
+                        self.destination = "right-center"
+                else:  # 27 <= self.horizontal_launch_angle <= 45
+                    if self.true_distance < 150:
+                        self.destination = "shallow right"
+                    elif self.true_distance > 250:
+                        self.destination = "deep right"
+                    else:
+                        self.destination = "right"
+            else:
+                self.destination = "right foul territory"
 
     def get_read_by_fielders(self):
         """Obligate fielders to their defensive responsibilities."""
@@ -256,6 +372,25 @@ class BattedBall(object):
                     # Check if fielder could make it to that ball location in time
                     # to potentially field it
                     if time_to_ball_location_at_timestep <= timestep:
+                        # Note whether the fielder would be attempting to record a fly out if
+                        # they do end up playing the ball in the manner decided here -- here we
+                        # allow for a two-timestep buffer, so that baserunners don't have perfect
+                        # knowledge that, e.g., an actual close one-hopper wasn't going to be fly-out attempt
+                        if timestep < self.landing_timestep+0.21:
+                            fielder.attempting_fly_out = True
+                        elif self.second_landing_timestep and timestep < self.second_landing_timestep:
+                            # Depending on the rules enforced for this game, bounding balls
+                            # could also represent fly-out opportunities
+                            ball_in_foul_territory_at_this_timestep = bool(y2 < 0 or abs(x2) > y2)
+                            if ball_in_foul_territory_at_this_timestep:
+                                if self.at_bat.game.rules.foul_ball_on_first_bounce_is_out:
+                                    fielder.attempting_fly_out = True
+                            else:
+                                if self.at_bat.game.rules.fair_ball_on_first_bounce_is_out:
+                                    fielder.attempting_fly_out = True
+                        # Note how long it would take the fielder to reach the location of
+                        # the fielding chance, which is used below to determine the obligated
+                        # fielder (though this person may be called off)
                         fielder.time_needed_to_field_ball = time_to_ball_location_at_timestep
                         # Set location where fielding attempt will occur, if this
                         # fielder ends up playing the ball
@@ -292,79 +427,267 @@ class BattedBall(object):
             min(self.at_bat.fielders, key=lambda f: f.time_needed_to_field_ball)
         )
 
+    def get_reread_by_fielders(self):
+        """Obligate a new fielder to field the ball after it was not cleanly fielded."""
+        self.fielder_with_chance = None
+        self.obligated_fielder = None
+        timesteps = self.position_at_timestep.keys()
+        timesteps.sort()
+        index_of_current_timestep = timesteps.index(self.time_since_contact)
+        for fielder in self.at_bat.fielders:
+            fielder.attempting_fly_out = False
+            for timestep in timesteps[index_of_current_timestep:]:
+                height_of_ball_at_timestep = (
+                    self.position_at_timestep[timestep][2]
+                )
+                if height_of_ball_at_timestep < fielder.fieldable_ball_max_height:
+                    # Determine distance between fielder current location and
+                    # ball location at that timestep
+                    x1, y1 = fielder.location
+                    x2, y2 = self.position_at_timestep[timestep][:2]
+                    x_diff = (x2-x1)**2
+                    y_diff = (y2-y1)**2
+                    dist_from_current_fielder_location_at_timestep = math.sqrt(x_diff + y_diff)
+                    # Determine slope between fielder origin location and
+                    # ball location at that timestep
+                    x_change = x2-x1
+                    y_change = y2-y1
+                    if x_change == 0:
+                        if random.random() > 0.5:
+                            x_change = 0.001
+                        else:
+                            x_change = -0.001
+                    while y_change == 0:
+                        if random.random() > 0.5:
+                            y_change = 0.001
+                        else:
+                            y_change = -0.001
+                    slope = y_change/float(x_change)
+                    # Determine the maximum rate of speed with which the fielder could
+                    # make his approach to the ball location at this timestep while
+                    # still tracking the ball properly -- the more you are moving toward
+                    # home plate, the faster you can move; the more you are moving toward
+                    # the center field wall, the less quickly you can move
+                    if x_change < 0:
+                        # You are moving left, so invert the slope so that it
+                        # becomes intuitive for our computation here
+                        temp_slope = slope * -1
+                    else:
+                        temp_slope = slope
+                    if temp_slope <= 0:
+                        # You are moving toward home plate, so you can run much
+                        # faster -- the maximum speed will be 90% of your full speed
+                        # multiplied by your ball-tracking ability (this allows
+                        # ball-tracking wizards like Willie Mays to run faster while
+                        # fielding), and the minimum speed (for when you are running
+                        # laterally) will be that percentage less ~20%
+                        temp_slope = abs(temp_slope)
+                        if temp_slope > 15:
+                            temp_slope = 15
+                        diff = 15-temp_slope
+                        max_speed = 0.9 * fielder.ball_tracking_ability
+                        max_rate_of_speed_to_this_location = max_speed - (0.013333333333333333 * diff)
+                        if max_rate_of_speed_to_this_location > 0.97:
+                            # Enforce a 0.97 ceiling to account for time spent accelerating
+                            max_rate_of_speed_to_this_location = 0.97
+                    elif temp_slope > 0:
+                        # You are moving toward the outfield fence -- here, max speed
+                        # represents lateral movement, which was minimum speed in above
+                        # block; now, minimum speed is lateral speed less ~20%
+                        if temp_slope > 15:
+                            temp_slope = 15
+                        diff = abs(0-temp_slope)
+                        max_speed = (0.7 * fielder.ball_tracking_ability)
+                        max_rate_of_speed_to_this_location = max_speed - (0.013333333333333333 * diff)
+                        if max_rate_of_speed_to_this_location > 0.97:
+                            max_rate_of_speed_to_this_location = 0.97
+                    # Determine how long it would take fielder to get to the ball
+                    # location at that timestep -- here we consider the direction of
+                    # movement in the fielder's approach to the ball location at that
+                    # timestep, which affected the maximum rate of speed that we
+                    # calculated in the above block
+                    time_to_ball_location_at_timestep = (
+                        dist_from_current_fielder_location_at_timestep *
+                        (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
+                    )
+                    time_to_ball_location_at_timestep += fielder.reorienting_after_fielding_miss
+                    # Check if fielder could make it to that ball location in time
+                    # to potentially field it
+                    if time_to_ball_location_at_timestep <= timestep-self.time_since_contact:
+                        # Note whether the fielder would be attempting to record a fly out if
+                        # they do end up playing the ball in the manner decided here
+                        if timestep < self.landing_timestep:
+                            fielder.attempting_fly_out = True
+                        elif self.second_landing_timestep and timestep < self.second_landing_timestep:
+                            # Depending on the rules enforced for this game, bounding balls
+                            # could also represent fly-out opportunities
+                            ball_in_foul_territory_at_this_timestep = (
+                                bool(y2 < 0 or abs(x2) > y2)
+                            )
+                            if ball_in_foul_territory_at_this_timestep:
+                                if self.at_bat.game.rules.foul_ball_on_first_bounce_is_out:
+                                    fielder.attempting_fly_out = True
+                            else:
+                                if self.at_bat.game.rules.fair_ball_on_first_bounce_is_out:
+                                    fielder.attempting_fly_out = True
+                        # Note how long it would take the fielder to reach the location of
+                        # the fielding chance, which is used below to determine the obligated
+                        # fielder (though this person may be called off)
+                        fielder.time_needed_to_field_ball = timestep-self.time_since_contact
+                        # Set location where fielding attempt will occur, if this
+                        # fielder ends up playing the ball
+                        fielder.immediate_goal = self.position_at_timestep[timestep]
+                        # Set speed, in feet per timestep, that fielder will act
+                        # at in his approach to the immediate goal location (again,
+                        # should he end up fielding the ball)
+                        fielder.dist_per_timestep = (
+                            (dist_from_current_fielder_location_at_timestep/(timestep-self.time_since_contact)) * 0.1
+                        )
+                        fielder.relative_rate_of_speed = (
+                            1000 * fielder.dist_per_timestep *
+                            (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
+                        )
+                        break
+                    elif timestep == timesteps[-1]:
+                        # Fielder can only make it to the ball after it has stopped
+                        # moving, so the time needed to field it is simply the time
+                        # it would take the fielder to run full speed to the point
+                        # where the ball will come to a stop
+                        fielder.time_needed_to_field_ball = time_to_ball_location_at_timestep
+                        # Set location where fielding attempt will occur, if this
+                        # fielder ends up playing the ball
+                        fielder.immediate_goal = self.position_at_timestep[timestep]
+                        # This fielder will act at full speed in his approach to the
+                        # immediate goal location (again, should he end up fielding
+                        # the ball)
+                        fielder.dist_per_timestep = (
+                            (0.1/fielder.full_speed_sec_per_foot) * max_rate_of_speed_to_this_location
+                        )
+                        fielder.relative_rate_of_speed = 100
+        available_fielders = [f for f in self.at_bat.fielders if f not in (self.covering_first, self.covering_second,
+                                                                           self.covering_third, self.covering_home)]
+        self.obligated_fielder = min(available_fielders, key=lambda f: f.time_needed_to_field_ball)
+        self.obligated_fielder.making_goal_revision = True
+        self.obligated_fielder.decide_immediate_goal(batted_ball=self)
+        if self.obligated_fielder.playing_the_ball:
+            print "-- {} ({}) will try again to field the ball [{}]".format(
+                self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
+            )
+        else:
+            print "-- {} ({}) will now attempt to field the ball [{}]".format(
+                self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
+            )
+
     def move(self):
         """Move the batted ball along its course for one timestep."""
-        # Since we've already computed the ball's full trajectory, we
-        # simply look up where it will be at this timestep
-        if self.time_since_contact in self.position_at_timestep:
-            self.location = self.position_at_timestep[self.time_since_contact][:2]
-            self.height = self.position_at_timestep[self.time_since_contact][-1]
-            self.speed = self.x_velocity_at_timestep[self.time_since_contact]
-            # Check if the ball has stopped moving
+        if self.touched_by_fielder and self.height > 0.0:
+            # self.location doesn't change
+            self.height -= 3.2185  # Just gravity pulling it down
+            self.speed = 0.0
+            if self.height <= 0.0:
+                self.height = 0.0
+                if not self.landed:
+                    print "-- Ball has landed at [{}, {}] [{}]".format(
+                        int(self.location[0]), int(self.location[1]), self.time_since_contact
+                    )
+                    self.landed = True
+                    if self.in_foul_territory:
+                        self.landed_foul = True
+                while self.n_bounces < 2:
+                    self.n_bounces += 1  # Just picture it plopping down without a bounce -- no bounding fly outs here
             if self.speed == 0 and self.height == 0:
                 self.stopped = True
-            # Check for any change in batted ball attributes
-            if self.height <= 0:
-                self.landed = True
-                if not self.left_playing_field:
-                    self.n_bounces += 1
-                if self.in_foul_territory:
-                    self.landed_foul = True
-            if (self.location[1] < 0 or
-                    abs(self.location[0]) > self.location[1]):
-                self.in_foul_territory = True
+            # Overwrite self.position_at_timestep and self.x_velocity_at_timestep
+            # for what actually occurred at this timestep
+            self.position_at_timestep[self.time_since_contact] = (
+                self.location[0], self.location[1], self.height
+            )
+            self.x_velocity_at_timestep[self.time_since_contact] = self.speed
+        elif not self.touched_by_fielder:
+            # Since we've already computed the ball's full trajectory, we
+            # simply look up where it will be at this timestep
+            if self.time_since_contact in self.position_at_timestep:
+                self.location = self.position_at_timestep[self.time_since_contact][:2]
+                self.height = self.position_at_timestep[self.time_since_contact][-1]
+                self.speed = self.x_velocity_at_timestep[self.time_since_contact]
+                # Check if the ball has stopped moving
+                if self.speed == 0 and self.height == 0:
+                    self.stopped = True
+                # Check for any change in batted ball attributes
+                if (self.location[1] < 0 or
+                        abs(self.location[0]) > self.location[1]):
+                    self.in_foul_territory = True
+                else:
+                    self.in_foul_territory = False
+                if self.height <= 0:
+                    if not self.landed:
+                        print "-- Ball has landed at [{}, {}] [{}]".format(
+                            int(self.location[0]), int(self.location[1]), self.time_since_contact
+                        )
+                        self.landed = True
+                        if self.in_foul_territory:
+                            self.landed_foul = True
+                    if not self.left_playing_field:
+                        self.n_bounces += 1
+                if self.location[1] > 67:
+                    self.passed_first_or_third_base = True
+                if self.location[0] < -226:
+                    # Ball crossed either the plane of the playing field
+                    # sometime during the last timestep, and right at the
+                    # junction of the foul and outfield walls -- we will
+                    # have to approximate where it crossed the plane, which
+                    # due to the control sequence of elifs below will
+                    # favor home runs ever so slightly
+                    playing_field_lower_bound_at_this_x = (
+                        self.ballpark.playing_field_lower_bound[-226]
+                    )
+                    playing_field_upper_bound_at_this_x = (
+                        self.ballpark.playing_field_upper_bound[-226]
+                    )
+                elif self.location[0] > 226:
+                    # We will have to approximate where it crossed the plane
+                    # (see above comment block for explanation)
+                    playing_field_lower_bound_at_this_x = (
+                        self.ballpark.playing_field_lower_bound[-226]
+                    )
+                    playing_field_upper_bound_at_this_x = (
+                        self.ballpark.playing_field_upper_bound[-226]
+                    )
+                else:
+                    playing_field_lower_bound_at_this_x = (
+                        self.ballpark.playing_field_lower_bound[int(self.location[0])]
+                    )
+                    playing_field_upper_bound_at_this_x = (
+                        self.ballpark.playing_field_upper_bound[int(self.location[0])]
+                    )
+                if 0 <= abs(playing_field_lower_bound_at_this_x-self.location[1]) < 1.5:
+                    self.at_the_foul_wall = True
+                    self.crossed_plane_foul = True
+                elif 0 <= abs(self.location[1]-playing_field_upper_bound_at_this_x) < 1.5:
+                    self.at_the_outfield_wall = True
+                    self.crossed_plane_fair = True
+                elif self.location[1] > playing_field_upper_bound_at_this_x:
+                    self.left_playing_field = True
+                    self.crossed_plane_fair = True
+                elif self.location[1] < playing_field_lower_bound_at_this_x:
+                    self.left_playing_field = True
+                    self.crossed_plane_foul = True
+                if ((int(self.location[0]), int(self.location[1])) in
+                        self.at_bat.game.ballpark.ground_rule_coords):
+                    self.ground_rule_incurred = True
+            elif self.time_since_contact > max(self.position_at_timestep.keys()):
+                # Modify self.position_at_timestep and self.x_velocity_at_timestep to
+                # add these additional timesteps in which the ball is stopped
+                self.position_at_timestep[self.time_since_contact] = (
+                    self.location[0], self.location[1], self.height
+                )
+                self.stopped = True  # Ball has stopped moving, so nothing will change
+                self.x_velocity_at_timestep[self.time_since_contact] = self.speed
             else:
-                self.in_foul_territory = False
-            if self.location[1] > 67:
-                self.passed_first_or_third_base = True
-            if self.location[0] < -226:
-                # Ball crossed either the plane of the playing field
-                # sometime during the last timestep, and right at the
-                # junction of the foul and outfield walls -- we will
-                # have to approximate where it crossed the plane, which
-                # due to the control sequence of elifs below will
-                # favor home runs ever so slightly
-                playing_field_lower_bound_at_this_x = (
-                    self.ballpark.playing_field_lower_bound[-226]
-                )
-                playing_field_upper_bound_at_this_x = (
-                    self.ballpark.playing_field_upper_bound[-226]
-                )
-            elif self.location[0] > 226:
-                # We will have to approximate where it crossed the plane
-                # (see above comment block for explanation)
-                playing_field_lower_bound_at_this_x = (
-                    self.ballpark.playing_field_lower_bound[-226]
-                )
-                playing_field_upper_bound_at_this_x = (
-                    self.ballpark.playing_field_upper_bound[-226]
-                )
-            else:
-                playing_field_lower_bound_at_this_x = (
-                    self.ballpark.playing_field_lower_bound[int(self.location[0])]
-                )
-                playing_field_upper_bound_at_this_x = (
-                    self.ballpark.playing_field_upper_bound[int(self.location[0])]
-                )
-            if 0 <= abs(playing_field_lower_bound_at_this_x-self.location[1]) < 1.5:
-                self.at_the_foul_wall = True
-                self.crossed_plane_foul = True
-            elif 0 <= abs(self.location[1]-playing_field_upper_bound_at_this_x) < 1.5:
-                self.at_the_outfield_wall = True
-                self.crossed_plane_fair = True
-            elif self.location[1] > playing_field_upper_bound_at_this_x:
-                self.left_playing_field = True
-                self.crossed_plane_fair = True
-            elif self.location[1] < playing_field_lower_bound_at_this_x:
-                self.left_playing_field = True
-                self.crossed_plane_foul = True
-            if ((int(self.location[0]), int(self.location[1])) in
-                    self.at_bat.game.ballpark.ground_rule_coords):
-                self.ground_rule_incurred = True
-        elif self.time_since_contact > max(self.position_at_timestep.keys()):
-            self.stopped = True  # Ball has stopped moving, so nothing will change
-        else:
-            raise Exception("Call to BattedBall.move() for an invalid timestep.")
+                raise Exception("Call to BattedBall.move() for an invalid timestep.")
+
+    def __str__(self):
+        return "{} hit by {} toward {}".format(self.type, self.batter, self.destination)
 
     @property
     def vacuum_distance(self):

@@ -3,6 +3,8 @@ from batted_ball import BattedBall, FoulTip
 from outcome import Bean
 
 
+# TODO checked swings
+
 class Pitch(object):
 
     def __init__(self, ball, at_bat, handedness, batter_handedness, count,
@@ -275,10 +277,82 @@ class Bunt(object):
         self.bunt = True
 
 
+class FieldingAct(object):
+
+    def __init__(self, fielder, batted_ball, objective_difficulty, subjective_difficulty,
+                 line_drive_at_pitcher, ball_totally_missed):
+        self.fielder = fielder
+        self.fielder.fielding_acts.append(self)
+        self.location = self.fielder.location
+        self.fielder_position = fielder.position
+        self.batted_ball = batted_ball
+        batted_ball.result = self
+        batted_ball.fielding_acts.append(self)
+        self.objective_difficulty = objective_difficulty
+        self.subjective_difficulty = subjective_difficulty
+        if batted_ball.fielded_by:
+            self.successful = True
+        else:
+            self.successful = False
+        self.line_drive_at_pitcher = line_drive_at_pitcher
+        self.ball_totally_missed = ball_totally_missed
+        self.ball_bobbled = batted_ball.bobbled
+        self.fielder_composure = fielder.composure
+        # Affect player composure according to the objective difficulty of the fielding act and
+        # whether it was successful
+        if self.successful:
+            fielder.composure += batted_ball.fielding_difficulty / 3.5
+        else:
+            fielder.composure -= (1-batted_ball.fielding_difficulty) / 3.5
+        self.fielder_composure_after = fielder.composure
+        if line_drive_at_pitcher:
+            print "-- Line drive right at {} ({}) [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        elif batted_ball.at_the_foul_wall or batted_ball.at_the_outfield_wall or batted_ball.left_playing_field:
+            print "-- {} ({}) is attempting a catch at the wall! [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        else:
+            print "-- {} ({}) is attempting to field the ball at [{}, {}] [Diff: {}] [{}]".format(
+                self.fielder.last_name, self.fielder_position, int(self.location[0]), int(self.location[1]),
+                round(self.objective_difficulty, 3), batted_ball.time_since_contact
+            )
+        if self.successful and batted_ball.landed:
+            print "-- {} ({}) cleanly fields the ball [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        elif self.successful and not batted_ball.landed:
+            print "-- {} ({}) makes the catch [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        elif batted_ball.stopped and batted_ball.bobbled:
+            print "-- {} ({}) bobbles the stopped ball [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        elif not batted_ball.stopped and batted_ball.bobbled:
+            print "-- {} ({}) gets a glove on the ball, but drops it [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        elif ball_totally_missed:
+            print "-- {} ({}) misses the ball [{}]".format(
+                self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+            )
+        if round(self.fielder_composure, 2) != round(self.fielder_composure_after):
+            print "-- {}'s composure changed from {} to {}".format(
+                self.fielder.last_name, round(self.fielder_composure, 2), round(self.fielder_composure_after, 2)
+            )
+        else:
+            print "-- {}'s composure remains {}".format(self.fielder.last_name, round(self.fielder_composure, 2))
+
+
 class Throw(object):
 
-    def __init__(self, thrown_by, thrown_to, base, runner_to_putout, release_time,
-                 distance_to_target, release, power, height_error, lateral_error):
+    # TODO add self as appropriate fielding_act.result
+
+    def __init__(self, batted_ball, thrown_by, thrown_to, base, runner_to_putout, release_time,
+                 distance_to_target, release, power, height_error, lateral_error, back_to_pitcher=False):
+        self.batted_ball = batted_ball
         self.thrown_by = thrown_by
         self.thrown_to = thrown_to
         self.base = base
@@ -290,11 +364,15 @@ class Throw(object):
         self.dist_per_timestep = thrown_by.throwing_dist_per_timestep * power
         self.height_error = height_error
         self.lateral_error = lateral_error
+        self.back_to_pitcher = back_to_pitcher
+        if not back_to_pitcher:
+            batted_ball.at_bat.potential_assistants.add(self.thrown_by)
         # Dynamic; modified during play
         self.time_until_release = release_time
         self.distance_traveled = 0.0
         self.percent_to_target = 0.0
         self.reached_target = False
+        self.timestep_reached_target = None
         self.resolved = False
 
     def move(self):
@@ -307,3 +385,9 @@ class Throw(object):
             )
             if self.percent_to_target >= 1.0:
                 self.reached_target = True
+                # Record the precise time the throw reached its target, for potential use
+                # by umpire.call_play_at_base()
+                surplus_distance = self.distance_traveled-self.distance_to_target
+                surplus_time = (surplus_distance / self.dist_per_timestep) * 0.1
+                self.timestep_reached_target = self.batted_ball.time_since_contact - surplus_time
+                self.percent_to_target = 1.0

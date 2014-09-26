@@ -1,5 +1,5 @@
 import random
-from outcome import Strike, Ball, FoulBall, ForceOut, Single, Double, Triple, Run
+from outcome import Strike, Ball, FoulBall, Single, Double, Triple, HomeRun, Run, DoublePlay, TriplePlay, FieldersChoice
 
 COUNTS = {(0, 0): 00, (1, 0): 10, (2, 0): 20, (3, 0): 30,
           (0, 1): 10, (1, 1): 11, (2, 1): 21, (3, 1): 31,
@@ -25,6 +25,12 @@ class Game(object):
         self.innings = []
         self.umpire = next(z for z in self.league.country.players if
                            z.hometown.name in ("Minneapolis", "St. Paul", "Duluth"))
+        self.umpire.games_umpired.append(self)
+
+        self.composures_before = {}
+        for player in away_team.players+home_team.players:
+            self.composures_before[player] = player.composure
+
 
     def enact(self):
         for inning_n in xrange(1, 10):
@@ -46,6 +52,14 @@ class Game(object):
         self.home_team.runs = self.away_team.runs = 0
         self.winner.wins += 1
         self.loser.losses += 1
+        print "\n\t\tComposures before and after\n"
+        diffs = []
+        for player in self.away_team.players+self.home_team.players:
+            print "{}, {}".format(player.name, player.position)
+            diff = round(player.composure-self.composures_before[player], 2)
+            diffs.append(diff)
+            print "\t{}\t{}\t{}".format(round(self.composures_before[player], 2), round(player.composure, 2), diff)
+        print "\nAverage difference: {}".format(sum(diffs)/len(diffs))
 
     def print_box_score(self):
         print '\n\n'
@@ -161,18 +175,10 @@ class Frame(object):
         self.runs = 0  # Runs batting team has scored this inning
         self.outs = 0
         self.at_bats = []  # Appended to by AtBat.__init__()
-        self.at_bat = None
 
-        print "\n\t\t*****  {}  *****".format(self)
+        print "\n\t\t*****  {}  *****\n\n".format(self)
         self.enact()
-
-    def enact(self):
-        while self.outs < 3:
-            self.at_bat = AtBat(frame=self)
-            self.at_bat.enact()
-            print "\n{}. {} outs. Score is {}-{}.\n".format(
-                self.at_bat.result, self.outs, self.game.away_team.runs, self.game.home_team.runs
-            )
+        self.review()
 
     def __str__(self):
         ordinals = {
@@ -214,6 +220,30 @@ class Frame(object):
             next_batter = self.batting_team.batting_order[0]
         return next_batter
 
+    def enact(self):
+        while self.outs < 3:
+            AtBat(frame=self)
+            print "\n{}. {} outs. Score is {}-{}.\n".format(
+                self.at_bats[-1].result, self.outs, self.game.away_team.runs, self.game.home_team.runs
+            )
+            # raw_input("")
+
+    def review(self):
+        # TODO substitution will change how this should be done
+        self.pitching_team.pitcher.innings_pitched.append(self)
+        temp_lob = []
+        for baserunner in self.baserunners:
+            self.batting_team.left_on_base.append(baserunner)
+            temp_lob.append(baserunner)
+        if type(self.at_bats[-1].result) is FieldersChoice:
+            self.batting_team.left_on_base.append(self.at_bats[-1].batter)
+            temp_lob.append(self.at_bats[-1].batter)
+        for lob in temp_lob:
+            self.at_bats[-1].batter.composure -= 0.05
+        print "{} left these players on base: {}\n".format(
+                self.batting_team.city.name, ', '.join(b.last_name for b in temp_lob)
+        )
+
     @property
     def baserunners(self):
         baserunners = []
@@ -228,6 +258,13 @@ class Frame(object):
             baserunners.append(self.on_first)
         return baserunners
 
+    @property
+    def bases_loaded(self):
+        if self.on_first and self.on_second and self.on_third:
+            return True
+        else:
+            return False
+
 
 class AtBat(object):
 
@@ -236,26 +273,38 @@ class AtBat(object):
         self.frame.at_bats.append(self)
         self.game = frame.game
         self.batter = frame.get_next_batter()
+        self.batter.at_bats.append(self)
         frame.batting_team.batter = self.batter
         self.pitcher = frame.pitching_team.pitcher
         self.catcher = frame.pitching_team.catcher
         self.fielders = frame.pitching_team.fielders
         self.umpire = self.game.umpire
         self.pitches = []
-        self.throw = None
-        self.true_call = None  # But can't there be multiple true calls?
         # Blank count to start
         self.balls = self.strikes = 0
         self.count = 00
         # Modified below
+        self.outs = []  # Kept track of as a listener for double- and triple plays
+        self.batted_ball = None
+        self.potential_assistants = set()
+        self.throw = None
         self.resolved = False
         self.result = None
 
         print "1B: {}, 2B: {}, 3B: {}, AB: {}".format(frame.on_first, frame.on_second, frame.on_third, self.batter)
 
+        self.enact()
+
     def enact(self):
+        # TODO substitutions will change where this should be done
+        if self.game not in self.pitcher.games_played:
+            self.pitcher.games_played.append(self.game)
+        if self.game not in self.batter.games_played:
+            self.batter.games_played.append(self.game)
         assert not self.resolved, "Call to enact() of already resolved AtBat."
         while not self.resolved:
+            self.potential_assistants = set()
+            self.batted_ball = None  # Don't carry over prior batted ball that went foul, etc.
             self.count = COUNTS[(self.balls, self.strikes)]
             # Fielders and baserunners get in position
             for player in self.fielders + self.frame.baserunners + [self.batter]:
@@ -268,7 +317,7 @@ class AtBat(object):
             if not self.batter.will_swing:
                 if not pitch.bean:
                     # Catcher attempts to receive pitch
-                    pitch.caught = self.catcher.receive_pitch(pitch)
+                    pitch.caught = self.catcher.receive_pitch(pitch)  # TODO wild pitches, passed balls
                     # Umpire makes his call
                     pitch.call = pitch.would_be_call
                     if pitch.call == "Strike":
@@ -292,7 +341,8 @@ class AtBat(object):
                         FoulBall(batted_ball=foul_tip)
                 elif swing.contact:
                     # Contact is made
-                    batted_ball = swing.result
+                    batted_ball = self.batted_ball = swing.result
+                    print "-- {} [0.0]".format(batted_ball)
                     self.throw = None
                     # Fielders read the batted ball and decide immediate goals
                     batted_ball.get_read_by_fielders()
@@ -309,118 +359,118 @@ class AtBat(object):
                         # factored in)
                         batted_ball.move()
                         self.batter.baserun(batted_ball=batted_ball)
-                    while not batted_ball.dead:
+                    while not batted_ball.resolved:
                         batted_ball.time_since_contact += 0.1
                         if not batted_ball.fielded_by:
                             batted_ball.move()
-                        if self.throw:
-                            self.throw.move()
-                        for baserunner in self.frame.baserunners + [self.batter]:
-                            if not baserunner.safely_on_base and not baserunner.out:
-                                baserunner.baserun(batted_ball=batted_ball)
-                            elif baserunner.safely_home:
-                                Run(frame=self.frame, runner=baserunner, batted_in_by=self.batter)
-                                batted_ball.running_to_home = None
+                        # If there are less than two outs and there is potential for a fly out,
+                        # baserunners will tentatively advance on the base paths, while the
+                        # batter-runner will run it out to first regardless
+                        if self.frame.outs != 2 and any(f for f in self.fielders if f.attempting_fly_out):
+                            for baserunner in self.frame.baserunners:
+                                baserunner.tentatively_baserun(batted_ball=batted_ball)
+                            self.batter.baserun(batted_ball=batted_ball)
+                        else:
+                            # All baserunners will run without inhibition, as they normally do
+                            for baserunner in self.frame.baserunners + [self.batter]:
+                                if not baserunner.out:
+                                    if baserunner.forced_to_retreat:
+                                        baserunner.retreat(batted_ball=batted_ball)
+                                    elif not baserunner.safely_on_base and not baserunner.out:
+                                        baserunner.baserun(batted_ball=batted_ball)
+                                    elif baserunner.safely_home:
+                                        Run(frame=self.frame, runner=baserunner, batted_in_by=self.batter)
                         for fielder in self.fielders:
                             if not fielder.at_goal:
                                 fielder.act(batted_ball=batted_ball)
-                        # ball hasn't been fielded and there's a player with a chance
-                        if not batted_ball.fielded_by and batted_ball.fielder_with_chance:
-                            batted_ball.fielder_with_chance.field_ball(batted_ball=batted_ball)
-                            # if not batted_ball.fielded_by:
-                                # print "Error! [Difficulty: {}]".format(batted_ball.fielding_difficulty)
-                        if batted_ball.fielded_by and not batted_ball.fielded_by.ready_to_throw:
-                            batted_ball.fielded_by.decide_throw(batted_ball=batted_ball)
-                        if not self.throw and batted_ball.fielded_by and batted_ball.fielded_by.ready_to_throw:
-                            self.throw = batted_ball.fielded_by.throw(batted_ball=batted_ball)
-                        if self.throw and self.throw.reached_target and not self.throw.resolved:
+                        if not self.throw:
+                            # If there's a fielder with a chance, and the ball hasn't been fielded
+                            # yet, and that player is not reorienting from a prior fielding miss,
+                            # simulate the fielding attempt
+                            if not batted_ball.fielded_by and batted_ball.fielder_with_chance:
+                                if batted_ball.fielder_with_chance.reorienting_after_fielding_miss > 0:
+                                    batted_ball.fielder_with_chance.reorienting_after_fielding_miss -= 0.1
+                                if batted_ball.fielder_with_chance.reorienting_after_fielding_miss <= 0:
+                                    # Attempt to field the ball
+                                    batted_ball.fielder_with_chance.field_ball(batted_ball=batted_ball)
+                                    if not batted_ball.fielded_by:
+                                        # Defensive player didn't field the ball cleanly
+                                        # TODO may be scored as error, and then all the statistical nuances there
+                                        if batted_ball.bobbled:
+                                            pass  # Player will attempt to field ball again after reorienting
+                                        elif not batted_ball.bobbled:
+                                            # Batted ball will continue on its trajectory, so players need to
+                                            # reassess whether and how they may attempt to field it
+                                            batted_ball.get_reread_by_fielders()
+                            # If the ball has been fielded and the fielder hasn't decided his throw
+                            # yet, have him decide his throw and then instantiate the throw
+                            elif batted_ball.fielded_by:
+                                # elif here so that the umpire gets a timestep to make a call
+                                # as to whether it's a fly out or a trap, if necessary
+                                batted_ball.fielded_by.decide_throw(batted_ball=batted_ball)
+                                self.throw = batted_ball.fielded_by.throw(batted_ball=batted_ball)
+                        if self.throw and not self.throw.reached_target:
+                            self.throw.move()
+                        if self.throw and self.throw.reached_target and self.throw.resolved:
+                            self.throw.thrown_to.decide_throw(batted_ball=batted_ball)
+                            self.throw = self.throw.thrown_to.throw(batted_ball=batted_ball)
+                        # If the throw was in anticipation of an advancing runner and it has
+                        # reached its target, resolve the play at the plate
+                        elif self.throw and self.throw.reached_target and not self.throw.resolved:
+                            print "-- Throw has reached {} ({}) [{}]".format(
+                                self.throw.thrown_to.last_name, self.throw.thrown_to.position,
+                                batted_ball.time_since_contact
+                            )
                             self.throw.resolved = True
                             if self.throw.runner:
-                                if not self.throw.runner.safely_on_base:
-                                    self.true_call = "Out"
-                                    if (self.throw.runner is batted_ball.running_to_first and
-                                            self.throw.runner.percent_to_base > 0.9):
-                                        print "-- It's a close one at {}! Umpire {} will make the call...".format(
-                                            self.throw.base, self.umpire.name
-                                        )
-                                        # If it's close, umpire could potentially get it wrong
-                                        call = self.umpire.call_play_at_first(baserunner=self.throw.runner,
-                                                                              throw=self.throw)
-                                    else:
-                                        call = self.true_call
-                                    if call == "Out":
-                                        ForceOut(at_bat=self, baserunner=self.throw.runner, base=self.throw.base,
-                                                 true_call=self.true_call, forced_by=self.throw.thrown_to,
-                                                 assisted_by=[self.throw.thrown_by])
-                                    elif call == "Safe":
-                                        # if self.batter is batted_ball.running_to_first:
-                                        #     hit = Single(batted_ball=batted_ball, true_call=true_call)
-                                        # elif self.batter is batted_ball.running_to_second:
-                                        #     hit = Double(batted_ball=batted_ball, true_call=true_call)
-                                        # hit.beat_throw_by = -0.1
-                                        pass
-                                elif self.throw.runner.safely_on_base and batted_ball.landed:
-                                    self.true_call = "Safe"
-                                    if (self.throw.runner is batted_ball.running_to_first and
-                                            self.throw.percent_to_target > 0.9):
-                                        print "-- It's a close one at {}! Umpire {} will make the call...".format(
-                                            self.throw.base, self.umpire.name
-                                        )
-                                        # If it's close, umpire could potentially get it wrong
-                                        call = self.umpire.call_play_at_first(baserunner=self.batter, throw=self.throw)
-                                    else:
-                                        call = self.true_call
-                                    if call == "Safe":
-                                        # if self.throw:
-                                        #     beat_throw_by = 0.0
-                                        #     while not self.throw.reached_target:
-                                        #         self.throw.move()
-                                        #         beat_throw_by += 0.1
-                                        #     hit.beat_throw_by = beat_throw_by
-                                        pass
-                                    elif call == "Out":
-                                        ForceOut(at_bat=self, baserunner=self.batter, base=self.throw.base,
-                                                 true_call=self.true_call, forced_by=self.throw.thrown_to,
-                                                 assisted_by=[self.throw.thrown_by])
+                                self.umpire.call_play_at_base(baserunner=self.throw.runner, throw=self.throw)
                             elif not self.throw.runner:
-                                # print "\n\nThrow is to pitcher or not in pursuit of an out, so batted ball marked dead."
-                                pass
+                                batted_ball.resolved = True
                         self.umpire.officiate(batted_ball=batted_ball)
-                        if all(b.safely_on_base or b.out for b in self.frame.baserunners + [self.batter]):
-                            batted_ball.dead = True
-                    # Once batted ball is dead (indicated by this indent), check for whether a hit was made
-                    if not self.result and self.batter.safely_on_base:
-                        if not self.true_call:
-                            self.true_call = "WTF?"
-                        if (self.batter is batted_ball.running_to_first or
-                                self.batter is batted_ball.retreating_to_first):
-                            Single(batted_ball=batted_ball, true_call=self.true_call)
-                        elif (self.batter is batted_ball.running_to_second or
-                                self.batter is batted_ball.retreating_to_second):
-                            Double(batted_ball=batted_ball, true_call=self.true_call)
-                        elif (self.batter is batted_ball.running_to_third or
-                                self.batter is batted_ball.retreating_to_third):
-                            Triple(batted_ball=batted_ball, true_call=self.true_call)
-                    # Survey for which bases are now occupied and by whom
-                    if batted_ball.running_to_third and batted_ball.running_to_third.safely_on_base:
-                        self.frame.on_third = batted_ball.running_to_third
-                    elif batted_ball.retreating_to_third and batted_ball.retreating_to_third.safely_on_base:
-                        self.frame.on_third = batted_ball.retreating_to_third
-                    else:
-                        self.frame.on_third = None
-                    if batted_ball.running_to_second and batted_ball.running_to_second.safely_on_base:
-                        self.frame.on_second = batted_ball.running_to_second
-                    elif batted_ball.retreating_to_second and batted_ball.retreating_to_second.safely_on_base:
-                        self.frame.on_second = batted_ball.retreating_to_second
-                    else:
-                        self.frame.on_second = None
-                    if batted_ball.running_to_first and batted_ball.running_to_first.safely_on_base:
-                        self.frame.on_first = batted_ball.running_to_first
-                    elif batted_ball.retreating_to_first and batted_ball.retreating_to_first.safely_on_base:
-                        self.frame.on_first = batted_ball.retreating_to_first
-                    else:
-                        self.frame.on_first = None
-                    # TODO immediately, this, tagouts, tag-ups, etc.
+                    if self.batter.safely_on_base:
+                        self.resolved = True
+        if self.batted_ball:
+            self.review()
+
+    def review(self):
+        # Check for whether a hit was made; if one was, instantiate the appropriate outcome object
+        # [Note: if the batter-runner was part of a call at a base, PlayAtBaseCall.__init__() will
+        # score the hit -- in those cases it is precluded here by self.result having already been
+        # attributed by the scored hit]
+        if not self.result and self.batter.base_reached_on_hit:
+            if self.batter.base_reached_on_hit == "1B":
+                Single(batted_ball=self.batted_ball, call=None)
+            elif self.batter.base_reached_on_hit == "2B":
+                Double(batted_ball=self.batted_ball, call=None)
+            elif self.batter.base_reached_on_hit == "3B":
+                Triple(batted_ball=self.batted_ball, call=None)
+            elif self.batter.base_reached_on_hit == "H":
+                HomeRun(batted_ball=self.batted_ball, call=None, inside_the_park=True)
+        # Next, check for whether a double- or triple play was turned -- if one was, instantiate
+        # the appropriate outcome object
+        if len(self.outs) == 2:
+            DoublePlay(at_bat=self, outs=self.outs)
+        elif len(self.outs) == 3:
+            TriplePlay(at_bat=self, outs=self.outs)
+        # Lastly, survey for which bases are now occupied and by whom
+        if self.batted_ball.running_to_third and self.batted_ball.running_to_third.safely_on_base:
+            self.frame.on_third = self.batted_ball.running_to_third
+        elif self.batted_ball.retreating_to_third and self.batted_ball.retreating_to_third.safely_on_base:
+            self.frame.on_third = self.batted_ball.retreating_to_third
+        else:
+            self.frame.on_third = None
+        if self.batted_ball.running_to_second and self.batted_ball.running_to_second.safely_on_base:
+            self.frame.on_second = self.batted_ball.running_to_second
+        elif self.batted_ball.retreating_to_second and self.batted_ball.retreating_to_second.safely_on_base:
+            self.frame.on_second = self.batted_ball.retreating_to_second
+        else:
+            self.frame.on_second = None
+        if self.batted_ball.running_to_first and self.batted_ball.running_to_first.safely_on_base:
+            self.frame.on_first = self.batted_ball.running_to_first
+        elif self.batted_ball.retreating_to_first and self.batted_ball.retreating_to_first.safely_on_base:
+            self.frame.on_first = self.batted_ball.retreating_to_first
+        else:
+            self.frame.on_first = None
 
     def draw_playing_field(self):
         import turtle

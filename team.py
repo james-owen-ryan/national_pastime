@@ -78,7 +78,9 @@ class Team(object):
         # if not expansion:
         #     print '\n {team} have been enfranchised.'.format(team=self.name)
 
-        self.wins = self.losses = 0
+        # Statistical stuff
+        self.games_played = []
+        self.left_on_base = []
 
     def init_name(self):
 
@@ -135,7 +137,7 @@ class Team(object):
                         p.ground_ball_fielding > 1.0)
         pool.remove(second)
         third = next(p for p in pool if p.bat_speed > 1.5 and p.swing_timing_error < 0.045 and
-                        p.full_speed_sec_per_foot*180 < 6.6)
+                        p.full_speed_sec_per_foot*180 < 6.8)
         pool.remove(third)
         ss = next(p for p in pool if p.bat_speed > 1.8 and p.swing_timing_error < 0.035 and
                         p.ground_ball_fielding > 1.1)
