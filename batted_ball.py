@@ -29,6 +29,7 @@ class BattedBall(object):
         self.second_landing_timestep = None  # Likewise, for games with bounding fly outs
         self.apex = 0.0
         self.location = [0, 0]
+        self.final_location = None
         self.height = 3.5
         self.time_since_contact = 0.0  # Adjusted by at_bat.enact()
         self.speed = exit_speed
@@ -53,7 +54,7 @@ class BattedBall(object):
         self.left_playing_field = False
         self.ground_rule_incurred = False
         # Dynamic attributes that specify game actions while the ball is in play
-        self.fly_out_awarded = False  # So that multiple fly outs aren't awarded by umpire.officiate()
+        self.fly_out_call_given = False  # So that multiple fly outs aren't awarded by umpire.officiate()
         self.resolved = False  # Whether the current playing action has ended
         self.result = None
         self.running_to_first = self.at_bat.batter
@@ -71,6 +72,7 @@ class BattedBall(object):
         self.backing_up_second = None
         self.backing_up_third = None
         self.backing_up_home = None
+        self.cut_off_man = None  # Fielder positioned to act as relay on the throw
         # Prepare a dictionary that will map timesteps to batted ball
         # x-, y-, and z-coordinates; modified by compute_full_trajectory()
         self.position_at_timestep = {}
@@ -188,6 +190,7 @@ class BattedBall(object):
             self.hang_time = time_since_contact
         if not self.landing_timestep:
             self.landing_timestep = time_since_contact-timestep
+        self.final_location = [int(coordinate_x), int(coordinate_y)]
 
     def classify_self(self):
         """Determine batted-ball type and destination."""
@@ -195,7 +198,10 @@ class BattedBall(object):
         if self.vertical_launch_angle < 5 and self.apex > 10:
             self.type = "Chopper"
         elif self.vertical_launch_angle < 5:
-            self.type = "Ground ball"
+            if self.true_distance < 90:
+                self.type = "Ground ball"
+            else:
+                self.type = "Line drive"
         elif float(self.true_distance)/self.apex >= 4:
             self.type = "Line drive"
         elif self.apex > self.true_distance:
@@ -203,7 +209,7 @@ class BattedBall(object):
         else:
             self.type = "Fly ball"
         # Determine the destination area of the batted ball
-        if self.true_distance < 0:
+        if self.true_distance <= 0:
             self.destination = "behind home plate"
         elif self.type == "Chopper" or self.type == "Ground ball":
             if self.horizontal_launch_angle < -45:
@@ -296,6 +302,14 @@ class BattedBall(object):
                         self.destination = "right"
             else:
                 self.destination = "right foul territory"
+        if self.destination in (
+            "first", "second", "third", "shortstop", "shallow left foul territory", "shallow right foul territory"
+        ):
+            self.hit_to_infield = True
+            self.hit_to_outfield = False
+        else:
+            self.hit_to_infield = False
+            self.hit_to_outfield = True
 
     def get_read_by_fielders(self):
         """Obligate fielders to their defensive responsibilities."""
@@ -392,6 +406,7 @@ class BattedBall(object):
                         # the fielding chance, which is used below to determine the obligated
                         # fielder (though this person may be called off)
                         fielder.time_needed_to_field_ball = time_to_ball_location_at_timestep
+                        fielder.timestep_of_planned_fielding_attempt = timestep
                         # Set location where fielding attempt will occur, if this
                         # fielder ends up playing the ball
                         fielder.immediate_goal = self.position_at_timestep[timestep]
@@ -411,7 +426,11 @@ class BattedBall(object):
                         # moving, so the time needed to field it is simply the time
                         # it would take the fielder to run full speed to the point
                         # where the ball will come to a stop
-                        fielder.time_needed_to_field_ball = time_to_ball_location_at_timestep
+                        fielder.time_needed_to_field_ball = max(timestep, time_to_ball_location_at_timestep)
+                        actual_timestep_it_will_happen = timestep
+                        while actual_timestep_it_will_happen < fielder.time_needed_to_field_ball:
+                            actual_timestep_it_will_happen += 0.1
+                        fielder.timestep_of_planned_fielding_attempt = actual_timestep_it_will_happen
                         # Set location where fielding attempt will occur, if this
                         # fielder ends up playing the ball
                         fielder.immediate_goal = self.position_at_timestep[timestep]
@@ -422,10 +441,10 @@ class BattedBall(object):
                             (0.1/fielder.full_speed_sec_per_foot) * max_rate_of_speed_to_this_location
                         )
                         fielder.relative_rate_of_speed = 100
-
         self.obligated_fielder = (
             min(self.at_bat.fielders, key=lambda f: f.time_needed_to_field_ball)
         )
+        self.obligated_fielder.playing_the_ball = True
 
     def get_reread_by_fielders(self):
         """Obligate a new fielder to field the ball after it was not cleanly fielded."""
@@ -534,6 +553,7 @@ class BattedBall(object):
                         # the fielding chance, which is used below to determine the obligated
                         # fielder (though this person may be called off)
                         fielder.time_needed_to_field_ball = timestep-self.time_since_contact
+                        fielder.timestep_of_planned_fielding_attempt = timestep
                         # Set location where fielding attempt will occur, if this
                         # fielder ends up playing the ball
                         fielder.immediate_goal = self.position_at_timestep[timestep]
@@ -553,7 +573,11 @@ class BattedBall(object):
                         # moving, so the time needed to field it is simply the time
                         # it would take the fielder to run full speed to the point
                         # where the ball will come to a stop
-                        fielder.time_needed_to_field_ball = time_to_ball_location_at_timestep
+                        fielder.time_needed_to_field_ball = time_to_ball_location_at_timestep+self.time_since_contact
+                        actual_timestep_it_will_happen = timestep
+                        while actual_timestep_it_will_happen < fielder.time_needed_to_field_ball:
+                            actual_timestep_it_will_happen += 0.1
+                        fielder.timestep_of_planned_fielding_attempt = actual_timestep_it_will_happen
                         # Set location where fielding attempt will occur, if this
                         # fielder ends up playing the ball
                         fielder.immediate_goal = self.position_at_timestep[timestep]
@@ -567,8 +591,6 @@ class BattedBall(object):
         available_fielders = [f for f in self.at_bat.fielders if f not in (self.covering_first, self.covering_second,
                                                                            self.covering_third, self.covering_home)]
         self.obligated_fielder = min(available_fielders, key=lambda f: f.time_needed_to_field_ball)
-        self.obligated_fielder.making_goal_revision = True
-        self.obligated_fielder.decide_immediate_goal(batted_ball=self)
         if self.obligated_fielder.playing_the_ball:
             print "-- {} ({}) will try again to field the ball [{}]".format(
                 self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
@@ -577,6 +599,15 @@ class BattedBall(object):
             print "-- {} ({}) will now attempt to field the ball [{}]".format(
                 self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
             )
+        self.obligated_fielder.making_goal_revision = True
+        self.obligated_fielder.playing_the_ball = True
+        # Make it so that our new obligated fielder is calling the ball and the
+        # guy who was just playing the ball and missed is no longer playing it
+        self.obligated_fielder.playing_the_ball = True
+        for fielder in self.at_bat.fielders:
+            if fielder is not self.obligated_fielder:
+                fielder.playing_the_ball = False
+        self.obligated_fielder.decide_immediate_goal(batted_ball=self)
 
     def move(self):
         """Move the batted ball along its course for one timestep."""
@@ -686,8 +717,50 @@ class BattedBall(object):
             else:
                 raise Exception("Call to BattedBall.move() for an invalid timestep.")
 
+    def enumerate_defensive_responsibilities(self):
+        print "\n"
+        print "- Playing the ball: {}".format(
+            next(f for f in self.at_bat.fielders if f.playing_the_ball).position
+        )
+        print "- Backing up the catch: {}".format(
+            ', '.join(f.position for f in self.at_bat.fielders if f.backing_up_the_catch))
+        if self.cut_off_man:
+            print "- Cut-off man: {}".format(self.cut_off_man.position)
+        else:
+            print "- Cut-off man: None"
+        if self.covering_first:
+            print "- Covering first: {}".format(self.covering_first.position)
+        else:
+            print "- Covering first: None (prob. 1B is going for clear foul ball)"
+        if self.covering_second:
+            print "- Covering second: {}".format(self.covering_second.position)
+        else:
+            print "- No one is currently covering second! Check to make sure SS ends up doing so."
+        if self.covering_third:
+            print "- Covering third: {}".format(self.covering_third.position)
+        else:
+            print "- Covering third: None (prob. 3B is going for clear foul ball)"
+        print "- Covering home: {}".format(self.covering_home.position)
+        if self.backing_up_first:
+            print "- Backing up first: {}".format(self.backing_up_first.position)
+        else:
+            print "- Backing up first: None"
+        if self.backing_up_second:
+            print "- Backing up second: {}".format(self.backing_up_second.position)
+        else:
+            print "- Backing up second: None"
+        if self.backing_up_third:
+            print "- Backing up third: {}".format(self.backing_up_third.position)
+        else:
+            print "- Backing up third: None"
+        if self.backing_up_home:
+            print "- Backing up home: {}".format(self.backing_up_home.position)
+        else:
+            print "- Backing up home: None"
+        print "\n"
+
     def __str__(self):
-        return "{} hit by {} toward {}".format(self.type, self.batter, self.destination)
+        return "{} hit by {} toward {}".format(self.type, self.batter.last_name, self.destination)
 
     @property
     def vacuum_distance(self):

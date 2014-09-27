@@ -34,7 +34,7 @@ class City(object):
         self.longitude = longitude
         self.yearly_populations = populations
         self.population = populations[self.year]
-        self.pop = self.population/1000
+        self.pop = max(self.population/1000, 1)
         self.yearly_unique_team_nicknames = yearly_unique_team_nicknames
         self.unique_nicknames = yearly_unique_team_nicknames[self.year]
 

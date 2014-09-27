@@ -1,3 +1,6 @@
+import os, time
+
+
 class Strike(object):
 
     def __init__(self, pitch, looking, foul_tip=None):
@@ -104,6 +107,8 @@ class FoulBall(object):
         self.anachronic_home_run = anachronic_home_run
         # Effect consequences
         at_bat = batted_ball.at_bat
+        at_bat.batter.safely_on_base = False
+        at_bat.resolved = False
         if batted_ball.bunt and at_bat.game.rules.foul_bunts_are_strikes:
             # Enforce foul-bunt rule
             self.strike = True
@@ -117,6 +122,9 @@ class FoulBall(object):
             at_bat.strikes += 1
 
         print "-- Foul ball [{}]".format(batted_ball.time_since_contact)
+        if self.batted_ball.at_bat.game.radio:
+            os.system('say Foul ball')
+            time.sleep(0.5)
 
     def __str__(self):
         if self.strike:
@@ -295,7 +303,7 @@ class FlyOut(object):
         else:
             self.bounding = False
         # Effect consequences
-        batted_ball.fly_out_awarded = True
+        batted_ball.fly_out_call_given = True
         self.at_bat.resolved = True
         self.at_bat.frame.outs += 1
         if self.at_bat.frame.outs < 3:
@@ -362,8 +370,13 @@ class ForceOut(object):
         self.result = None
         if baserunner is self.at_bat.batter:
             self.at_bat.result = self  # TODO SAC-FLY choices nuances
-        elif not self.at_bat.result and baserunner is not self.at_bat.batter and not baserunner.base_reached_on_hit:
-            FieldersChoice(at_bat=self.at_bat, out=self)
+        elif not self.at_bat.result and baserunner is not self.at_bat.batter:
+            if not baserunner.base_reached_on_hit or baserunner.base_reached_on_hit == self.base:
+                # Baserunner may have had the pertinent base here attributed as his
+                # base_reached_on_hit if he arrived here at the exact same timestep the
+                # throw did -- but if he's called out at the base, he did not truly reach
+                # it on the hit and the proper scoring is fielder's choice
+                FieldersChoice(at_bat=self.at_bat, out=self)
         # Effect consequences
         baserunner.safely_on_base = False
         baserunner.out = True
@@ -794,6 +807,10 @@ class HomeRun(object):
         self.call = call  # For calls at the plate on in-the-park home runs
         self.inside_the_park = inside_the_park
         self.grand_slam = False
+        # Radio stuff
+        if self.at_bat.game.radio:
+            os.system('say home run!')
+            time.sleep(0.5)
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.25
         print "-- {}'s composure decreased from {} to {}".format(
@@ -858,6 +875,10 @@ class GrandSlam(object):
         self.call = call
         self.inside_the_park = inside_the_park
         self.grand_slam = True
+        # Radio stuff
+        if self.at_bat.game.radio:
+            os.system('say grand slam! its a grand slam by {}!'.format(self.batter.name))
+            time.sleep(0.5)
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.5
         print "-- {}'s composure decreased from {} to {}".format(
@@ -911,6 +932,10 @@ class AutomaticDouble(object):
         self.pitcher = batted_ball.pitcher
         self.result = None
         self.runs = 0
+        # Radio stuff
+        if self.at_bat.game.radio:
+            os.system('say and the bounding ball has left the park, automatic double'.format(self.batter.name))
+            time.sleep(0.5)
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.1
         print "-- {}'s composure decreased from {} to {}".format(
@@ -1001,7 +1026,7 @@ class GroundRuleDouble(object):
 
 class Run(object):
 
-    def __init__(self, frame, runner, batted_in_by):
+    def __init__(self, frame, runner, batted_in_by, radio_silent=False):
         self.runner = runner
         self.batted_in_by = batted_in_by
         self.result = None
@@ -1013,8 +1038,10 @@ class Run(object):
         runner.runs.append(self)
         batted_in_by.rbi.append(self)
 
-        if batted_in_by.at_bats[-1].batted_ball:
+        if frame.at_bats[-1].batted_ball:
             print "-- {} scores [{}]".format(self.runner.last_name,
-                                             batted_in_by.at_bats[-1].batted_ball.time_since_contact)
+                                             frame.at_bats[-1].batted_ball.time_since_contact)
         else:
             print "-- {} scores".format(self.runner.last_name)
+        if frame.game.radio:
+            os.system("say {} scores for the {}!".format(self.runner.last_name, frame.batting_team.nickname))

@@ -2,6 +2,7 @@ import pickle
 import os
 import random
 
+from place import State
 from city import City
 from league import League
 from ballpark import Ballpark
@@ -32,10 +33,21 @@ class Country(object):
         self.cities = self.init_cities()
         self.leagues = self.init_leagues()
 
-    def init_cities(self):
-        """Instantiate objects for all cities in the database.
+    def init_states_and_district_of_columbia(self):
+        """Instantiate objects for all 50 states."""
+        state_names = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+                       'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Iowa', 'Kansas', 'Kentucky',
+                       'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+                       'Missouri', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+                       'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'South Carolina',
+                       'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+                       'West Virginia', 'Wisconsin', 'Wyoming', 'Montana', 'Nebraska', 'Rhode Island',
+                       'Pennsylvania', 'Illinois', 'Indiana']
+        for name in state_names:
 
-        This method..."""
+
+    def init_cities(self):
+        """Instantiate objects for all cities in the database."""
         # Load all of our city data
         city_names = self.load_city_names()
         city_latitudes, city_longitudes = (
@@ -205,6 +217,7 @@ class Country(object):
             city_unique_nicknames[city] = unique_nicknames
         return city_unique_nicknames
 
+
 us = Country(year=1890)
 pitcher = min(us.players, key=lambda p: p.pitch_control)
 slap = min(us.players, key=lambda b: b.swing_timing_error)
@@ -228,7 +241,8 @@ if any(t for t in l.teams if t.city.name in ("Minneapolis", "St. Paul", "Duluth"
                      t is not home_team)
 else:
     away_team = l.teams[1]
-game = Game(ballpark=ballpark, league=l, home_team=home_team, away_team=away_team, rules=Rules()); game.enact()
+
+game = Game(ballpark=ballpark, league=l, home_team=home_team, away_team=away_team, rules=Rules(), radio=False); game.enact()
 # inning = Inning(game=game, number=5); frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame); ab.enact(); print ab.result
 # ab.draw_playing_field()
 # frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame);

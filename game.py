@@ -1,14 +1,22 @@
 import random
-from outcome import Strike, Ball, FoulBall, Single, Double, Triple, HomeRun, Run, DoublePlay, TriplePlay, FieldersChoice
+import os, time, re
+from outcome import Strike, Ball, FoulBall,Single, Double, Triple, HomeRun, Run, DoublePlay, TriplePlay, FieldersChoice
+from outcome import Strikeout, BaseOnBalls  # for radio
 
 COUNTS = {(0, 0): 00, (1, 0): 10, (2, 0): 20, (3, 0): 30,
           (0, 1): 10, (1, 1): 11, (2, 1): 21, (3, 1): 31,
           (0, 2): 02, (1, 2): 12, (2, 2): 22, (3, 2): 32}
 
+positions = {
+            "P": "pitcher", "C": "catcher", "1B": "first baseman", "2B": "second baseman",
+            "3B": "third baseman", "SS": "shortstop", "LF": "left fielder",
+            "CF": "center fielder", "RF": "right fielder"
+        }
 
 class Game(object):
 
-    def __init__(self, ballpark, home_team, away_team, league, rules):
+    def __init__(self, ballpark, home_team, away_team, league, rules, radio=False):
+        self.radio = radio
         self.ballpark = ballpark
         self.league = league
         self.home_team = home_team
@@ -26,11 +34,25 @@ class Game(object):
         self.umpire = next(z for z in self.league.country.players if
                            z.hometown.name in ("Minneapolis", "St. Paul", "Duluth"))
         self.umpire.games_umpired.append(self)
+        self.determine_salience()
 
         self.composures_before = {}
         for player in away_team.players+home_team.players:
             self.composures_before[player] = player.composure
 
+        if self.radio:
+            os.system("say We are here in {}, where the hometown {} will host the visiting {}".format(
+                self.home_team.city.name, self.home_team.nickname, self.away_team.name
+            ))
+            time.sleep(0.7)
+
+    def determine_salience(self):
+        """Determine the salience of this game.
+
+        More salient games will have greater ramifications on player composure, confidence,
+        etc.
+        """
+        self.salience = 1.0
 
     def enact(self):
         for inning_n in xrange(1, 10):
@@ -49,17 +71,32 @@ class Game(object):
             self.winner.city.name, self.loser.city.name, self.away_team.runs, self.home_team.runs
         )
         self.print_box_score()
+        self.effect_consequences()
+        # print "\n\t\tComposures before and after\n"
+        # diffs = []
+        # for player in self.away_team.players+self.home_team.players:
+        #     print "{}, {}".format(player.name, player.position)
+        #     diff = round(player.composure-self.composures_before[player], 2)
+        #     diffs.append(diff)
+        #     print "\t{}\t{}\t{}".format(round(self.composures_before[player], 2), round(player.composure, 2), diff)
+        # print "\nAverage difference: {}".format(sum(diffs)/len(diffs))
+
+    def effect_consequences(self):
         self.home_team.runs = self.away_team.runs = 0
+        for player in self.away_team.players+self.home_team.players:
+            conf_before, comp_before = player.confidence, player.composure
+            diff = player.composure-player.confidence
+            player.confidence += (diff/100.) * self.salience
+            player.composure -= (diff/10.) * self.salience
+            if player.composure < 0.5:
+                player.composure = 0.5
+            elif player.composure > 1.5:
+                player.composure = 1.5
+            print "{}'s confidence changed by {}; his composure reverted from {} to {}".format(
+                player.name, player.confidence-conf_before, round(comp_before, 2), round(player.composure, 2)
+            )
         self.winner.wins += 1
         self.loser.losses += 1
-        print "\n\t\tComposures before and after\n"
-        diffs = []
-        for player in self.away_team.players+self.home_team.players:
-            print "{}, {}".format(player.name, player.position)
-            diff = round(player.composure-self.composures_before[player], 2)
-            diffs.append(diff)
-            print "\t{}\t{}\t{}".format(round(self.composures_before[player], 2), round(player.composure, 2), diff)
-        print "\nAverage difference: {}".format(sum(diffs)/len(diffs))
 
     def print_box_score(self):
         print '\n\n'
@@ -177,6 +214,8 @@ class Frame(object):
         self.at_bats = []  # Appended to by AtBat.__init__()
 
         print "\n\t\t*****  {}  *****\n\n".format(self)
+        if self.game.radio:
+            os.system("say {}".format(str(self)))
         self.enact()
         self.review()
 
@@ -273,11 +312,11 @@ class AtBat(object):
         self.frame.at_bats.append(self)
         self.game = frame.game
         self.batter = frame.get_next_batter()
-        self.batter.at_bats.append(self)
         frame.batting_team.batter = self.batter
         self.pitcher = frame.pitching_team.pitcher
         self.catcher = frame.pitching_team.catcher
         self.fielders = frame.pitching_team.fielders
+        self.fielder_control_sequence = self.fielders[2:7] + [self.fielders[-1], self.fielders[-2]] + self.fielders[:2]
         self.umpire = self.game.umpire
         self.pitches = []
         # Blank count to start
@@ -293,7 +332,98 @@ class AtBat(object):
 
         print "1B: {}, 2B: {}, 3B: {}, AB: {}".format(frame.on_first, frame.on_second, frame.on_third, self.batter)
 
-        self.enact()
+        score_before = [0, 0]
+        if not self.game.radio:
+            self.enact()
+        if self.game.radio:
+            if self.batter.plate_appearances:
+                if self.batter.batting_walks:
+                    walks_str = " with {} walks ".format(len(self.batter.batting_walks))
+                else:
+                    walks_str = ""
+                ab_str = "who is {} for {} {} so far".format(
+                    len(self.batter.hits), len(self.batter.at_bats), walks_str
+                )
+            else:
+                ab_str = "in his first at bat"
+            os.system('say Up to bat for {} is {}, a {} from {} {} today'.format(
+                self.batter.team.city.name, self.batter.name, positions[self.batter.position],
+                self.batter.hometown.name, ab_str
+            ))
+            time.sleep(0.5)
+            if self.batter.home_runs:
+                if len(self.batter.home_runs) > 1:
+                    os.system('say {} is out of his mind today, he has hit {} home runs'.format(
+                        self.batter.last_name, len(self.batter.home_runs)
+                    ))
+                else:
+                    os.system('say {} hit a home run in the {}'.format(
+                        self.batter.last_name, str(self.batter.home_runs[-1].at_bat.frame).split(' inning')[0]
+                    ))
+                time.sleep(0.5)
+            elif self.batter.doubles:
+                os.system('say {} had a double in the {}'.format(
+                    self.batter.last_name, str(self.batter.home_runs[-1].at_bat.frame).split(' inning')[0]
+                ))
+                time.sleep(0.5)
+            if self.batter.plate_appearances:
+                if type(self.batter.plate_appearances[-1].result) is Strikeout:
+                    os.system('say {} struck out in his last at bat'.format(self.batter.last_name))
+                    time.sleep(0.2)
+                    if self.batter.composure < 0.7:
+                        nervous_str = random.choice(["he looks visibly rattled out there",
+                                                     "he appears very nervous at the plate",
+                                                     "he is visibly shaking right now",
+                                                     "he seems quite nervous"])
+                        os.system('say {}'.format(nervous_str))
+                    time.sleep(0.5)
+                elif type(self.batter.plate_appearances[-1].result) is BaseOnBalls:
+                    os.system('say {} was walked in his last at bat'.format(self.batter.last_name))
+                    time.sleep(0.5)
+            elif self.batter.composure > 1.3:
+                conf_str = random.choice(["he looks very composed out there",
+                                          "he looks very confident at the plate",
+                                          "he is looking cool as can be right now",
+                                          "he is appearing to be unflappable today"])
+                os.system('say {}'.format(conf_str))
+            outs_str = random.choice(['the scoreboard shows {} outs'.format(self.frame.outs),
+                                      '{} outs for the {}'.format(self.frame.outs, self.batter.team),
+                                      'we are at {} outs'.format(self.frame.outs),
+                                      '{} outs on the board'.format(self.frame.outs)])
+            os.system('say {}'.format(outs_str))
+            if not self.frame.baserunners and random.random() < 0.2:
+                os.system('say There are no runners on.')
+            elif self.frame.bases_loaded:
+                os.system('say Bases are loaded!')
+            else:
+                if self.frame.on_first and self.frame.on_second:
+                    os.system('say runners on first and second')
+                elif self.frame.on_first and self.frame.on_third:
+                    os.system('say runners on first and third')
+                elif self.frame.on_second and self.frame.on_third:
+                    os.system('say runners on second and third')
+                elif self.frame.on_first:
+                    os.system('say theres a runner on first')
+                elif self.frame.on_second:
+                    os.system('say theres a runner on second')
+                elif self.frame.on_third:
+                    os.system('say theres a runner on third')
+            self.enact()
+            time.sleep(1.5)
+            result = re.sub("\(", '', str(self.result))
+            result = re.sub("\)", '', result)
+            result = re.sub("'", '', result)
+            for position in positions:
+                result = re.sub(' {} '.format(position), ' {} '.format(positions[position]), result)
+            os.system('say {}'.format(result))
+            score_after = [self.game.away_team.runs, self.game.home_team.runs]
+            if score_before != score_after or random.random() < 0.15:
+                os.system('say the score is {}, {}, {}, {}'.format(
+                    self.game.away_team.city.name, self.game.away_team.runs,
+                    self.game.home_team.city.name, self.game.home_team.runs))
+            score_after = score_before
+            time.sleep(0.5)
+
 
     def enact(self):
         # TODO substitutions will change where this should be done
@@ -342,24 +472,60 @@ class AtBat(object):
                 elif swing.contact:
                     # Contact is made
                     batted_ball = self.batted_ball = swing.result
-                    print "-- {} [0.0]".format(batted_ball)
                     self.throw = None
                     # Fielders read the batted ball and decide immediate goals
                     batted_ball.get_read_by_fielders()
-                    for fielder in self.fielders:
+                    print "-- {}; Oblig: {} [0.0]".format(batted_ball, batted_ball.obligated_fielder.position)
+                    if self.game.radio:
+                        bb_description = str(batted_ball)
+                        re.sub("\(", "", bb_description)
+                        for position in positions:
+                            bb_description = re.sub(" {}\)".format(position), ", {}, ".format(positions[position]),
+                                                    bb_description)
+                        os.system('say {}'.format(bb_description))
+                        time.sleep(0.5)
+                        if batted_ball.true_distance > 315:
+                            hit_deep_str = random.choice(["its hit way back!", "its hit very deep!",
+                                                          "its going, its going, its...",
+                                                          "this may be a home run!"])
+                            os.system('say {}'.format(hit_deep_str))
+                    for fielder in self.fielder_control_sequence:
                         fielder.decide_immediate_goal(batted_ball=batted_ball)
-                    # for baserunner in self.frame.baserunners:
-                    #    baserunner.decide_immediate_goal(batted_ball=batted_ball)
+                    batted_ball.enumerate_defensive_responsibilities()
                     for _ in xrange(4):
                         batted_ball.time_since_contact += 0.1
-                        # While defensive players are reading the ball, the ball
-                        # starts moving and the batter starts running to first
+                        # While defensive players and baserunners are reading the ball,
+                        # it starts moving and the batter starts running to first
                         # (since players have a flat-rate home-to-first speed,
                         # the delay dut to their follow-through, etc., is already
-                        # factored in)
+                        # factored in), and any baserunners that have already taken off
+                        # keep advancing
                         batted_ball.move()
                         self.batter.baserun(batted_ball=batted_ball)
+                        for baserunner in self.frame.baserunners:
+                            if baserunner.took_off_early:
+                                baserunner.baserun(batted_ball=batted_ball)
                     while not batted_ball.resolved:
+                        # running_to_first = batted_ball.running_to_first or batted_ball.retreating_to_first
+                        # if running_to_first:
+                        #     print "{} is {}% to first".format(
+                        #         running_to_first.last_name, int(round(running_to_first.percent_to_base*100))
+                        #     )
+                        # running_to_second = batted_ball.running_to_second or batted_ball.retreating_to_second
+                        # if running_to_second:
+                        #     print "{} is {}% to second".format(
+                        #         running_to_second.last_name, int(round(running_to_second.percent_to_base*100))
+                        #     )
+                        # running_to_third = batted_ball.running_to_third or batted_ball.retreating_to_third
+                        # if running_to_third:
+                        #     print "{} is {}% to third".format(
+                        #         running_to_third.last_name, int(round(running_to_third.percent_to_base*100))
+                        #     )
+                        # running_to_home = batted_ball.running_to_home
+                        # if running_to_home:
+                        #     print "{} is {}% to home".format(
+                        #         running_to_home.last_name, int(round(running_to_home.percent_to_base*100))
+                        #     )
                         batted_ball.time_since_contact += 0.1
                         if not batted_ball.fielded_by:
                             batted_ball.move()
@@ -368,21 +534,33 @@ class AtBat(object):
                         # batter-runner will run it out to first regardless
                         if self.frame.outs != 2 and any(f for f in self.fielders if f.attempting_fly_out):
                             for baserunner in self.frame.baserunners:
-                                baserunner.tentatively_baserun(batted_ball=batted_ball)
-                            self.batter.baserun(batted_ball=batted_ball)
+                                if not baserunner.out:
+                                    baserunner.tentatively_baserun(batted_ball=batted_ball)
+                            if not self.batter.out:
+                                if not self.batter.base_reached_on_hit:
+                                    self.batter.baserun(batted_ball=batted_ball)
+                                else:
+                                    if self.batter.baserunning_full_speed:
+                                        self.batter.baserun(batted_ball=batted_ball)
+                                    elif self.batter.tentatively_baserunning:
+                                        self.batter.tentatively_baserun(batted_ball=batted_ball)
+                                    elif self.batter.retreating:
+                                        self.batter.retreat(batted_ball=batted_ball)
+                                    else:
+                                        print "WTF!!! 35555 game.py"
                         else:
-                            # All baserunners will run without inhibition, as they normally do
                             for baserunner in self.frame.baserunners + [self.batter]:
                                 if not baserunner.out:
-                                    if baserunner.forced_to_retreat:
+                                    if baserunner.forced_to_retreat or baserunner.retreating:
                                         baserunner.retreat(batted_ball=batted_ball)
-                                    elif not baserunner.safely_on_base and not baserunner.out:
+                                    elif baserunner.tentatively_baserunning:
+                                        baserunner.tentatively_baserun(batted_ball=batted_ball)
+                                    elif not baserunner.safely_on_base:
                                         baserunner.baserun(batted_ball=batted_ball)
                                     elif baserunner.safely_home:
                                         Run(frame=self.frame, runner=baserunner, batted_in_by=self.batter)
                         for fielder in self.fielders:
-                            if not fielder.at_goal:
-                                fielder.act(batted_ball=batted_ball)
+                            fielder.act(batted_ball=batted_ball)
                         if not self.throw:
                             # If there's a fielder with a chance, and the ball hasn't been fielded
                             # yet, and that player is not reorienting from a prior fielding miss,
@@ -394,7 +572,7 @@ class AtBat(object):
                                     # Attempt to field the ball
                                     batted_ball.fielder_with_chance.field_ball(batted_ball=batted_ball)
                                     if not batted_ball.fielded_by:
-                                        # Defensive player didn't field the ball cleanly
+                                        # ** Defensive player didn't field the ball cleanly **
                                         # TODO may be scored as error, and then all the statistical nuances there
                                         if batted_ball.bobbled:
                                             pass  # Player will attempt to field ball again after reorienting
@@ -402,6 +580,41 @@ class AtBat(object):
                                             # Batted ball will continue on its trajectory, so players need to
                                             # reassess whether and how they may attempt to field it
                                             batted_ball.get_reread_by_fielders()
+                                        for baserunner in self.frame.baserunners + [self.batter]:
+                                            # if error:
+                                            #       baserunner.advancing_due_to_error = True
+                                            if (not baserunner.baserunning_full_speed and
+                                                    (batted_ball.bobbled or
+                                                     not any(f for f in self.fielders if f.attempting_fly_out))):
+                                                # (Note on above if statement: It's possible a fielder backing up
+                                                # the catch will somehow himself be making a fly out attempt now,
+                                                # in which case the baserunners should keep tentatively advancing)
+                                                baserunner.estimate_whether_you_can_beat_throw(batted_ball=batted_ball)
+                                                if (baserunner.believes_he_can_beat_throw or
+                                                        baserunner.forced_to_advance):
+                                                    # You weren't baserunning full-speed, but you will start now
+                                                    baserunner.safely_on_base = False
+                                                    baserunner._decided_finish = False
+                                                    baserunner.will_round_base = False
+                                                    baserunner.percent_to_base = 0.0
+                                                    baserunner.baserun(batted_ball=batted_ball)
+                                                else:
+                                                    # Don't retreat already or stay on base -- keep tentatively
+                                                    # advancing in case there is another fielding gaffe
+                                                    print (
+                                                        "-- {} still doesn't believe he can beat the throw, but "
+                                                        "will tentatively advance to the next base in case of "
+                                                        "another fielding gaffe [{}]"
+                                                    ).format(
+                                                        baserunner.last_name, batted_ball.time_since_contact
+                                                    )
+                                                    baserunner.safely_on_base = False
+                                                    baserunner.tentatively_baserun(batted_ball=batted_ball)
+                                        batted_ball.bobbled = False  # Reset to allow consideration of future bobbles
+                                    elif batted_ball.fielded_by:
+                                        for baserunner in self.frame.baserunners + [self.batter]:
+                                            if baserunner.tentatively_baserunning:
+                                                baserunner.retreat(batted_ball=batted_ball)
                             # If the ball has been fielded and the fielder hasn't decided his throw
                             # yet, have him decide his throw and then instantiate the throw
                             elif batted_ball.fielded_by:

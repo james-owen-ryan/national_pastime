@@ -37,7 +37,6 @@ Cambridge
 Camden
 Canton
 Carlisle
-Charlescity
 Charleston
 Charlestown
 Charlotte
@@ -133,7 +132,6 @@ Mesa
 Metairie
 Miami
 Middleborough
-Middletown
 Milwaukee
 Minneapolis
 Mobile
@@ -163,7 +161,6 @@ Omaha
 Oswego
 Passaic
 Paterson
-Patterson
 Pawtucket
 Peoria
 Petersburg

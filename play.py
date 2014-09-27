@@ -2,6 +2,8 @@ from random import normalvariate as normal
 from batted_ball import BattedBall, FoulTip
 from outcome import Bean
 
+import os, time  # for radio
+
 
 # TODO checked swings
 
@@ -294,6 +296,8 @@ class FieldingAct(object):
             self.successful = True
         else:
             self.successful = False
+        if not batted_ball.bobbled:
+            self.fielder.attempting_fly_out = False
         self.line_drive_at_pitcher = line_drive_at_pitcher
         self.ball_totally_missed = ball_totally_missed
         self.ball_bobbled = batted_ball.bobbled
@@ -301,9 +305,9 @@ class FieldingAct(object):
         # Affect player composure according to the objective difficulty of the fielding act and
         # whether it was successful
         if self.successful:
-            fielder.composure += batted_ball.fielding_difficulty / 3.5
+            fielder.composure += batted_ball.fielding_difficulty / 4
         else:
-            fielder.composure -= (1-batted_ball.fielding_difficulty) / 3.5
+            fielder.composure -= (1-batted_ball.fielding_difficulty) / 4
         self.fielder_composure_after = fielder.composure
         if line_drive_at_pitcher:
             print "-- Line drive right at {} ({}) [{}]".format(
@@ -313,6 +317,9 @@ class FieldingAct(object):
             print "-- {} ({}) is attempting a catch at the wall! [{}]".format(
                 self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
             )
+            if batted_ball.at_bat.game.radio:
+                os.system('say {} is going for the catch at the wall!'.format(self.fielder))
+                time.sleep(0.5)
         else:
             print "-- {} ({}) is attempting to field the ball at [{}, {}] [Diff: {}] [{}]".format(
                 self.fielder.last_name, self.fielder_position, int(self.location[0]), int(self.location[1]),

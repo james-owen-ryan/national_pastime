@@ -65,6 +65,7 @@ class FlyOutCall(object):
     """A determination of whether a fielded ball represents a fly out or a trap."""
     # TODO fielder who thinks he made catch may not make a throw, so the runner gets a double
     def __init__(self, umpire, call, true_call, true_difference, batted_ball):
+        batted_ball.fly_out_call_given = True
         self.umpire = umpire
         self.call = call
         self.true_call = true_call

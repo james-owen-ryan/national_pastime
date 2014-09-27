@@ -233,6 +233,8 @@ Davenport
 Dayton
 
 Denver
+	1845
+		Mountain
 	1875
 		Rockies
 		Mountains
@@ -240,6 +242,7 @@ Denver
 		Summits
 		Mile Highs
 		Avalanches
+		Prospectors
 	1890
 		Rockies
 		Mountains
@@ -247,6 +250,7 @@ Denver
 		Summits
 		Mile Highs
 		Avalanches
+		Prospectors
 	1900
 		Rockies
 		Mountains
@@ -254,6 +258,7 @@ Denver
 		Summits
 		Mile Highs
 		Avalanches
+		Prospectors
 	1950
 		Rockies
 		Mountains
@@ -261,6 +266,7 @@ Denver
 		Summits
 		Mile Highs
 		Avalanches
+		Prospectors
 	1967
 		Rockies
 		Mountains
@@ -268,6 +274,7 @@ Denver
 		Summits
 		Mile Highs
 		Avalanches
+		Prospectors
 
 Des Moines
 
@@ -450,6 +457,7 @@ Indianapolis
 		Western
 	1875
 		Indians
+		Westerns
 	1890
 		Indians
 	1900
@@ -470,13 +478,13 @@ Johnstown
 Kansas City
 	1875
 		Cowboys
+		Westerns
 	1890
 		Cowboys
+		Westerns
 	1900
 		Cowboys
 	1950
-		Cowboys
-	1967
 		Cowboys
 
 Kensington
@@ -1027,42 +1035,97 @@ Rockford
 Roxbury
 
 Sacramento
+    1840
+		Western
+		West Coast
+		Pacific
+		California
+		Pioneer
+	1875
+		Westerns
+		Californians
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Covered Wagons
+		Pioneers
+	1890
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Covered Wagons
+		Pioneers
+	1900
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Covered Wagons
+		Pioneers
+	1950
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Pioneers
+	1967
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Pioneers
 
 Saginaw
 
 Salem
 
 Salt Lake City
+	1845
+		Prophet
+		Mormon
+		Mountain
+		Pioneer
 	1875
 		Prophets
 		Mormons
 		Salt Lakers
 		Mountaineers
 		Summits
+		Pioneers
 	1890
 		Prophets
 		Mormons
 		Salt Lakers
 		Mountaineers
 		Summits
+		Pioneers
 	1900
 		Prophets
 		Mormons
 		Salt Lakers
 		Mountaineers
 		Summits
+		Pioneers
 	1950
 		Prophets
 		Mormons
 		Salt Lakers
 		Mountaineers
 		Summits
+		Pioneers
 	1967
 		Prophets
 		Mormons
 		Salt Lakers
 		Mountaineers
 		Summits
+		Pioneers
 
 San Antonio
 
@@ -1070,6 +1133,7 @@ San Diego
 
 San Francisco
 	1840
+		California
 		Western
 		West Coast
 		Pacific
@@ -1079,57 +1143,118 @@ San Francisco
 		Pacifics
 		Nuggets
 		Gold Nuggets
+		Gold Miners
 		Prospectors
 		Seals
 		Sea Lions
 		Whales
 		Sharks
+		Covered Wagons
+		Wagon Trains
+		Pioneers
 	1890
 		Westerns
 		West Coasts
 		Pacifics
 		Nuggets
 		Gold Nuggets
+		Gold Miners
 		Prospectors
 		Seals
 		Sea Lions
 		Whales
 		Sharks
+		Covered Wagons
+		Wagon Trains
+		Pioneers
 	1900
 		Westerns
 		West Coasts
 		Pacifics
 		Nuggets
 		Gold Nuggets
+		Gold Miners
 		Prospectors
 		Seals
 		Sea Lions
 		Whales
 		Sharks
+		Covered Wagons
+		Wagon Trains
+		Pioneers
 	1950
 		Westerns
 		West Coasts
 		Pacifics
 		Nuggets
 		Gold Nuggets
+		Gold Miners
 		Prospectors
 		Seals
 		Sea Lions
 		Whales
 		Sharks
+		Pioneers
 	1967
 		Westerns
 		West Coasts
 		Pacifics
 		Nuggets
 		Gold Nuggets
+		Gold Miners
 		Prospectors
 		Seals
 		Sea Lions
 		Whales
 		Sharks
+		Pioneers
 
 San Jose
+	1840
+		Western
+		West Coast
+		Pacific
+		California
+		Pioneer
+	1875
+		Westerns
+		Californians
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Covered Wagons
+		Pioneers
+	1890
+		Westerns
+		West Coasts
+		Pacifics
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Covered Wagons
+		Pioneers
+	1900
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Covered Wagons
+		Pioneers
+	1950
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Pioneers
+	1967
+		Nuggets
+		Gold Nuggets
+		Gold Miners
+		Prospectors
+		Pioneers
 
 Santa Ana
 
