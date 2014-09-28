@@ -3,14 +3,14 @@ import os
 import math
 from random import normalvariate as normal
 
+from data import Names
 from equipment import Bat, Baseball, Glove, Mitt
 from play import Pitch, Swing, Bunt, FieldingAct, Throw
 from call import PlayAtBaseCall, FlyOutCall
 from outcome import FoulBall, FlyOut, HomeRun, GrandSlam, AutomaticDouble, GroundRuleDouble
 
-FORENAMES = [name[:-1] for name in open(
-    os.getcwd()+'/corpora/male_names.txt', 'r')
-]
+
+NAMES = Names()
 
 
 # TODO model baseball scoring, where the main intrigue will be the scorer
@@ -27,14 +27,10 @@ class Person(object):
         self.country = birthplace.country
         self.hometown = birthplace
         self.location = birthplace
-        self.first_name = random.choice(FORENAMES)
-        self.middle_name = random.choice(FORENAMES)
-        self.last_name = random.choice(self.hometown.surnames)
-        self.ln = self.last_name  # Used in game narratives
-        self.full_name = (self.first_name + ' ' + self.middle_name + ' ' +
-                          self.last_name)
-        self.name = self.first_name + ' ' + self.last_name
         self.team = None
+        self.first_name, self.middle_name, self.last_name = self.init_name()
+        self.full_name = "{} {} {}".format(self.first_name, self.middle_name, self.last_name)
+        self.name = "{} {}".format(self.first_name, self.last_name)
         self.init_physical_attributes()
         self.init_personality_and_mental_attributes()
         self.init_baseball_attributes()
@@ -109,6 +105,26 @@ class Person(object):
         # Prepare extra-statistical lists
         self.throws = []
         self.fielding_acts = []
+
+    def init_name(self):
+        first_name = NAMES.a_masculine_name
+        middle_name = NAMES.a_masculine_name
+        if self.hometown.state.name == "Wisconsin":
+            last_name = NAMES.a_german_surname
+        elif self.hometown.state.name == "Minnesota":
+            last_name = NAMES.a_scandinavian_surname
+        elif self.hometown.name == "Boston":
+            last_name = NAMES.an_irish_surname
+        elif self.hometown.name == "Philadelphia":
+            if random.random() < 0.6:
+                last_name = NAMES.an_irish_surname
+            else:
+                last_name = NAMES.an_english_surname
+        elif self.hometown.state.name == "Louisiana":
+            last_name = NAMES.a_french_surname
+        else:
+            last_name = NAMES.any_surname
+        return first_name, middle_name, last_name
 
     def init_physical_attributes(self):
         self.height = int(normal(71, 2))  # TODO

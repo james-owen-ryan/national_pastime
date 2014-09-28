@@ -1,238 +1,79 @@
-
-Akron
-
-Albany
-
-Albuquerque
-
-Alexandria
-
-Allegheny
-
-Allentown
-
-Altoona
-
-Amarillo
-
-Anaheim
-
-Anchorage
-
-Andover
-
-Arlington
-
-Atlanta
-
-Auburn
-
-Augusta
-
-Aurora
-
-Austin
-
-Bakersfield
-
-Baltimore
-
-Bangor
-
-Barnstable
-
-Bath
-
-Baton Rouge
-
-Bay City
-
-Bayonne
-
-Berkeley
-
-Beverly
-
-Binghamton
-
-Birmingham
-
-Boston
+Boston, Massachusetts
 	1840
 		Tea Party
+		Atlantic
 		Plymouth Rock
 		Harbor
 	1875
-		Tea Partys
+		Atlantics
 		Plymouth Rocks
-		Harbors
 		Beaneaters
 	1890
-		Tea Partys
-		Plymouth Rocks
-		Harbors
+		Harbormen
+		Atlantics
+		Beaneaters
+	1900
+		Harbormen
+		Atlantics
+		Beaneaters
+	1950
 		Harbormen
 		Beaneaters
-	1900
-		Tea Partys
-		Plymouth Rocks
-		Harbors
-		Beaneaters
-	1950
-		Tea Partys
-		Plymouth Rocks
-		Harbors
-		Beaneaters
 	1967
-		Tea Partys
-		Plymouth Rocks
-		Harbors
+		Harbormen
 		Beaneaters
 
-Bridgeport
-
-Brockton
-
-Brooklyn
+Brooklyn, New York
 	1840
 		Atlantic
-		Williamsburg
 	1875
 		Atlantics
-		Williamsburgs
 		Trolley Dodgers
 		Trolleys
 	1890
 		Atlantics
-		Williamsburgs
 		Trolley Dodgers
 		Trolleys
 	1900
 		Atlantics
-		Williamsburgs
 		Trolley Dodgers
 		Trolleys
 	1950
 		Atlantics
-		Williamsburgs
 		Trolley Dodgers
 		Trolleys
 	1967
 		Atlantics
-		Williamsburgs
 		Trolley Dodgers
 		Trolleys
 
-Buffalo
-
-Burlington
-
-Cambridge
-
-Camden
-
-Canton
-
-Carlisle
-
-Charlescity
-
-Charleston
-
-Charlestown
-
-Charlotte
-
-Chattanooga
-
-Chelsea
-
-Chicago
+Chicago, Illinois
 	1840
 		Windy City
 		Lake Michigan
-	1875
-		Windy Citys
-		Lake Michigans
-		Winds
 	1890
-		Windy Citys
-		Lake Michigans
-		Winds
 		Skyscrapers
 		Skylines
 		Steel Frames
 	1900
-		Windy Citys
-		Lake Michigans
-		Winds
 		Skyscrapers
 		Skylines
 		Steel Frames
 	1950
-		Windy Citys
-		Lake Michigans
-		Winds
 		Skyscrapers
 		Skylines
 		Steel Frames
 	1967
-		Windy Citys
-		Lake Michigans
-		Winds
 		Skyscrapers
 		Skylines
 		Steel Frames
 
-Chicopee
-
-Cincinnati
-
-Cleveland
+Cleveland, Ohio
 	1840
 		Lake Erie
 		Forest City
-	1875
-		Lake Eries
-		Forest Citys
-	1890
-		Lake Eries
-		Forest Citys
-	1900
-		Lake Eries
-		Forest Citys
-	1950
-		Lake Eries
-		Forest Citys
-	1967
-		Lake Eries
-		Forest Citys
 
-Cohoes
-
-Colorado Springs
-
-Columbia
-
-Columbus
-
-Concord
-
-Corpus Christi
-
-Covington
-
-Cumberland
-
-Dallas
-
-Danvers
-
-Davenport
-
-Dayton
-
-Denver
+Denver, Colorado
 	1845
 		Mountain
 	1875
@@ -276,11 +117,13 @@ Denver
 		Avalanches
 		Prospectors
 
-Des Moines
+Des Moines, Iowa
+	1875
+		Cornhusker
 
-Detroit
+Detroit, Michigan
 	1840
-		Great Lakes
+		Great Lake
 	1875
 		Electrics
 		Great Lakes
@@ -309,13 +152,7 @@ Detroit
 		Great Lakes
 		Great Lakers
 
-Dorchester
-
-Dover
-
-Dubuque
-
-Duluth
+Duluth, Minnesota
 	1840
 		Superior
 		Northern
@@ -346,69 +183,67 @@ Duluth
 		Northwests
 		Pines
 
-East St. Louis
+Georgetown, District of Columbia
+	1840
+		National
+		American
+		Capitol
+		District
+		Columbia
+		Monument
+		Presidential
+	1875
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Presidents
+	1890
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+		Presidents
+	1900
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+		Presidents
+	1950
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
+		Presidents
+	1967
+		Nationals
+		Americans
+		Capitols
+		Districts
+		Columbias
+		Monuments
+		Politicals
 
-Easton
-
-El Paso
-
-Elizabeth
-
-Elmira
-
-Erie
-
-Evansville
-
-Fall River
-
-Fayetteville
-
-Flint
-
-Fort Lauderdale
-
-Fort Wayne
-
-Fort Worth
-
-Frederick
-
-Fremont
-
-Fresno
-
-Galveston
-
-Gardiner
-
-Garland
-
-Gary
-
-Georgetown
-
-Glendale
-
-Gloucester
-
-Grand Rapids
-
-Greensboro
-
-Harrisburg
-
-Hartford
-
-Haverhill
-
-Hialeah
-
-Hoboken
-
-Holyoke
-
-Honolulu
+Honolulu, Hawaii
+	1845
+		Island
+		Pacific
+		Volcano
+		Hawaii
+		Polynesian
+		Wayfinder
 	1875
 		Islanders
 		Luaus
@@ -416,50 +251,58 @@ Honolulu
 		Volcanos
 		Volcanics
 		Polynesians
+		Wayfinders
 	1890
 		Islanders
 		Luaus
 		Hawaiians
-		Volcanos
+		Volcanoes
 		Volcanics
 		Polynesians
+		Wayfinders
+		Surfers
+		Surfriders
 	1900
 		Islanders
 		Luaus
 		Hawaiians
-		Volcanos
+		Volcanoes
 		Volcanics
 		Polynesians
+		Wayfinders
+		Surfers
+		Surfriders
 	1950
 		Islanders
 		Luaus
 		Hawaiians
-		Volcanos
+		Volcanoes
 		Volcanics
 		Polynesians
+		Wayfinders
+		Surfers
+		Surfriders
 	1967
 		Islanders
 		Luaus
 		Hawaiians
-		Volcanos
-		Volcanics
 		Polynesians
+		Wayfinders
+		Surfers
+		Surfriders
 
-Houston
-
-Hudson
-
-Huntington Beach
-
-Indianapolis
+Indianapolis, Indiana
 	1840
 		Indian
 		Western
+		Hoosier
 	1875
 		Indians
 		Westerns
+		Hoosiers
 	1890
 		Indians
+		Hoosiers
 	1900
 		Indians
 	1950
@@ -467,15 +310,7 @@ Indianapolis
 	1967
 		Indians
 
-Jackson
-
-Jacksonville
-
-Jersey City
-
-Johnstown
-
-Kansas City
+Kansas City, Missouri
 	1875
 		Cowboys
 		Westerns
@@ -487,15 +322,7 @@ Kansas City
 	1950
 		Cowboys
 
-Kensington
-
-Knoxville
-
-Lafayette
-
-Lancaster
-
-Las Vegas
+Las Vegas, Nevada
 	1950
 		Gamblers
 		Dice
@@ -521,19 +348,7 @@ Las Vegas
 		Double Downs
 		Strips
 
-Lawrence
-
-Leavenworth
-
-Lexington
-
-Lincoln
-
-Little Rock
-
-Lockport
-
-Long Beach
+Long Beach, California
 	1950
 		Surfers
 		Waves
@@ -545,7 +360,7 @@ Long Beach
 		Suns
 		Suburbs
 
-Los Angeles
+Los Angeles, California
 	1840
 		Pacific
 	1875
@@ -587,45 +402,15 @@ Los Angeles
 		Silver Screens
 		Motorists
 
-Louisville
+Louisville, Kentucky
+	1865
+		Confederate
 	1875
 		Colonels
-	1890
-		Colonels
-	1900
-		Colonels
-	1950
-		Colonels
-	1967
-		Colonels
+		Confederates
+	1930
 
-Lowell
-
-Lubbock
-
-Lynchburg
-
-Lynn
-
-Madison
-
-Manchester
-
-Marblehead
-
-Memphis
-
-Mesa
-
-Metairie
-
-Miami
-
-Middleborough
-
-Middletown
-
-Milwaukee
+Milwaukee, Wisconsin
 	1875
 		Brewers
 		Germans
@@ -650,14 +435,8 @@ Milwaukee
 		Packers
 		Badgers
 		Dairies
-	1967
-		Brewers
-		Germans
-		Packers
-		Badgers
-		Dairies
 
-Minneapolis
+Minneapolis, Minnesota
 	1840
 		Lake City
 		Mississippi
@@ -669,14 +448,12 @@ Minneapolis
 		Twin City
 		Northwest
 	1875
-		Lake Citys
 		Mississippis
 		Cherokees
 		Indians
 		Aquatics
 		Gophers
 		Northerns
-		Twin Citys
 		Northwests
 		Mallards
 		Millers
@@ -684,14 +461,12 @@ Minneapolis
 		Lakes
 		Lakers
 	1890
-		Lake Citys
 		Mississippis
 		Cherokees
 		Indians
 		Aquatics
 		Gophers
 		Northerns
-		Twin Citys
 		Northwests
 		Mallards
 		Millers
@@ -699,14 +474,12 @@ Minneapolis
 		Lakes
 		Lakers
 	1900
-		Lake Citys
 		Mississippis
 		Cherokees
 		Indians
 		Aquatics
 		Gophers
 		Northerns
-		Twin Citys
 		Northwests
 		Mallards
 		Millers
@@ -714,14 +487,12 @@ Minneapolis
 		Lakes
 		Lakers
 	1950
-		Lake Citys
 		Mississippis
 		Cherokees
 		Indians
 		Aquatics
 		Gophers
 		Northerns
-		Twin Citys
 		Northwests
 		Mallards
 		Millers
@@ -729,44 +500,19 @@ Minneapolis
 		Lakes
 		Lakers
 	1967
-		Lake Citys
 		Mississippis
 		Cherokees
 		Indians
 		Aquatics
 		Gophers
 		Northerns
-		Twin Citys
 		Northwests
 		Mallards
 		Millers
-		Mills
 		Lakes
 		Lakers
 
-Mobile
-
-Montgomery
-
-Moyamensing
-
-Nantucket
-
-Nashua
-
-Nashville
-
-New Albany
-
-New Bedford
-
-New Brunswick
-
-New Haven
-
-New London
-
-New Orleans
+New Orleans, Louisiana
 	1840
 		Gulf Coast
 		French Quarter
@@ -816,7 +562,7 @@ New Orleans
 		Pelicans
 		Gulf Coasts
 
-New York
+New York, New York
 	1840
 		Gotham
 		Empire
@@ -908,43 +654,7 @@ New York
 		Skylines
 		Steel Frames
 
-Newark
-
-Newburgh
-
-Newburyport
-
-Newport
-
-Norfolk
-
-North Providence
-
-Northern Liberties
-
-Norwich
-
-Oakland
-
-Oklahoma City
-
-Omaha
-
-Oswego
-
-Passaic
-
-Paterson
-
-Patterson
-
-Pawtucket
-
-Peoria
-
-Petersburg
-
-Philadelphia
+Philadelphia, Pennsylvania
 	1840
 		Convention
 		Constitution
@@ -965,76 +675,26 @@ Philadelphia
 		Penns
 		Franklins
 		76ers
-		Centennials
 	1900
 		Conventions
 		Constitutions
-		Penns
-		Franklins
 		76ers
-		Centennials
 	1950
 		Conventions
 		Constitutions
-		Penns
-		Franklins
 		76ers
-		Centennials
 	1967
 		Conventions
 		Constitutions
-		Penns
-		Franklins
 		76ers
-		Centennials
 
-Phoenix
-
-Pittsburgh
-
-Plymouth
-
-Portland
-
-Portland (OR)
-
-Portsmouth
-
-Pottsville
-
-Poughkeepsie
-
-Providence
-
-Quincy
-
-Raleigh
-
-Reading
-
-Richmond
-
-Riverside
-
-Rochester
-
-Rockford
+Rockford, Illinois
 	1840
 		Forest City
-	1875
-		Forest Citys
-	1890
-		Forest Citys
-	1900
-		Forest Citys
-	1950
-		Forest Citys
-	1967
-		Forest Citys
+	1870
+		Rocks
 
-Roxbury
-
-Sacramento
+Sacramento, California
     1840
 		Western
 		West Coast
@@ -1081,11 +741,7 @@ Sacramento
 		Prospectors
 		Pioneers
 
-Saginaw
-
-Salem
-
-Salt Lake City
+Salt Lake City, Utah
 	1845
 		Prophet
 		Mormon
@@ -1127,11 +783,7 @@ Salt Lake City
 		Summits
 		Pioneers
 
-San Antonio
-
-San Diego
-
-San Francisco
+San Francisco, California
 	1840
 		California
 		Western
@@ -1209,7 +861,7 @@ San Francisco
 		Sharks
 		Pioneers
 
-San Jose
+San Jose, California
 	1840
 		Western
 		West Coast
@@ -1256,75 +908,41 @@ San Jose
 		Prospectors
 		Pioneers
 
-Santa Ana
-
-Savannah
-
-Schenectady
-
-Scranton
-
-Seattle
+Seattle, Washington
 	1875
-		Umbrellas
 		Raindrops
 		Clouds
 		Grays
-		Mariners
 	1890
-		Umbrellas
 		Raindrops
 		Clouds
 		Grays
-		Mariners
 	1900
-		Umbrellas
 		Raindrops
 		Clouds
 		Grays
-		Mariners
 	1950
-		Umbrellas
 		Raindrops
 		Clouds
 		Grays
-		Mariners
 	1967
-		Umbrellas
 		Raindrops
-		Clouds
 		Grays
-		Mariners
 
-Shreveport
-
-Sioux City
-
-Somerville
-
-South Bend
-
-Southwark
-
-Spokane
-
-Spring Garden
-
-Springfield
-
-St. Joseph
-
-St. Louis
+St. Louis, Missouri
 	1840
 		Mississippi
+		Gateway
 		Western
 	1875
 		Mississippis
+		Gateways
 		Saints
 		Riverboats
 		Westerns
 	1890
 		Mississippis
+		Gateways
 		Saints
 		Riverboats
 	1900
@@ -1339,7 +957,7 @@ St. Louis
 		Riverboats
 		Archs
 
-St. Paul
+St. Paul, Minnesota
 	1840
 		Apostle
 		Pig's Eye
@@ -1349,82 +967,41 @@ St. Paul
 		Northwest
 	1875
 		Apostles
-		Pig's Eyes
-		Mississippis
-		Twin Citys
-		Northerns
-		Northwests
+		Pines
+		Northern Pike
+		Walleye
+		Muskies
 		Saints
 	1890
 		Apostles
-		Pig's Eyes
-		Mississippis
-		Twin Citys
-		Northerns
-		Northwests
+		Pines
+		Northern Pike
+		Walleye
+		Muskies
 		Saints
 	1900
 		Apostles
-		Pig's Eyes
-		Mississippis
-		Twin Citys
-		Northerns
-		Northwests
+		Pines
+		Northern Pike
+		Walleye
+		Muskies
 		Saints
 	1950
 		Apostles
-		Pig's Eyes
-		Mississippis
-		Twin Citys
-		Northerns
-		Northwests
+		Pines
+		Northern Pike
+		Walleye
+		Muskies
 		Saints
 	1967
 		Apostles
-		Pig's Eyes
-		Mississippis
-		Twin Citys
-		Northerns
-		Northwests
+		Northern Pike
+		Walleye
+		Muskies
+		Pines
 		Saints
 
-St. Petersburg
-
-Steubenville
-
-Stockton
-
-Syracuse
-
-Tacoma
-
-Tampa
-
-Taunton
-
-Terre Haute
-
-Toledo
-
-Topeka
-
-Trenton
-
-Troy
-
-Tucson
-
-Tulsa
-
-Utica
-
-Virginia Beach
-
-Warren
-
-Warwick
-
-Washington
+Washington, District of Columbia
 	1840
 		National
 		American
@@ -1432,7 +1009,7 @@ Washington
 		District
 		Columbia
 		Monument
-		Political
+		Presidential
 	1875
 		Nationals
 		Americans
@@ -1440,7 +1017,7 @@ Washington
 		Districts
 		Columbias
 		Monuments
-		Politicals
+		Presidents
 	1890
 		Nationals
 		Americans
@@ -1449,6 +1026,7 @@ Washington
 		Columbias
 		Monuments
 		Politicals
+		Presidents
 	1900
 		Nationals
 		Americans
@@ -1457,6 +1035,7 @@ Washington
 		Columbias
 		Monuments
 		Politicals
+		Presidents
 	1950
 		Nationals
 		Americans
@@ -1465,6 +1044,7 @@ Washington
 		Columbias
 		Monuments
 		Politicals
+		Presidents
 	1967
 		Nationals
 		Americans
@@ -1473,29 +1053,3 @@ Washington
 		Columbias
 		Monuments
 		Politicals
-
-Waterbury
-
-West Troy
-
-Wheeling
-
-Wichita
-
-Wilkes-Barre
-
-Williamsburgh
-
-Williamsport
-
-Wilmington
-
-Worcester
-
-Yonkers
-
-York
-
-Youngstown
-
-Zanesville

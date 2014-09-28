@@ -1,0 +1,1217 @@
+(dp0
+S'Anaheim, California'
+p1
+(F33.835293
+F117.914504
+tp2
+sS'Worcester, Massachusetts'
+p3
+(F42.262593
+F71.802293
+tp4
+sS'Taunton, Massachusetts'
+p5
+(F41.9
+F71.0903
+tp6
+sS'Tampa, Florida'
+p7
+(F27.950575
+F82.457178
+tp8
+sS'Anchorage, Alaska'
+p9
+(F61.218056
+F149.900278
+tp10
+sS'Newburgh, New York'
+p11
+(F41.503427
+F74.010418
+tp12
+sS'Little Rock, Arkansas'
+p13
+(F34.746481
+F92.289595
+tp14
+sS'Cleveland, Ohio'
+p15
+(F41.499495
+F81.695409
+tp16
+sS'Toledo, Ohio'
+p17
+(F41.663938
+F83.555212
+tp18
+sS'Bayonne, New Jersey'
+p19
+(F40.6686
+F74.1147
+tp20
+sS'Salt Lake City, Utah'
+p21
+(F40.760779
+F111.891047
+tp22
+sS'Frederick, Maryland'
+p23
+(F39.414269
+F77.410541
+tp24
+sS'Passaic, New Jersey'
+p25
+(F40.856766
+F74.128476
+tp26
+sS'Camden, New Jersey'
+p27
+(F39.9258
+F75.12
+tp28
+sS'Newark, New Jersey'
+p29
+(F40.735657
+F74.172367
+tp30
+sS'Providence, Rhode Island'
+p31
+(F41.823989
+F71.412834
+tp32
+sS'Baltimore, Maryland'
+p33
+(F39.290385
+F76.612189
+tp34
+sS'Northern Liberties, Pennsylvania'
+p35
+(F39.963692
+F75.139944
+tp36
+sS'Metairie, Louisiana'
+p37
+(F29.984092
+F90.152852
+tp38
+sS'Gardiner, Maine'
+p39
+(F44.23007
+F69.775322
+tp40
+sS'Danvers, Massachusetts'
+p41
+(F42.575001
+F70.932122
+tp42
+sS'Columbus, Ohio'
+p43
+(F39.961176
+F82.998794
+tp44
+sS'Saginaw, Michigan'
+p45
+(F43.41947
+F83.950807
+tp46
+sS'Warwick, Rhode Island'
+p47
+(F41.2564
+F74.3603
+tp48
+sS'St. Petersburg, Florida'
+p49
+(F27.773056
+F82.64
+tp50
+sS'Lawrence, Kansas'
+p51
+(F38.971669
+F95.23525
+tp52
+sS'Brooklyn, New York'
+p53
+(F40.65
+F73.95
+tp54
+sS'Jackson, Mississippi'
+p55
+(F32.298757
+F90.18481
+tp56
+sS'Albuquerque, New Mexico'
+p57
+(F35.110703
+F106.609991
+tp58
+sS'Hartford, Connecticut'
+p59
+(F41.763711
+F72.685093
+tp60
+sS'Rochester, New York'
+p61
+(F43.16103
+F77.610922
+tp62
+sS'Southwark, Pennsylvania'
+p63
+(F39.952335
+F75.163789
+tp64
+sS'Middletown, Massachusetts'
+p65
+(F41.5622
+F72.6511
+tp66
+sS'Scranton, Pennsylvania'
+p67
+(F41.408969
+F75.662412
+tp68
+sS'Mesa, Arizona'
+p69
+(F33.415184
+F111.831472
+tp70
+sS'Montgomery, Alabama'
+p71
+(F32.366805
+F86.299969
+tp72
+sS'El Paso, Texas'
+p73
+(F31.75872
+F106.486931
+tp74
+sS'Arlington, Texas'
+p75
+(F32.735687
+F97.108066
+tp76
+sS'Auburn, Alabama'
+p77
+(F32.609857
+F85.480782
+tp78
+sS'Jersey City, New Jersey'
+p79
+(F40.728157
+F74.077642
+tp80
+sS'Youngstown, Ohio'
+p81
+(F41.09978
+F80.649519
+tp82
+sS'Stockton, California'
+p83
+(F37.957702
+F121.29078
+tp84
+sS'Altoona, Pennsylvania'
+p85
+(F40.518681
+F78.394736
+tp86
+sS'Dorchester, Massachusetts'
+p87
+(F42.30163
+F71.067605
+tp88
+sS'Sioux City, Iowa'
+p89
+(F42.499994
+F96.400307
+tp90
+sS'San Jose, California'
+p91
+(F37.339386
+F121.894955
+tp92
+sS'Mobile, Alabama'
+p93
+(F30.694357
+F88.043054
+tp94
+sS'Gloucester, Massachusetts'
+p95
+(F42.6158
+F70.6625
+tp96
+sS'Paterson, New Jersey'
+p97
+(F40.916765
+F74.171811
+tp98
+sS'Hoboken, New Jersey'
+p99
+(F40.743991
+F74.032363
+tp100
+sS'New Orleans, Louisiana'
+p101
+(F29.951066
+F90.071532
+tp102
+sS'Glendale, Arizona'
+p103
+(F34.142508
+F118.255075
+tp104
+sS'Fort Wayne, Indiana'
+p105
+(F41.079273
+F85.139351
+tp106
+sS'Flint, Michigan'
+p107
+(F43.012527
+F83.687456
+tp108
+sS'Amarillo, Texas'
+p109
+(F35.221997
+F101.831297
+tp110
+sS'West Troy, New York'
+p111
+(F42.605589
+F83.14993
+tp112
+sS'Erie, Pennsylvania'
+p113
+(F42.129224
+F80.085059
+tp114
+sS'Omaha, Nebraska'
+p115
+(F41.252363
+F95.997988
+tp116
+sS'Shreveport, Louisiana'
+p117
+(F32.525152
+F93.750179
+tp118
+sS'Bay City, Michigan'
+p119
+(F43.594468
+F83.888865
+tp120
+sS'Chicago, Illinois'
+p121
+(F41.878114
+F87.629798
+tp122
+sS'York, Pennsylvania'
+p123
+(F39.9625
+F76.7281
+tp124
+sS'Seattle, Washington'
+p125
+(F47.60621
+F122.332071
+tp126
+sS'Phoenix, Arizona'
+p127
+(F33.448377
+F112.074037
+tp128
+sS'Dallas, Texas'
+p129
+(F32.78014
+F96.800451
+tp130
+sS'Portsmouth, New Hampshire'
+p131
+(F43.0717
+F70.7631
+tp132
+sS'San Diego, California'
+p133
+(F32.715329
+F117.157255
+tp134
+sS'Charlestown, Massachusetts'
+p135
+(F42.379541
+F71.064634
+tp136
+sS'Reading, Pennsylvania'
+p137
+(F40.3356
+F75.9272
+tp138
+sS'Memphis, Tennessee'
+p139
+(F35.149534
+F90.04898
+tp140
+sS'Cumberland, Rhode Island'
+p141
+(F39.652865
+F78.762518
+tp142
+sS'Manchester, New Hampshire'
+p143
+(F42.9956
+F71.4553
+tp144
+sS'Elizabeth, New Jersey'
+p145
+(F40.663992
+F74.210701
+tp146
+sS'Waterbury, Connecticut'
+p147
+(F41.558153
+F73.051496
+tp148
+sS'Troy, New York'
+p149
+(F42.605589
+F83.14993
+tp150
+sS'Moyamensing, Pennsylvania'
+p151
+(F39.917409
+F75.171139
+tp152
+sS'Louisville, Kentucky'
+p153
+(F38.252665
+F85.758456
+tp154
+sS'Rockford, Illinois'
+p155
+(F42.271131
+F89.093995
+tp156
+sS'Elmira, New York'
+p157
+(F42.089797
+F76.807734
+tp158
+sS'Kensington, Pennsylvania'
+p159
+(F39.025665
+F77.076367
+tp160
+sS'Richmond, Virginia'
+p161
+(F37.540725
+F77.436048
+tp162
+sS'Jacksonville, Florida'
+p163
+(F30.332184
+F81.655651
+tp164
+sS'Lynn, Massachusetts'
+p165
+(F42.466763
+F70.949494
+tp166
+sS'Middleborough, Massachusetts'
+p167
+(F41.892994
+F70.910771
+tp168
+sS'Corpus Christi, Texas'
+p169
+(F27.800583
+F97.396381
+tp170
+sS'Portland, Maine'
+p171
+(F43.6667
+F70.2667
+tp172
+sS'Aurora, Colorado'
+p173
+(F39.729432
+F104.83192
+tp174
+sS'Riverside, California'
+p175
+(F33.953349
+F117.396156
+tp176
+sS'New London, Connecticut'
+p177
+(F41.355654
+F72.099521
+tp178
+sS'Holyoke, Massachusetts'
+p179
+(F42.204259
+F72.616201
+tp180
+sS'Washington, District of Columbia'
+p181
+(F38.895112
+F77.036366
+tp182
+sS'Evansville, Indiana'
+p183
+(F37.971559
+F87.57109
+tp184
+sS'Grand Rapids, Michigan'
+p185
+(F42.96336
+F85.668086
+tp186
+sS'Lynchburg, Virginia'
+p187
+(F37.413754
+F79.142246
+tp188
+sS'Peoria, Illinois'
+p189
+(F40.693649
+F89.588986
+tp190
+sS'Syracuse, New York'
+p191
+(F43.048122
+F76.147424
+tp192
+sS'Williamsport, Pennsylvania'
+p193
+(F41.24119
+F77.001079
+tp194
+sS'Bangor, Maine'
+p195
+(F44.801182
+F68.777814
+tp196
+sS'Trenton, New Jersey'
+p197
+(F40.217053
+F74.742938
+tp198
+sS'Fort Lauderdale, Florida'
+p199
+(F26.122308
+F80.143379
+tp200
+sS'Barnstable, Massachusetts'
+p201
+(F41.7
+F70.3
+tp202
+sS'Quincy, Illinois'
+p203
+(F42.252877
+F71.002271
+tp204
+sS'Cincinnati, Ohio'
+p205
+(F39.103118
+F84.51202
+tp206
+sS'Williamsburgh, New York'
+p207
+(F37.270702
+F76.707457
+tp208
+sS'Huntington Beach, California'
+p209
+(F33.660297
+F117.999227
+tp210
+sS'Birmingham, Alabama'
+p211
+(F33.520661
+F86.80249
+tp212
+sS'Fresno, California'
+p213
+(F36.746842
+F119.772587
+tp214
+sS'New Brunswick, New Jersey'
+p215
+(F40.486216
+F74.451819
+tp216
+sS'Chattanooga, Tennessee'
+p217
+(F35.04563
+F85.30968
+tp218
+sS'Fall River, Massachusetts'
+p219
+(F41.701491
+F71.155045
+tp220
+sS'Garland, Texas'
+p221
+(F32.912624
+F96.638883
+tp222
+sS'Warren, Michigan'
+p223
+(F42.514457
+F83.014653
+tp224
+sS'Yonkers, New York'
+p225
+(F40.93121
+F73.898747
+tp226
+sS'Tacoma, Washington'
+p227
+(F47.252877
+F122.444291
+tp228
+sS'Roxbury, Massachusetts'
+p229
+(F42.315198
+F71.091375
+tp230
+sS'Kansas City, Missouri'
+p231
+(F39.099727
+F94.578567
+tp232
+sS'Leavenworth, Kansas'
+p233
+(F39.311111
+F94.922464
+tp234
+sS'New Bedford, Massachusetts'
+p235
+(F41.636215
+F70.934205
+tp236
+sS'South Bend, Indiana'
+p237
+(F41.676355
+F86.25199
+tp238
+sS'Detroit, Michigan'
+p239
+(F42.331427
+F83.045754
+tp240
+sS'Houston, Texas'
+p241
+(F29.760193
+F95.36939
+tp242
+sS'Charlotte, North Carolina'
+p243
+(F35.227087
+F80.843127
+tp244
+sS'Minneapolis, Minnesota'
+p245
+(F44.983334
+F93.26667
+tp246
+sS'Dubuque, Iowa'
+p247
+(F42.500558
+F90.664572
+tp248
+sS'Des Moines, Iowa'
+p249
+(F41.600545
+F93.609106
+tp250
+sS'Hialeah, Florida'
+p251
+(F25.857596
+F80.278106
+tp252
+sS'Plymouth, Massachusetts'
+p253
+(F41.9583
+F70.6678
+tp254
+sS'Santa Ana, California'
+p255
+(F33.745573
+F117.867834
+tp256
+sS'Charleston, South Carolina'
+p257
+(F32.776566
+F79.930922
+tp258
+sS'Honolulu, Hawaii'
+p259
+(F21.306944
+F157.858333
+tp260
+sS'North Providence, Rhode Island'
+p261
+(F41.853552
+F71.467664
+tp262
+sS'New York, New York'
+p263
+(F40.714353
+F74.005973
+tp264
+sS'Concord, New Hampshire'
+p265
+(F37.977978
+F122.031073
+tp266
+sS'Wilmington, Delaware'
+p267
+(F34.225726
+F77.94471
+tp268
+sS'Binghamton, New York'
+p269
+(F42.098687
+F75.917974
+tp270
+sS'Poughkeepsie, New York'
+p271
+(F41.700371
+F73.92097
+tp272
+sS'Tucson, Arizona'
+p273
+(F32.221743
+F110.926479
+tp274
+sS'Galveston, Texas'
+p275
+(F29.301348
+F94.797696
+tp276
+sS'Duluth, Minnesota'
+p277
+(F46.786672
+F92.100485
+tp278
+sS'Covington, Kentucky'
+p279
+(F39.083671
+F84.508554
+tp280
+sS'Fort Worth, Texas'
+p281
+(F32.725409
+F97.32085
+tp282
+sS'Nashville, Tennessee'
+p283
+(F36.166667
+F86.783333
+tp284
+sS'Denver, Colorado'
+p285
+(F39.737567
+F104.984718
+tp286
+sS'New Haven, Connecticut'
+p287
+(F41.308274
+F72.927883
+tp288
+sS'New Albany, Indiana'
+p289
+(F38.285625
+F85.824131
+tp290
+sS'Schenectady, New York'
+p291
+(F42.814243
+F73.939569
+tp292
+sS'Augusta, Georgia'
+p293
+(F33.473498
+F82.010515
+tp294
+sS'Chicopee, Massachusetts'
+p295
+(F42.148704
+F72.607867
+tp296
+sS'Las Vegas, Nevada'
+p297
+(F36.114646
+F115.172816
+tp298
+sS'Allentown, Pennsylvania'
+p299
+(F40.608431
+F75.490183
+tp300
+sS'Allegheny, Pennsylvania'
+p301
+(F40.445081
+F80.008775
+tp302
+sS'Petersburg, Virginia'
+p303
+(F37.213
+F77.4004
+tp304
+sS'Bakersfield, California'
+p305
+(F35.373292
+F119.018712
+tp306
+sS'Alexandria, Virginia'
+p307
+(F38.804836
+F77.046921
+tp308
+sS'Gary, Indiana'
+p309
+(F41.59337
+F87.346427
+tp310
+sS'St. Joseph, Missouri'
+p311
+(F39.757944
+F94.836541
+tp312
+sS'Easton, Pennsylvania'
+p313
+(F40.688432
+F75.220732
+tp314
+sS'Oakland, California'
+p315
+(F37.804364
+F122.271114
+tp316
+sS'Hudson, New York'
+p317
+(F42.252865
+F73.790959
+tp318
+sS'Davenport, Iowa'
+p319
+(F41.523644
+F90.577637
+tp320
+sS'San Francisco, California'
+p321
+(F37.77493
+F122.419416
+tp322
+sS'Canton, Ohio'
+p323
+(F40.7989
+F81.3786
+tp324
+sS'Savannah, Georgia'
+p325
+(F32.083541
+F81.099834
+tp326
+sS'Somerville, Massachusetts'
+p327
+(F42.387597
+F71.099497
+tp328
+sS'Indianapolis, Indiana'
+p329
+(F39.768403
+F86.158068
+tp330
+sS'Nantucket, Massachusetts'
+p331
+(F41.28347
+F70.099451
+tp332
+sS'Harrisburg, Pennsylvania'
+p333
+(F40.2737
+F76.884418
+tp334
+sS'Colorado Springs, Colorado'
+p335
+(F38.833882
+F104.821363
+tp336
+sS'Milwaukee, Wisconsin'
+p337
+(F43.038903
+F87.906474
+tp338
+sS'Salem, Massachusetts'
+p339
+(F44.942898
+F123.035096
+tp340
+sS'Nashua, New Hampshire'
+p341
+(F42.765366
+F71.467566
+tp342
+sS'Lafayette, Louisiana'
+p343
+(F30.22409
+F92.019843
+tp344
+sS'Dayton, Ohio'
+p345
+(F39.758948
+F84.191607
+tp346
+sS'Atlanta, Georgia'
+p347
+(F33.748995
+F84.387982
+tp348
+sS'Los Angeles, California'
+p349
+(F34.052234
+F118.243685
+tp350
+sS'Utica, New York'
+p351
+(F43.100903
+F75.232664
+tp352
+sS'Raleigh, North Carolina'
+p353
+(F35.772096
+F78.638615
+tp354
+sS'Akron, Ohio'
+p355
+(F41.081445
+F81.519005
+tp356
+sS'Columbia, South Carolina'
+p357
+(F38.9517
+F92.3339
+tp358
+sS'Chelsea, Massachusetts'
+p359
+(F42.391764
+F71.032828
+tp360
+sS'Zanesville, Ohio'
+p361
+(F39.940345
+F82.013192
+tp362
+sS'Buffalo, New York'
+p363
+(F42.886447
+F78.878369
+tp364
+sS'Lancaster, Pennsylvania'
+p365
+(F40.0378
+F76.3058
+tp366
+sS'Lincoln, Nebraska'
+p367
+(F40.806862
+F96.681679
+tp368
+sS'Terre Haute, Indiana'
+p369
+(F39.466703
+F87.413909
+tp370
+sS'St. Louis, Missouri'
+p371
+(F38.627003
+F90.199404
+tp372
+sS'Greensboro, North Carolina'
+p373
+(F36.072635
+F79.791975
+tp374
+sS'Lubbock, Texas'
+p375
+(F33.577863
+F101.855166
+tp376
+sS'Cambridge, Massachusetts'
+p377
+(F42.373616
+F71.109733
+tp378
+sS'Philadelphia, Pennsylvania'
+p379
+(F39.952335
+F75.163789
+tp380
+sS'Burlington, Vermont'
+p381
+(F44.475883
+F73.212072
+tp382
+sS'Spring Garden, Pennsylvania'
+p383
+(F39.952335
+F75.163789
+tp384
+sS'Spokane, Washington'
+p385
+(F47.65878
+F117.426047
+tp386
+sS'Virginia Beach, Virginia'
+p387
+(F36.852926
+F75.977985
+tp388
+sS'Albany, New York'
+p389
+(F42.652579
+F73.756232
+tp390
+sS'Topeka, Kansas'
+p391
+(F39.055824
+F95.689018
+tp392
+sS'Oklahoma City, Oklahoma'
+p393
+(F35.46756
+F97.516428
+tp394
+sS'Lowell, Massachusetts'
+p395
+(F42.633425
+F71.316172
+tp396
+sS'Cohoes, New York'
+p397
+(F42.774245
+F73.700119
+tp398
+sS'Newburyport, Massachusetts'
+p399
+(F42.812591
+F70.877275
+tp400
+sS'Portland, Oregon'
+p401
+(F45.523452
+F122.676207
+tp402
+sS'Wilkes-Barre, Pennsylvania'
+p403
+(F41.245915
+F75.881307
+tp404
+sS'Boston, Massachusetts'
+p405
+(F42.358431
+F71.059773
+tp406
+sS'Georgetown, District of Columbia'
+p407
+(F38.89
+F77.03
+tp408
+sS'Long Beach, California'
+p409
+(F33.768321
+F118.195617
+tp410
+sS'Newport, Kentucky'
+p411
+(F41.49
+F71.3133
+tp412
+sS'St. Paul, Minnesota'
+p413
+(F44.953703
+F93.089958
+tp414
+sS'Sacramento, California'
+p415
+(F38.581572
+F121.4944
+tp416
+sS'Madison, Wisconsin'
+p417
+(F43.073052
+F89.40123
+tp418
+sS'Johnstown, Pennsylvania'
+p419
+(F40.326741
+F78.92197
+tp420
+sS'Norwich, Connecticut'
+p421
+(F41.5242
+F72.0764
+tp422
+sS'Marblehead, Massachusetts'
+p423
+(F42.499958
+F70.857802
+tp424
+sS'Patterson, New Jersey'
+p425
+(F37.4716
+F121.129656
+tp426
+sS'Berkeley, California'
+p427
+(F37.871593
+F122.272747
+tp428
+sS'Pottsville, Pennsylvania'
+p429
+(F40.685646
+F76.195499
+tp430
+sS'Brockton, Massachusetts'
+p431
+(F42.083434
+F71.018379
+tp432
+sS'Bath, Maine'
+p433
+(F42.3369
+F77.3181
+tp434
+sS'Tulsa, Oklahoma'
+p435
+(F36.153982
+F95.992775
+tp436
+sS'Lockport, New York'
+p437
+(F43.170613
+F78.69031
+tp438
+sS'San Antonio, Texas'
+p439
+(F29.424122
+F98.493628
+tp440
+sS'Knoxville, Tennessee'
+p441
+(F35.960638
+F83.920739
+tp442
+sS'Miami, Florida'
+p443
+(F25.788969
+F80.226439
+tp444
+sS'Oswego, New York'
+p445
+(F43.455346
+F76.510497
+tp446
+sS'Wheeling, West Virginia'
+p447
+(F40.063962
+F80.720915
+tp448
+sS'Lexington, Kentucky'
+p449
+(F38.040584
+F84.503716
+tp450
+sS'East St. Louis, Illinois'
+p451
+(F38.615556
+F90.127778
+tp452
+sS'Haverhill, Massachusetts'
+p453
+(F42.776202
+F71.07728
+tp454
+sS'Austin, Texas'
+p455
+(F30.267153
+F97.743061
+tp456
+sS'Fremont, California'
+p457
+(F37.54827
+F121.988572
+tp458
+sS'Carlisle, Pennsylvania'
+p459
+(F40.2025
+F77.195
+tp460
+sS'Pawtucket, Rhode Island'
+p461
+(F41.878711
+F71.382556
+tp462
+sS'Baton Rouge, Louisiana'
+p463
+(F30.458283
+F91.14032
+tp464
+sS'Bridgeport, Connecticut'
+p465
+(F41.186548
+F73.195177
+tp466
+sS'Steubenville, Ohio'
+p467
+(F40.369791
+F80.633964
+tp468
+sS'Wichita, Kansas'
+p469
+(F37.688889
+F97.336111
+tp470
+sS'Fayetteville, North Carolina'
+p471
+(F36.06258
+F94.157426
+tp472
+sS'Norfolk, Virginia'
+p473
+(F36.850769
+F76.285873
+tp474
+sS'Pittsburgh, Pennsylvania'
+p475
+(F40.440625
+F79.995886
+tp476
+sS'Springfield, Massachusetts'
+p477
+(F37.208957
+F93.292299
+tp478
+sS'Andover, Maryland'
+p479
+(F42.6722
+F71.1444
+tp480
+sS'Beverly, Massachusetts'
+p481
+(F42.558428
+F70.880049
+tp482
+sS'Charlescity, Ohio'
+p483
+(F43.066361
+F92.672411
+tp484
+sS'Dover, Delaware'
+p485
+(F39.1581
+F75.5247
+tp486
+s.

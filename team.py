@@ -65,9 +65,8 @@ class Team(object):
 
         self.nickname = self.init_name()
         self.name = self.city.name + ' ' + self.nickname
-        while self.nickname in self.country.major_nicknames:
-            self.nickname = self.init_name()
-        self.country.major_nicknames.append(self.nickname)
+        if self.nickname in self.country.major_nicknames:
+            self.nickname = "Generics"
 
         self.init_players()
 
@@ -83,17 +82,15 @@ class Team(object):
         self.left_on_base = []
 
     def init_name(self):
-
-        if self.country.year < normal(1905, 2):
-            if self.city.unique_nicknames:
-                x = random.randint(0, 23)
-            elif not self.city.unique_nicknames:
-                x = random.randint(0, 14)
+        city_apt_team_nicknames = None
+        if self.city.yearly_apt_team_nicknames:
+            if any(year for year in self.city.yearly_apt_team_nicknames.keys() if self.country.year <= year):
+                year = min(self.city.yearly_apt_team_nicknames.keys(), key=lambda year: self.country.year-year)
+                city_apt_team_nicknames = self.city.yearly_apt_team_nicknames[year]
+        if city_apt_team_nicknames:
+            x = random.randint(4, 23)
         else:
-            if self.city.unique_nicknames:
-                x = random.randint(4, 23)
-            elif not self.city.unique_nicknames:
-                x = random.randint(4, 14)
+            x = random.randint(4, 14)
         if x in (0, 1):
             nickname = random.choice(COLORS) + ' Stockings'
         if x == 2:
@@ -109,7 +106,7 @@ class Team(object):
         if x == 14:
             nickname = random.choice(GEN_TEAM_NAMES) + 's'
         if x > 14:
-            nickname = random.choice(self.city.unique_nicknames)
+            nickname = random.choice(self.city.yearly_apt_team_nicknames[self.country.year])
         return nickname
 
     def init_players(self):

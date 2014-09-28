@@ -5,6 +5,7 @@ from random import normalvariate as normal
 from team import Team
 from season import Season
 
+
 class League(object):
     
     def __init__(self, country):
@@ -13,7 +14,6 @@ class League(object):
         self.name = self.init_name()
         while self.name in country.league_names:
             self.name = self.init_name()
-        country.league_names.append(self.name)
         country.leagues.append(self)
         self.founded = country.year
         self.cities = []

@@ -1,240 +1,243 @@
-Akron
-Albany
-Albuquerque
-Alexandria
-Allegheny
-Allentown
-Altoona
-Amarillo
-Anaheim
-Anchorage
-Andover
-Arlington
-Atlanta
-Auburn
-Augusta
-Aurora
-Austin
-Bakersfield
-Baltimore
-Bangor
-Barnstable
-Bath
-Baton Rouge
-Bay City
-Bayonne
-Berkeley
-Beverly
-Binghamton
-Birmingham
-Boston
-Bridgeport
-Brockton
-Brooklyn
-Buffalo
-Burlington
-Cambridge
-Camden
-Canton
-Carlisle
-Charleston
-Charlestown
-Charlotte
-Chattanooga
-Chelsea
-Chicago
-Chicopee
-Cincinnati
-Cleveland
-Cohoes
-Colorado Springs
-Columbia
-Columbus
-Concord
-Corpus Christi
-Covington
-Cumberland
-Dallas
-Danvers
-Davenport
-Dayton
-Denver
-Des Moines
-Detroit
-Dorchester
-Dover
-Dubuque
-Duluth
-East St. Louis
-Easton
-El Paso
-Elizabeth
-Elmira
-Erie
-Evansville
-Fall River
-Fayetteville
-Flint
-Fort Lauderdale
-Fort Wayne
-Fort Worth
-Frederick
-Fremont
-Fresno
-Galveston
-Gardiner
-Garland
-Gary
-Georgetown
-Glendale
-Gloucester
-Grand Rapids
-Greensboro
-Harrisburg
-Hartford
-Haverhill
-Hialeah
-Hoboken
-Holyoke
-Honolulu
-Houston
-Hudson
-Huntington Beach
-Indianapolis
-Jackson
-Jacksonville
-Jersey City
-Johnstown
-Kansas City
-Kensington
-Knoxville
-Lafayette
-Lancaster
-Las Vegas
-Lawrence
-Leavenworth
-Lexington
-Lincoln
-Little Rock
-Lockport
-Long Beach
-Los Angeles
-Louisville
-Lowell
-Lubbock
-Lynchburg
-Lynn
-Madison
-Manchester
-Marblehead
-Memphis
-Mesa
-Metairie
-Miami
-Middleborough
-Milwaukee
-Minneapolis
-Mobile
-Montgomery
-Moyamensing
-Nantucket
-Nashua
-Nashville
-New Albany
-New Bedford
-New Brunswick
-New Haven
-New London
-New Orleans
-New York
-Newark
-Newburgh
-Newburyport
-Newport
-Norfolk
-North Providence
-Northern Liberties
-Norwich
-Oakland
-Oklahoma City
-Omaha
-Oswego
-Passaic
-Paterson
-Pawtucket
-Peoria
-Petersburg
-Philadelphia
-Phoenix
-Pittsburgh
-Plymouth
-Portland
-Portland (OR)
-Portsmouth
-Pottsville
-Poughkeepsie
-Providence
-Quincy
-Raleigh
-Reading
-Richmond
-Riverside
-Rochester
-Rockford
-Roxbury
-Sacramento
-Saginaw
-Salem
-Salt Lake City
-San Antonio
-San Diego
-San Francisco
-San Jose
-Santa Ana
-Savannah
-Schenectady
-Scranton
-Seattle
-Shreveport
-Sioux City
-Somerville
-South Bend
-Southwark
-Spokane
-Spring Garden
-Springfield
-St. Joseph
-St. Louis
-St. Paul
-St. Petersburg
-Steubenville
-Stockton
-Syracuse
-Tacoma
-Tampa
-Taunton
-Terre Haute
-Toledo
-Topeka
-Trenton
-Troy
-Tucson
-Tulsa
-Utica
-Virginia Beach
-Warren
-Warwick
-Washington
-Waterbury
-West Troy
-Wheeling
-Wichita
-Wilkes-Barre
-Williamsburgh
-Williamsport
-Wilmington
-Worcester
-Yonkers
-York
-Youngstown
-Zanesville
+Akron, Ohio
+Albany, New York
+Albuquerque, New Mexico
+Alexandria, Virginia
+Allegheny, Pennsylvania
+Allentown, Pennsylvania
+Altoona, Pennsylvania
+Amarillo, Texas
+Anaheim, California
+Anchorage, Alaska
+Andover, Maryland
+Arlington, Texas
+Atlanta, Georgia
+Auburn, Alabama
+Augusta, Georgia
+Aurora, Colorado
+Austin, Texas
+Bakersfield, California
+Baltimore, Maryland
+Bangor, Maine
+Barnstable, Massachusetts
+Bath, Maine
+Baton Rouge, Louisiana
+Bay City, Michigan
+Bayonne, New Jersey
+Berkeley, California
+Beverly, Massachusetts
+Binghamton, New York
+Birmingham, Alabama
+Boston, Massachusetts
+Bridgeport, Connecticut
+Brockton, Massachusetts
+Brooklyn, New York
+Buffalo, New York
+Burlington, Vermont
+Cambridge, Massachusetts
+Camden, New Jersey
+Canton, Ohio
+Carlisle, Pennsylvania
+Charlescity, Ohio
+Charleston, South Carolina
+Charlestown, Massachusetts
+Charlotte, North Carolina
+Chattanooga, Tennessee
+Chelsea, Massachusetts
+Chicago, Illinois
+Chicopee, Massachusetts
+Cincinnati, Ohio
+Cleveland, Ohio
+Cohoes, New York
+Colorado Springs, Colorado
+Columbia, South Carolina
+Columbus, Ohio
+Concord, New Hampshire
+Corpus Christi, Texas
+Covington, Kentucky
+Cumberland, Rhode Island
+Dallas, Texas
+Danvers, Massachusetts
+Davenport, Iowa
+Dayton, Ohio
+Denver, Colorado
+Des Moines, Iowa
+Detroit, Michigan
+Dorchester, Massachusetts
+Dover, Delaware
+Dubuque, Iowa
+Duluth, Minnesota
+East St. Louis, Illinois
+Easton, Pennsylvania
+El Paso, Texas
+Elizabeth, New Jersey
+Elmira, New York
+Erie, Pennsylvania
+Evansville, Indiana
+Fall River, Massachusetts
+Fayetteville, North Carolina
+Flint, Michigan
+Fort Lauderdale, Florida
+Fort Wayne, Indiana
+Fort Worth, Texas
+Frederick, Maryland
+Fremont, California
+Fresno, California
+Galveston, Texas
+Gardiner, Maine
+Garland, Texas
+Gary, Indiana
+Georgetown, District of Columbia
+Glendale, Arizona
+Gloucester, Massachusetts
+Grand Rapids, Michigan
+Greensboro, North Carolina
+Harrisburg, Pennsylvania
+Hartford, Connecticut
+Haverhill, Massachusetts
+Hialeah, Florida
+Hoboken, New Jersey
+Holyoke, Massachusetts
+Honolulu, Hawaii
+Houston, Texas
+Hudson, New York
+Huntington Beach, California
+Indianapolis, Indiana
+Jackson, Mississippi
+Jacksonville, Florida
+Jersey City, New Jersey
+Johnstown, Pennsylvania
+Kansas City, Missouri
+Kensington, Pennsylvania
+Knoxville, Tennessee
+Lafayette, Louisiana
+Lancaster, Pennsylvania
+Las Vegas, Nevada
+Lawrence, Kansas
+Leavenworth, Kansas
+Lexington, Kentucky
+Lincoln, Nebraska
+Little Rock, Arkansas
+Lockport, New York
+Long Beach, California
+Los Angeles, California
+Louisville, Kentucky
+Lowell, Massachusetts
+Lubbock, Texas
+Lynchburg, Virginia
+Lynn, Massachusetts
+Madison, Wisconsin
+Manchester, New Hampshire
+Marblehead, Massachusetts
+Memphis, Tennessee
+Mesa, Arizona
+Metairie, Louisiana
+Miami, Florida
+Middleborough, Massachusetts
+Middletown, Massachusetts
+Milwaukee, Wisconsin
+Minneapolis, Minnesota
+Mobile, Alabama
+Montgomery, Alabama
+Moyamensing, Pennsylvania
+Nantucket, Massachusetts
+Nashua, New Hampshire
+Nashville, Tennessee
+New Albany, Indiana
+New Bedford, Massachusetts
+New Brunswick, New Jersey
+New Haven, Connecticut
+New London, Connecticut
+New Orleans, Louisiana
+New York, New York
+Newark, New Jersey
+Newburgh, New York
+Newburyport, Massachusetts
+Newport, Kentucky
+Norfolk, Virginia
+North Providence, Rhode Island
+Northern Liberties, Pennsylvania
+Norwich, Connecticut
+Oakland, California
+Oklahoma City, Oklahoma
+Omaha, Nebraska
+Oswego, New York
+Passaic, New Jersey
+Paterson, New Jersey
+Patterson, New Jersey
+Pawtucket, Rhode Island
+Peoria, Illinois
+Petersburg, Virginia
+Philadelphia, Pennsylvania
+Phoenix, Arizona
+Pittsburgh, Pennsylvania
+Plymouth, Massachusetts
+Portland, Oregon
+Portland, Oregon
+Portsmouth, New Hampshire
+Pottsville, Pennsylvania
+Poughkeepsie, New York
+Providence, Rhode Island
+Quincy, Illinois
+Raleigh, North Carolina
+Reading, Pennsylvania
+Richmond, Virginia
+Riverside, California
+Rochester, New York
+Rockford, Illinois
+Roxbury, Massachusetts
+Sacramento, California
+Saginaw, Michigan
+Salem, Massachusetts
+Salt Lake City, Utah
+San Antonio, Texas
+San Diego, California
+San Francisco, California
+San Jose, California
+Santa Ana, California
+Savannah, Georgia
+Schenectady, New York
+Scranton, Pennsylvania
+Seattle, Washington
+Shreveport, Louisiana
+Sioux City, Iowa
+Somerville, Massachusetts
+South Bend, Indiana
+Southwark, Pennsylvania
+Spokane, Washington
+Spring Garden, Pennsylvania
+Springfield, Massachusetts
+St. Joseph, Missouri
+St. Louis, Missouri
+St. Paul, Minnesota
+St. Petersburg, Florida
+Steubenville, Ohio
+Stockton, California
+Syracuse, New York
+Tacoma, Washington
+Tampa, Florida
+Taunton, Massachusetts
+Terre Haute, Indiana
+Toledo, Ohio
+Topeka, Kansas
+Trenton, New Jersey
+Troy, New York
+Tucson, Arizona
+Tulsa, Oklahoma
+Utica, New York
+Virginia Beach, Virginia
+Warren, Michigan
+Warwick, Rhode Island
+Washington, District of Columbia
+Waterbury, Connecticut
+West Troy, New York
+Wheeling, West Virginia
+Wichita, Kansas
+Wilkes-Barre, Pennsylvania
+Williamsburgh, New York
+Williamsport, Pennsylvania
+Wilmington, Delaware
+Worcester, Massachusetts
+Yonkers, New York
+York, Pennsylvania
+Youngstown, Ohio
+Zanesville, Ohio
