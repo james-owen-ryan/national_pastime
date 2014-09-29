@@ -26,6 +26,7 @@ class Country(object):
         self.players = []
         for city in self.cities:
             self.players += city.players
+        self.free_agents = self.players
         self.leagues = []
         League(country=self)
 
@@ -68,6 +69,10 @@ class State(object):
         self.name = name
         self.country = country
         self.cities = self.init_cities()
+        self.players = []
+        for city in self.cities:
+            self.players += city.players
+        self.free_agents = self.players
 
     def init_cities(self):
         """Instantiate objects for all cities currently in our database."""
@@ -89,6 +94,10 @@ class FederalDistrict(object):
         self.name = name
         self.country = country
         self.cities = self.init_cities()
+        self.players = []
+        for city in self.cities:
+            self.players += city.players
+        self.free_agents = self.players
 
     def init_cities(self):
         """Instantiate objects for all cities currently in our database."""
@@ -116,13 +125,16 @@ class City(object):
         self.latitude, self.longitude = self.coordinates
         self.yearly_populations = CITY_DATA.yearly_populations[key]
         self.population = self.yearly_populations[self.country.year]
-        self.pop = max(self.population/1000, 1)  # Used variously as a convenience
+        if self.population > 0:
+            self.pop = max(self.population/1000, 1)  # Used variously as a convenience
+        else:
+            self.pop = 0
         if key in CITY_DATA.apt_nicknames:
             self.yearly_apt_team_nicknames = CITY_DATA.apt_nicknames[key]
         else:
             self.yearly_apt_team_nicknames = []
         # Prepare various baseball lists about this city
-        self.players = self.init_players()
+        self.free_agents = self.players = self.init_players()
         self.teams = []
 
     def init_players(self):

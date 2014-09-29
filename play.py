@@ -305,9 +305,12 @@ class FieldingAct(object):
         # Affect player composure according to the objective difficulty of the fielding act and
         # whether it was successful
         if self.successful:
-            fielder.composure += batted_ball.fielding_difficulty / 4
+            if batted_ball.fielding_difficulty > 0.4:
+                fielder.composure += batted_ball.fielding_difficulty / 20.
         else:
-            fielder.composure -= (1-batted_ball.fielding_difficulty) / 4
+            ease = 1-batted_ball.fielding_difficulty
+            if ease > 0.4:
+                fielder.composure -= ease / 20.
         self.fielder_composure_after = fielder.composure
         if line_drive_at_pitcher:
             print "-- Line drive right at {} ({}) [{}]".format(

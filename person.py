@@ -25,7 +25,8 @@ class Person(object):
     def __init__(self, birthplace):
         self.father = self.mother = None
         self.country = birthplace.country
-        self.hometown = birthplace
+        self.city = self.hometown = birthplace
+        self.state = birthplace.state
         self.location = birthplace
         self.team = None
         self.first_name, self.middle_name, self.last_name = self.init_name()
@@ -417,16 +418,6 @@ class Person(object):
 
         #           -- Batting attributes --
 
-        # Batting power is composed by two values -- one represents
-        # the player's mean hit distance when swinging with full
-        # power, perfect contact, and perfect timing; the other
-        # gives a standard deviation for swings having the same
-        # conditions. These two values are then used to generate
-        # a hit distance from a normal distribution
-        # self.swing_power_mean = normal(300, 50)
-        # self.swing_power_sd = normal(self.swing_power_mean/10,
-        #                              self.swing_power_mean/15)
-
         # Bat speed is the speed with which a player swings his
         # bat at the point of contact with a pitched ball -- we
         # represent it in units representing mph/oz, i.e., the mph
@@ -436,7 +427,10 @@ class Person(object):
         # Swing-timing error is a measure of a batter's standard
         # deviation from perfect swing timing (represented as 0);
         # swing timing is correlated to a player's coordination
-        self.swing_timing_error = abs(normal(0, (1.5-self.coordination)/10.))
+        base_swing_timing = (
+            0.75*self.coordination + 1.5*self.focus + self.reflexes
+        )
+        self.swing_timing_error = base_swing_timing/21.0
         # Swing-contact error is a measure of a batter's standard
         # deviation, both on the x- and y-axis, from perfect swing
         # contact, i.e., bat-ball contact at the bat's sweet spot;
@@ -587,20 +581,6 @@ class Person(object):
 
         rep = self.name + ' (' + self.hometown.name + ')'
         return rep
-
-    def age_v(self):
-
-        self.age += 1
-
-        d = self.prime - self.age
-
-        self.power += int(round(normal(d, 1)))
-        self.contact += int(round(normal(d, 1)))
-
-        self.speed += int(round(normal(d, 1)))
-        self.control += int(round(normal(d, 1)))
-        # self.changeup += int(round(normal(d, 1)))
-        # self.curveball += int(round(normal(d, 1)))
 
     def get_in_position(self, at_bat):
         """Get into position prior to a pitch."""
@@ -1045,7 +1025,7 @@ class Person(object):
         # TODO: also effect this by pitch speed (higher = harder), expected
         # pitch speed,
         timing = (
-            normal(0, self.swing_timing_error+(abs(0.2-self._swing_power)/7))
+            normal(0, self.swing_timing_error+(abs(0.2-self._swing_power)/70))
         )
         timing /= self.composure
         # Determine swing contact point -- this is represented
@@ -1281,17 +1261,27 @@ class Person(object):
         if batted_ball.ground_rule_incurred:
             GroundRuleDouble(batted_ball=batted_ball)
             batted_ball.resolved = True
+        elif batted_ball.contacted_foul_pole:
+            if batted_ball.at_bat.frame.bases_loaded:
+                GrandSlam(batted_ball=batted_ball)
+            else:
+                HomeRun(batted_ball=batted_ball)
+        elif batted_ball.contacted_foul_fence:
+            FoulBall(batted_ball=batted_ball)
+            batted_ball.resolved = True
         elif batted_ball.fielded_by and not batted_ball.fly_out_call_given:
             # If a fly out was potentially made, make the call as to whether it was
             # indeed a fly out or else a trap; don't even bother if the ball has
-            # clearly bounced one or more times too many
-            if (batted_ball.at_bat.game.rules.foul_ball_on_first_bounce_is_out or
-                    batted_ball.at_bat.game.rules.fair_ball_on_first_bounce_is_out):
-                if batted_ball.n_bounces < 3:
-                    self.call_fly_out_or_trap(batted_ball=batted_ball)
-            else:
-                if batted_ball.n_bounces < 2:
-                    self.call_fly_out_or_trap(batted_ball=batted_ball)
+            # clearly bounced one or more times too many or if it has bounced off the
+            # outfield wall
+            if not batted_ball.contacted_outfield_wall:
+                if (batted_ball.at_bat.game.rules.foul_ball_on_first_bounce_is_out or
+                        batted_ball.at_bat.game.rules.fair_ball_on_first_bounce_is_out):
+                    if batted_ball.n_bounces < 3:
+                        self.call_fly_out_or_trap(batted_ball=batted_ball)
+                else:
+                    if batted_ball.n_bounces < 2:
+                        self.call_fly_out_or_trap(batted_ball=batted_ball)
         elif batted_ball.left_playing_field:
             if batted_ball.crossed_plane_foul:
                 FoulBall(batted_ball=batted_ball)
@@ -1431,9 +1421,10 @@ class Person(object):
                 )
                 batted_ball.covering_first = self
             elif self.position == "2B":
-                # If ball is hit to the left of second base, cover second;
-                # else, if the ball is hit to the right of second, cover first
-                if batted_ball.horizontal_launch_angle <= 0:
+                # If ball is hit to the left of second base or shortstop is playing the ball,
+                # cover second; else, if the ball is hit to the right of second, cover first
+                shortstop = batted_ball.at_bat.fielders[5]
+                if batted_ball.horizontal_launch_angle <= 0 or shortstop.playing_the_ball:
                     # Cover second base
                     self.immediate_goal = [0, 127]
                     # Get there ASAP, i.e., act at full speed
@@ -1518,13 +1509,15 @@ class Person(object):
             elif self.position == "LF":
                 if batted_ball.horizontal_launch_angle < 0.0:
                     if batted_ball.destination == "left" or batted_ball.destination == "deep left":
-                        # Play the ball and call any infielders off who want to chase the deep ball
-                        self.playing_the_ball = True
-                    elif batted_ball.destination == "shallow left" or batted_ball.destination == "shallow left-center":
-                        thresh = 0.5 * self.audacity
-                        if random.random() < thresh:
-                            # Call off infielder on next timestep
+                        if not self.called_off_by:
+                            # Play the ball and call any infielders off who want to chase the deep ball
                             self.playing_the_ball = True
+                    elif batted_ball.destination == "shallow left" or batted_ball.destination == "shallow left-center":
+                        if not self.called_off_by:
+                            thresh = 0.5 * self.audacity
+                            if random.random() < thresh:
+                                # Call off infielder on next timestep
+                                self.playing_the_ball = True
                     if not self.playing_the_ball:
                         # Back up the catch -- do this by making a goal to go to where the batted ball
                         # will be four-six timesteps later on its trajectory if it were to continue
@@ -1556,13 +1549,15 @@ class Person(object):
             elif self.position == "RF":
                 if batted_ball.horizontal_launch_angle >= 0.0:
                     if batted_ball.destination == "right" or batted_ball.destination == "deep right":
-                        # Play the ball and call any infielders off who want to chase the deep ball
-                        self.playing_the_ball = True
-                    elif batted_ball.destination == "shallow right" or batted_ball.destination == "shallow right-center":
-                        thresh = 0.5 * self.audacity
-                        if random.random() < thresh:
-                            # Call off infielder on next timestep
+                        if not self.called_off_by:
+                            # Play the ball and call any infielders off who want to chase the deep ball
                             self.playing_the_ball = True
+                    elif batted_ball.destination == "shallow right" or batted_ball.destination == "shallow right-center":
+                        if not self.called_off_by:
+                            thresh = 0.5 * self.audacity
+                            if random.random() < thresh:
+                                # Call off infielder on next timestep
+                                self.playing_the_ball = True
                     if not self.playing_the_ball:
                         # Back up the catch -- do this by making a goal to go to where the batted ball
                         # will be four-six timesteps later on its trajectory if it were to continue
@@ -1595,49 +1590,52 @@ class Person(object):
                 # Put here in control sequence because if LF or RF is already backing up the catch,
                 # CF should back-up at a different position
                 if batted_ball.destination == "center" or batted_ball.destination == "deep center":
-                    self.playing_the_ball = True
+                    if not self.called_off_by:
+                        self.playing_the_ball = True
                 elif batted_ball.destination == "shallow center":
+                    if not self.called_off_by:
                         thresh = 0.5 * self.audacity
                         if random.random() < thresh:
                             # Call off infielder on next timestep
                             self.playing_the_ball = True
-                elif batted_ball.hit_to_outfield:
-                    # Back up the catch -- do this by making a goal to go to where the batted ball
-                    # will be four-six timesteps later on its trajectory if it were to continue
-                    # on it uninterrupted by the fielder playing the ball's fielding attempt
-                    fielder_playing_the_ball = next(f for f in self.team.players if f.playing_the_ball)
-                    timestep_i_will_shoot_for = fielder_playing_the_ball.timestep_of_planned_fielding_attempt
-                    for i in xrange(5):
-                        timestep_i_will_shoot_for += 0.1
-                    if timestep_i_will_shoot_for in batted_ball.position_at_timestep:
-                        someone_else_already_backing_up_catch = (
-                            any(f for f in batted_ball.at_bat.fielders if f.backing_up_the_catch)
-                        )
-                        if not someone_else_already_backing_up_catch:
-                            self.immediate_goal = batted_ball.position_at_timestep[timestep_i_will_shoot_for][:2]
-                        else:
-                            # If someone is already backing up the catch, go about six feet behind where
-                            # they will be standing to back it up
-                            self.immediate_goal = (
-                                batted_ball.position_at_timestep[timestep_i_will_shoot_for][0],
-                                batted_ball.position_at_timestep[timestep_i_will_shoot_for][1] + 6
+                if not self.playing_the_ball:
+                    if batted_ball.hit_to_outfield:
+                        # Back up the catch -- do this by making a goal to go to where the batted ball
+                        # will be four-six timesteps later on its trajectory if it were to continue
+                        # on it uninterrupted by the fielder playing the ball's fielding attempt
+                        fielder_playing_the_ball = next(f for f in self.team.players if f.playing_the_ball)
+                        timestep_i_will_shoot_for = fielder_playing_the_ball.timestep_of_planned_fielding_attempt
+                        for i in xrange(5):
+                            timestep_i_will_shoot_for += 0.1
+                        if timestep_i_will_shoot_for in batted_ball.position_at_timestep:
+                            someone_else_already_backing_up_catch = (
+                                any(f for f in batted_ball.at_bat.fielders if f.backing_up_the_catch)
                             )
+                            if not someone_else_already_backing_up_catch:
+                                self.immediate_goal = batted_ball.position_at_timestep[timestep_i_will_shoot_for][:2]
+                            else:
+                                # If someone is already backing up the catch, go about six feet behind where
+                                # they will be standing to back it up
+                                self.immediate_goal = (
+                                    batted_ball.position_at_timestep[timestep_i_will_shoot_for][0],
+                                    batted_ball.position_at_timestep[timestep_i_will_shoot_for][1] + 6
+                                )
+                        else:
+                            print "timestep {} not in batted_ball.position_at_timestep".format(timestep_i_will_shoot_for)
+                            self.immediate_goal = batted_ball.final_location
+                        print "-- {} ({}) will back up the catch by moving toward [{}, {}] [{}]".format(
+                            self.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
+                            batted_ball.time_since_contact
+                        )
+                        self.backing_up_the_catch = True
                     else:
-                        print "timestep {} not in batted_ball.position_at_timestep".format(timestep_i_will_shoot_for)
-                        self.immediate_goal = batted_ball.final_location
-                    print "-- {} ({}) will back up the catch by moving toward [{}, {}] [{}]".format(
-                        self.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
-                        batted_ball.time_since_contact
-                    )
-                    self.backing_up_the_catch = True
-                else:
-                    # Back-up second base
-                    self.immediate_goal = [0, 135]
-                    # Get there ASAP, i.e., act at full speed
-                    self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
-                    )
-                    batted_ball.backing_up_second = self
+                        # Back-up second base
+                        self.immediate_goal = [0, 135]
+                        # Get there ASAP, i.e., act at full speed
+                        self.dist_per_timestep = (
+                            0.1/self.full_speed_sec_per_foot
+                        )
+                        batted_ball.backing_up_second = self
             elif self.position == "C":
                 # Stay put and cover home
                 self.immediate_goal = self.location
@@ -1711,7 +1709,7 @@ class Person(object):
         """Move toward the location that is your immediate goal."""
         # If you're playing the ball, potentially call off teammates of a lesser
         # fielding priority that are also playing the ball
-        if self.playing_the_ball and batted_ball.time_since_contact > 1+random.random():
+        if not batted_ball.fielded_by and self.playing_the_ball and batted_ball.time_since_contact > 1+random.random():
             other_fielders_playing_the_ball = (
                 f for f in batted_ball.at_bat.fielders if f.playing_the_ball and f is not self
             )
@@ -1720,8 +1718,8 @@ class Person(object):
                     if (batted_ball.fielding_priorities[self.position] >=
                             batted_ball.fielding_priorities[teammate.position]):
                         dist_from_teammate_to_bb = (
-                            math.hypot(self.location[0]-batted_ball.location[0],
-                                       self.location[1]-batted_ball.location[1])
+                            math.hypot(teammate.location[0]-batted_ball.location[0],
+                                       teammate.location[1]-batted_ball.location[1])
                         )
                         # If teammate isn't right near the ball already, call him off
                         if dist_from_teammate_to_bb > 10:
@@ -2264,7 +2262,7 @@ class Person(object):
             self.believes_he_can_beat_throw = True
             if realistic_estimate_of_difference > 0:
                 print ("-- Due to confidence and/or audacity, {} will riskily attempt to take the next base "
-                       "[realistic estimate was {}, his was {}, risk_buffer was {}] [{}] [{}]").format(
+                       "[realistic estimate was {}, his was {}, risk_buffer was {}] [{}]").format(
                     self.last_name, realistic_estimate_of_difference, my_estimate_of_difference, risk_buffer,
                     batted_ball.time_since_contact
                 )
@@ -2278,6 +2276,10 @@ class Person(object):
 
     def field_ball(self, batted_ball):
         """Attempt to field a batted ball.."""
+        assert self.reorienting_after_fielding_miss <= 0, \
+            "{} is attempting to field a ball while his reorientation time is still {}".format(
+                self.last_name, self.reorienting_after_fielding_miss
+            )
         batted_ball.bobbled = False
         line_drive_at_pitcher = False
         ball_totally_missed = False
@@ -2741,6 +2743,8 @@ class Person(object):
                       distance_to_target=self._throw_distance_to_target, release=self._throw_release,
                       power=self._throw_power, height_error=height_error, lateral_error=lateral_error,
                       back_to_pitcher=self.throwing_back_to_pitcher)
+        self.throwing_to_first = self.throwing_to_second = self.throwing_to_third = self.throwing_to_home = False
+        self.throwing_back_to_pitcher = False
         return throw
 
     def tag(self, baserunner):

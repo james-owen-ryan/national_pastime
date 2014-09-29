@@ -13,6 +13,7 @@ positions = {
             "CF": "center fielder", "RF": "right fielder"
         }
 
+
 class Game(object):
 
     def __init__(self, ballpark, home_team, away_team, league, rules, radio=False):
@@ -23,6 +24,7 @@ class Game(object):
         self.away_team = away_team
         self.rules = rules  # Rules game will be played under
         # Prepare for game
+        self.home_team.runs = self.away_team.runs = 0
         home_team.pitcher = home_team.pitcher
         away_team.pitcher = away_team.pitcher
         home_team.batting_order = home_team.players
@@ -82,7 +84,6 @@ class Game(object):
         # print "\nAverage difference: {}".format(sum(diffs)/len(diffs))
 
     def effect_consequences(self):
-        self.home_team.runs = self.away_team.runs = 0
         for player in self.away_team.players+self.home_team.players:
             conf_before, comp_before = player.confidence, player.composure
             diff = player.composure-player.confidence
@@ -423,7 +424,6 @@ class AtBat(object):
                     self.game.home_team.city.name, self.game.home_team.runs))
             score_after = score_before
             time.sleep(0.5)
-
 
     def enact(self):
         # TODO substitutions will change where this should be done

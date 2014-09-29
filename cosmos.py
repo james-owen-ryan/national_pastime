@@ -12,7 +12,7 @@ from rules import Rules
 #       FINALLY, a double is hit! By Bob McKibben (Philadelphia).
 
 
-us = Country(year=1850)
+us = Country(year=1890)
 pitcher = min(us.players, key=lambda p: p.pitch_control)
 slap = min(us.players, key=lambda b: b.swing_timing_error)
 random.shuffle(us.players)

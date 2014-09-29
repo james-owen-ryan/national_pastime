@@ -19,15 +19,15 @@ GEN_TEAM_NAMES = [name[:-1] for name in open(
     os.getcwd()+'/corpora/gen_team_names.txt','r')
 ]
 
+
 class Team(object):
 
     def __init__(self, city, league, expansion=False):
 
         self.city = city
+        self.state = city.state
         self.country = city.country
         self.league = league
-        self.ortg = int(round(normal(7, 2)))
-        self.ortgs = []
 
         self.founded = self.country.year
         self.folded = False
@@ -52,7 +52,6 @@ class Team(object):
         self.records_timeline = []
         self.pennants = []
         self.championships = []
-
 
         self.cumulative_wins = 0
         self.cumulative_losses = 0
@@ -110,37 +109,44 @@ class Team(object):
         return nickname
 
     def init_players(self):
-        pool = [p for p in self.country.players if not p.team]
+        print "\nA new franchise in {} is fielding a team".format(self.city.name)
+        pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
+        pool = set(pool)
         # Find pitcher
-        sub_pool = [p for p in pool if p.pitch_speed > 85]
-        self.pitcher = min(sub_pool, key=lambda p: p.pitch_control)
+        self.pitcher = max(pool, key=lambda p: self.grade_pitcher(p))
         pool.remove(self.pitcher)
+        print "\t{} has been signed as a pitcher".format(self.pitcher)
         # Find catcher
-        self.catcher = max(pool, key=lambda p: p.pitch_receiving)
+        self.catcher = max(pool, key=lambda p: self.grade_catcher(p))
         pool.remove(self.catcher)
+        print "\t{} has been signed as a catcher".format(self.catcher)
         # Find outfielders
-        lf = next(p for p in pool if p.fly_ball_fielding > 1.1 and p.full_speed_sec_per_foot*180 < 7.0 and
-                    p.swing_timing_error < 0.05)
+        lf = max(pool, key=lambda p: self.grade_left_fielder(p))
         pool.remove(lf)
-        cf = next(p for p in pool if p.fly_ball_fielding > 1.1 and p.full_speed_sec_per_foot*180 < 7.0 and
-                    p.swing_timing_error < 0.05)
+        print "\t{} has been signed as a left fielder".format(lf)
+        cf = max(pool, key=lambda p: self.grade_center_fielder(p))
         pool.remove(cf)
-        rf = next(p for p in pool if p.bat_speed > 2.75 and p.swing_timing_error < 0.04)
+        print "\t{} has been signed as a center fielder".format(cf)
+        rf = max(pool, key=lambda p: self.grade_right_fielder(p))
         pool.remove(rf)
+        print "\t{} has been signed as a right fielder".format(rf)
         # Find infielders
-        first = next(p for p in pool if p.bat_speed > 2.75 and p.swing_timing_error < 0.04)
+        first = max(pool, key=lambda p: self.grade_first_baseman(p))
         pool.remove(first)
-        second = next(p for p in pool if p.bat_speed > 2.0 and p.swing_timing_error < 0.04 and
-                        p.ground_ball_fielding > 1.0)
+        print "\t{} has been signed as a first baseman".format(first)
+        second = max(pool, key=lambda p: self.grade_second_baseman(p))
         pool.remove(second)
-        third = next(p for p in pool if p.bat_speed > 1.5 and p.swing_timing_error < 0.045 and
-                        p.full_speed_sec_per_foot*180 < 6.8)
+        print "\t{} has been signed as a second baseman".format(second)
+        third = max(pool, key=lambda p: self.grade_third_baseman(p))
         pool.remove(third)
-        ss = next(p for p in pool if p.bat_speed > 1.8 and p.swing_timing_error < 0.035 and
-                        p.ground_ball_fielding > 1.1)
+        print "\t{} has been signed as a third baseman".format(third)
+        ss = max(pool, key=lambda p: self.grade_shortstop(p))
+        print "\t{} has been signed as a shortstop".format(ss)
         self.players = self.fielders = [self.pitcher, self.catcher, first, second, third, ss, lf, cf, rf]
         for player in self.players:
             player.team = self
+            player.state.free_agents.remove(player)
+            self.country.free_agents.remove(player)
         self.pitcher.position = "P"
         self.catcher.position = "C"
         self.catcher.glove = Mitt()
@@ -161,6 +167,80 @@ class Team(object):
 
         rep = self.name
         return rep
+
+    @staticmethod
+    def grade_pitcher(player):
+        rating = (
+            (1.5-player.pitch_control) + player.pitch_speed/67.0
+        )
+        return rating
+
+    @staticmethod
+    def grade_catcher(player):
+        rating = (
+            1.5*player.pitch_receiving + 0.75*(player.throwing_velocity_mph/72.0) +
+            (2-player.swing_timing_error/0.14) + (player.bat_speed/2.0)
+        )
+        return rating
+
+    @staticmethod
+    def grade_first_baseman(player):
+        rating = (
+            player.ground_ball_fielding +
+            1.5*(2-player.swing_timing_error/0.14) + 1.5*(player.bat_speed/2.0)
+        )
+        return rating
+
+    @staticmethod
+    def grade_second_baseman(player):
+        rating = (
+            player.ground_ball_fielding +
+            0.75*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0)
+        )
+        return rating
+
+    @staticmethod
+    def grade_third_baseman(player):
+        rating = (
+            player.ground_ball_fielding +
+            0.75*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0)
+        )
+        return rating
+
+    @staticmethod
+    def grade_shortstop(player):
+        rating = (
+            player.ground_ball_fielding +
+            0.5*(2-player.swing_timing_error/0.14) + 0.33*(player.bat_speed/2.0)
+        )
+        return rating
+
+    @staticmethod
+    def grade_left_fielder(player):
+        rating = (
+            player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
+            (2-player.swing_timing_error/0.14) + (player.full_speed_sec_per_foot/0.040623) +
+            player.bat_speed/2.0
+        )
+        return rating
+
+    @staticmethod
+    def grade_center_fielder(player):
+        rating = (
+            player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
+            1.25*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
+            1.5*(player.bat_speed/2.0)
+        )
+        return rating
+
+    @staticmethod
+    def grade_right_fielder(player):
+        rating = (
+            0.75*player.fly_ball_fielding + (player.throwing_velocity_mph/72.0) +
+            1.5*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
+            1.75*(player.bat_speed/2.0)
+        )
+        return rating
 
     def progress(self):
 

@@ -10,6 +10,7 @@ class Ballpark(object):
     #   (CORs:  0.562 for non-turfed base paths (increases with more sub-surface soil compaction)
     #           0.479 for turf grass (varies per cutting height and moisture)
     #           0.520 for synthetic turf (varies according to material composition))
+    # - coefficient of friction and restitution for playing-field boundary fences
     # - weather and altitude stuff
     # - dampness of grass
 
@@ -40,7 +41,18 @@ class Ballpark(object):
         # determine whether a ball hits a fence or flies over it
         self.outfield_fence_height = self.get_outfield_fence_height()
         self.foul_fence_height = self.get_foul_fence_height()
-
+        # Get foul pole locations and heights
+        self.left_foul_pole_location = (
+            min(self.playing_field_upper_bound.keys()),
+            self.playing_field_upper_bound[min(self.playing_field_upper_bound.keys())]
+        )
+        self.right_foul_pole_location = (
+            min(self.playing_field_upper_bound.keys()),
+            self.playing_field_upper_bound[min(self.playing_field_upper_bound.keys())]
+        )
+        self.left_foul_pole_height = self.outfield_fence_height[self.left_foul_pole_location[0]]
+        self.right_foul_pole_height = self.outfield_fence_height[self.right_foul_pole_location[0]]
+        # Set ground-rule coordinates TODO
         self.ground_rule_coords = set()
 
     @staticmethod
