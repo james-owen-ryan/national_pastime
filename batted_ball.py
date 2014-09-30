@@ -59,26 +59,6 @@ class BattedBall(object):
         self.crossed_plane_foul = False
         self.left_playing_field = False
         self.ground_rule_incurred = False
-        # Dynamic attributes that specify game actions while the ball is in play
-        self.fly_out_call_given = False  # So that multiple fly outs aren't awarded by umpire.officiate()
-        self.resolved = False  # Whether the current playing action has ended
-        self.result = None
-        self.running_to_first = self.at_bat.batter
-        self.running_to_second = self.at_bat.frame.on_first
-        self.running_to_third = self.at_bat.frame.on_second
-        self.running_to_home = self.at_bat.frame.on_third
-        self.retreating_to_first = None
-        self.retreating_to_second = None
-        self.retreating_to_third = None
-        self.covering_first = None
-        self.covering_second = None
-        self.covering_third = None
-        self.covering_home = None
-        self.backing_up_first = None
-        self.backing_up_second = None
-        self.backing_up_third = None
-        self.backing_up_home = None
-        self.cut_off_man = None  # Fielder positioned to act as relay on the throw
         # Prepare a dictionary that will map timesteps to batted ball
         # x-, y-, and z-coordinates; modified by compute_full_trajectory()
         self.position_at_timestep = {}
@@ -161,6 +141,7 @@ class BattedBall(object):
             # a home run on this timestep by umpire.officiate()
             if abs(coordinate_x) >= 226 and int(coordinate_x) == int(coordinate_y):
                 self.foul_pole_contact_timestep = last_timestep
+                vx = -1  # Just to get it to stop computing, which is not necessary anymore
             else:
                 # If ball hit an outfield fence or foul fence on last timestep, make it bounce off that
                 if (abs(coordinate_x) < 227 and not

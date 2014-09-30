@@ -330,6 +330,7 @@ class AtBat(object):
         self.throw = None
         self.resolved = False
         self.result = None
+        self.run_queue = []  # Runs that may be counted if a third out isn't recorded
 
         print "1B: {}, 2B: {}, 3B: {}, AB: {}".format(frame.on_first, frame.on_second, frame.on_third, self.batter)
 
@@ -546,8 +547,6 @@ class AtBat(object):
                                         self.batter.tentatively_baserun(batted_ball=batted_ball)
                                     elif self.batter.retreating:
                                         self.batter.retreat(batted_ball=batted_ball)
-                                    else:
-                                        print "WTF!!! 35555 game.py"
                         else:
                             for baserunner in self.frame.baserunners + [self.batter]:
                                 if not baserunner.out:
@@ -558,7 +557,11 @@ class AtBat(object):
                                     elif not baserunner.safely_on_base:
                                         baserunner.baserun(batted_ball=batted_ball)
                                     elif baserunner.safely_home:
-                                        Run(frame=self.frame, runner=baserunner, batted_in_by=self.batter)
+                                        if self.frame.outs == 2 or not self.batter.base_reached_on_hit:
+                                            Run(frame=self.frame, runner=baserunner, batted_in_by=self.batter,
+                                                queued=True)
+                                        else:
+                                            Run(frame=self.frame, runner=baserunner, batted_in_by=self.batter)
                         for fielder in self.fielders:
                             fielder.act(batted_ball=batted_ball)
                         if not self.throw:
@@ -620,12 +623,12 @@ class AtBat(object):
                             elif batted_ball.fielded_by:
                                 # elif here so that the umpire gets a timestep to make a call
                                 # as to whether it's a fly out or a trap, if necessary
-                                batted_ball.fielded_by.decide_throw(batted_ball=batted_ball)
+                                batted_ball.fielded_by.decide_throw_or_on_foot_approach_to_target(batted_ball=batted_ball)
                                 self.throw = batted_ball.fielded_by.throw(batted_ball=batted_ball)
                         if self.throw and not self.throw.reached_target:
                             self.throw.move()
                         if self.throw and self.throw.reached_target and self.throw.resolved:
-                            self.throw.thrown_to.decide_throw(batted_ball=batted_ball)
+                            self.throw.thrown_to.decide_throw_or_on_foot_approach_to_target(batted_ball=batted_ball)
                             self.throw = self.throw.thrown_to.throw(batted_ball=batted_ball)
                         # If the throw was in anticipation of an advancing runner and it has
                         # reached its target, resolve the play at the plate
@@ -646,6 +649,10 @@ class AtBat(object):
             self.review()
 
     def review(self):
+        # Score any runs that remain in the run queue -- these are runs whose being scored
+        # depended on the at bat not ending with a fly out or force out
+        for run in self.run_queue:
+            run.dequeue()
         # Check for whether a hit was made; if one was, instantiate the appropriate outcome object
         # [Note: if the batter-runner was part of a call at a base, PlayAtBaseCall.__init__() will
         # score the hit -- in those cases it is precluded here by self.result having already been
@@ -843,7 +850,7 @@ class AtBat(object):
                                 else:
                                     print "\nGround ball cleanly fielded."
                                     fielding_chance_resolved = True
-                                    bb.obligated_fielder.decide_throw(bb)
+                                    bb.obligated_fielder.decide_throw_or_on_foot_approach_to_target(bb)
                                     throw = bb.obligated_fielder.throw()
                                     while not throw.reached_target and not bb.batter.safely_on_base:
                                         time_since_contact += 0.1

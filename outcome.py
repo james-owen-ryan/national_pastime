@@ -149,8 +149,10 @@ class Strikeout(object):
         self.decisive_pitch = at_bat.pitches[-1]
         if self.decisive_pitch.call:
             self.looking = True
+            self.whiff = None
         else:
             self.looking = False
+            self.whiff = self.decisive_pitch.result
         # Effect consequences
         if self.decisive_pitch.caught or foul_bunt:
             at_bat.resolved = True
@@ -326,6 +328,10 @@ class FlyOut(object):
                 batted_ball.retreating_to_third = None
             elif self.batter is batted_ball.running_to_home:
                 batted_ball.running_to_home = None
+        elif self.at_bat.frame.outs == 3:
+            # Any baserunners who reached home before the fly out was completed
+            # will not be awarded runs, so empty the at bat's run queue
+            self.at_bat.run_queue = []
         if self.at_bat.batter.position != "P":
             self.at_bat.batter.composure -= 0.005
             print "-- {}'s composure decreased from {} to {}".format(
@@ -402,6 +408,12 @@ class ForceOut(object):
             batted_ball.running_to_home = None
         self.at_bat.resolved = True
         self.at_bat.frame.outs += 1
+        # If this was the third out of the inning and the baserunner put out
+        # was forced to advance, no baserunner who reached home before this out
+        # was recorded will be credited with a run, so empty the at bat's run queue
+        if self.at_bat.frame.outs == 3:
+            if baserunner.forced_to_advance:
+                self.at_bat.run_queue = []
         if baserunner is self.at_bat.batter:
             if self.at_bat.batter.position != "P":
                 self.at_bat.batter.composure -= 0.005
@@ -478,6 +490,12 @@ class TagOut(object):
             batted_ball.running_to_home = None
         self.at_bat.resolved = True
         self.at_bat.frame.outs += 1
+        # If this was the third out of the inning and the baserunner put out
+        # was forced to advance, no baserunner who reached home before this out
+        # was recorded will be credited with a run, so empty the at bat's run queue
+        if self.at_bat.frame.outs == 3:
+            if baserunner.forced_to_advance:
+                self.at_bat.run_queue = []
         # Record statistics
         if baserunner is self.at_bat.batter:  # TODO batter taking extra bases and failing nuances
             self.at_bat.batter.at_bats.append(self.at_bat)
@@ -1054,22 +1072,42 @@ class GroundRuleDouble(object):
 
 class Run(object):
 
-    def __init__(self, frame, runner, batted_in_by, radio_silent=False):
+    def __init__(self, frame, runner, batted_in_by, queued=False):
+        self.frame = frame
         self.runner = runner
         self.batted_in_by = batted_in_by
         self.result = None
         # Effect consequences
         self.runner.safely_home = False
-        runner.team.runs += 1
-        frame.runs += 1
-        # Record statistics
-        runner.runs.append(self)
-        batted_in_by.rbi.append(self)
+        if not queued:
+            runner.team.runs += 1
+            frame.runs += 1
+            # Record statistics
+            runner.runs.append(self)
+            if batted_in_by:
+                batted_in_by.rbi.append(self)
+            if frame.at_bats[-1].batted_ball:
+                print "-- {} scores [{}]".format(self.runner.last_name,
+                                                 frame.at_bats[-1].batted_ball.time_since_contact)
+            else:
+                print "-- {} scores".format(self.runner.last_name)
+            if frame.game.radio:
+                os.system("say {} scores for the {}!".format(self.runner.last_name, frame.batting_team.nickname))
+        elif queued:
+            self.frame.at_bats[-1].run_queue.append(self)
+            print "-- {} reaches home, but score may not be counted [{}]".format(
+                self.runner.last_name, frame.at_bats[-1].batted_ball.time_since_contact)
+            if frame.game.radio:
+                os.system("say {} reaches home...".format(self.runner.last_name, frame.batting_team.nickname))
 
-        if frame.at_bats[-1].batted_ball:
-            print "-- {} scores [{}]".format(self.runner.last_name,
-                                             frame.at_bats[-1].batted_ball.time_since_contact)
-        else:
-            print "-- {} scores".format(self.runner.last_name)
-        if frame.game.radio:
-            os.system("say {} scores for the {}!".format(self.runner.last_name, frame.batting_team.nickname))
+    def dequeue(self):
+        self.runner.team.runs += 1
+        self.frame.runs += 1
+        # Record statistics
+        self.runner.runs.append(self)
+        if self.batted_in_by:
+            self.batted_in_by.rbi.append(self)
+        print "-- {}'s score is tallied [{}]".format(
+            self.runner.last_name, self.frame.at_bats[-1].batted_ball.time_since_contact)
+        if self.frame.game.radio:
+            os.system("say {}'s will count".format(self.runner.last_name, self.frame.batting_team.nickname))

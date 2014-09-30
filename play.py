@@ -116,7 +116,7 @@ class Swing(object):
         self.contact_y_coord = contact_y_coord
         # Modified below, as appropriate
         self.swing_and_miss = False
-        self.swing_and_miss_reasons = []
+        self.whiff_properties = []
         self.contact = False
         self.foul_tip = False
         self.power_reduction = 0.0
@@ -125,25 +125,25 @@ class Swing(object):
         if timing < -0.135:
             # Horrible timing -- too early
             self.swing_and_miss = True
-            self.swing_and_miss_reasons.append("too early")
+            self.whiff_properties.append("too early")
         if timing > 0.135:
             # Horrible timing -- too late
             self.swing_and_miss = True
-            self.swing_and_miss_reasons.append("too late")
+            self.whiff_properties.append("too late")
         if contact_x_coord >= 0.49:
             # Bad swing -- too inside
             self.swing_and_miss = True
-            self.swing_and_miss_reasons.append("too inside")
+            self.whiff_properties.append("too inside")
         # [Note: impossible to swing too outside -- it will just hit
         # the bat at a point closer to the batter's hands.]
         if contact_y_coord <= -0.08:
             # Bad swing -- too low
             self.swing_and_miss = True
-            self.swing_and_miss_reasons.append("too low")
+            self.whiff_properties.append("too low")
         if contact_y_coord >= 0.08:
             # Bad swing -- too high
             self.swing_and_miss = True
-            self.swing_and_miss_reasons.append("too high")
+            self.whiff_properties.append("too high")
         if not self.swing_and_miss:
             self.contact = True
         # Determine how exit speed will be decreased due to any
@@ -310,7 +310,7 @@ class FieldingAct(object):
         else:
             ease = 1-batted_ball.fielding_difficulty
             if ease > 0.4:
-                fielder.composure -= ease / 20.
+                fielder.composure -= ease / 40.
         self.fielder_composure_after = fielder.composure
         if line_drive_at_pitcher:
             print "-- Line drive right at {} ({}) [{}]".format(

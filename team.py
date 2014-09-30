@@ -67,7 +67,7 @@ class Team(object):
         if self.nickname in self.country.major_nicknames:
             self.nickname = "Generics"
 
-        self.init_players()
+        self.sign_players()
 
         self.names_timeline = [self.name + ' ' + str(self.country.year) + '-']
 
@@ -108,7 +108,7 @@ class Team(object):
             nickname = random.choice(self.city.yearly_apt_team_nicknames[self.country.year])
         return nickname
 
-    def init_players(self):
+    def sign_players(self):
         print "\nA new franchise in {} is fielding a team".format(self.city.name)
         pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
         pool = set(pool)
@@ -171,7 +171,7 @@ class Team(object):
     @staticmethod
     def grade_pitcher(player):
         rating = (
-            (1.5-player.pitch_control) + player.pitch_speed/67.0
+            (1.4-player.pitch_control) + 1.3*(player.pitch_speed/67.0) + player.composure
         )
         return rating
 
@@ -179,7 +179,7 @@ class Team(object):
     def grade_catcher(player):
         rating = (
             1.5*player.pitch_receiving + 0.75*(player.throwing_velocity_mph/72.0) +
-            (2-player.swing_timing_error/0.14) + (player.bat_speed/2.0)
+            (2-player.swing_timing_error/0.14) + (player.bat_speed/2.0) + player.composure
         )
         return rating
 
@@ -187,7 +187,7 @@ class Team(object):
     def grade_first_baseman(player):
         rating = (
             player.ground_ball_fielding +
-            1.5*(2-player.swing_timing_error/0.14) + 1.5*(player.bat_speed/2.0)
+            1.7*(2-player.swing_timing_error/0.14) + 1.5*(player.bat_speed/2.0) + player.composure
         )
         return rating
 
@@ -195,7 +195,7 @@ class Team(object):
     def grade_second_baseman(player):
         rating = (
             player.ground_ball_fielding +
-            0.75*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0)
+            1.25*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0) + player.composure
         )
         return rating
 
@@ -203,7 +203,7 @@ class Team(object):
     def grade_third_baseman(player):
         rating = (
             player.ground_ball_fielding +
-            0.75*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0)
+            1.25*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0) + player.composure
         )
         return rating
 
@@ -211,7 +211,7 @@ class Team(object):
     def grade_shortstop(player):
         rating = (
             player.ground_ball_fielding +
-            0.5*(2-player.swing_timing_error/0.14) + 0.33*(player.bat_speed/2.0)
+            0.9*(2-player.swing_timing_error/0.14) + 0.33*(player.bat_speed/2.0) + player.composure
         )
         return rating
 
@@ -219,8 +219,8 @@ class Team(object):
     def grade_left_fielder(player):
         rating = (
             player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
-            (2-player.swing_timing_error/0.14) + (player.full_speed_sec_per_foot/0.040623) +
-            player.bat_speed/2.0
+            1.5*(2-player.swing_timing_error/0.14) + (player.full_speed_sec_per_foot/0.040623) +
+            player.bat_speed/2.0 + player.composure
         )
         return rating
 
@@ -228,8 +228,8 @@ class Team(object):
     def grade_center_fielder(player):
         rating = (
             player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
-            1.25*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
-            1.5*(player.bat_speed/2.0)
+            1.75*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
+            1.5*(player.bat_speed/2.0) + player.composure
         )
         return rating
 
@@ -237,8 +237,8 @@ class Team(object):
     def grade_right_fielder(player):
         rating = (
             0.75*player.fly_ball_fielding + (player.throwing_velocity_mph/72.0) +
-            1.5*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
-            1.75*(player.bat_speed/2.0)
+            2*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
+            1.75*(player.bat_speed/2.0) + player.composure
         )
         return rating
 
