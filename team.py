@@ -113,7 +113,8 @@ class Team(object):
         pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
         pool = set(pool)
         # Find pitcher
-        self.pitcher = max(pool, key=lambda p: self.grade_pitcher(p))
+        subpool = [player for player in pool if player.pitch_speed > 85]
+        self.pitcher = max(subpool, key=lambda p: self.grade_pitcher(p))
         pool.remove(self.pitcher)
         print "\t{} has been signed as a pitcher".format(self.pitcher)
         # Find catcher

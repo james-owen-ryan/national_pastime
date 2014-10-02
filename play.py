@@ -106,9 +106,9 @@ class Swing(object):
         elif handedness == "L":
             self.right_handed = False
             self.left_handed = True
-        self.bat = self.batter.bat
         self.power = power
-        self.bat_speed = power * self.batter.bat_speed * self.bat.weight
+        self.bat_speed = power * self.batter.bat_speed
+        self.bat = self.batter.bat
         self.incline = incline
         self.intended_pull = intended_pull
         self.timing = timing
@@ -122,11 +122,11 @@ class Swing(object):
         self.power_reduction = 0.0
         # Check for whether contact is made -- if not, attribute that
         # as well as the reason for the swing and miss
-        if timing < -0.135:
+        if timing < -0.15:
             # Horrible timing -- too early
             self.swing_and_miss = True
             self.whiff_properties.append("too early")
-        if timing > 0.135:
+        if timing > 0.15:
             # Horrible timing -- too late
             self.swing_and_miss = True
             self.whiff_properties.append("too late")
@@ -152,7 +152,7 @@ class Swing(object):
             self.power_reduction = 0.0
         elif contact_x_coord >= 0.49:  # Bat misses ball
             self.power_reduction = 0.0
-        elif 0 < contact_x_coord <= 0.49:  # Contact toward end of bat
+        elif 0 <= contact_x_coord <= 0.49:  # Contact toward end of bat
             self.power_reduction = contact_x_coord * 2
         elif -0.49 < contact_x_coord < 0:  # Contact toward the hands
             self.power_reduction = abs(contact_x_coord * 2)
@@ -210,9 +210,9 @@ class Swing(object):
         # and then altered according to deviation from contact at the
         # sweet spot on the x-axis
         if self.left_handed:
-            base_angle = normal(22.5, 10)
+            base_angle = 22.5
         elif self.right_handed:
-            base_angle = normal(-22.5, 10)
+            base_angle = -22.5
         if contact_x_coord == 0:  # Hit on sweet spot -- no change in angle
             self.horizontal_launch_angle = base_angle
         elif contact_x_coord >= 0.49:  # Bat misses ball
@@ -263,11 +263,9 @@ class Swing(object):
                 foul_tip = FoulTip(swing=self)
                 self.result = foul_tip
             else:
-                batted_ball = BattedBall(
-                    swing=self, exit_speed=self.exit_speed,
-                    horizontal_launch_angle=self.horizontal_launch_angle,
-                    vertical_launch_angle=self.vertical_launch_angle)
-                self.result = batted_ball
+                BattedBall(swing=self, exit_speed=self.exit_speed,
+                           horizontal_launch_angle=self.horizontal_launch_angle,
+                           vertical_launch_angle=self.vertical_launch_angle)
                 self.batter.at_the_plate = False
                 self.batter.forced_to_advance = True
 
@@ -320,7 +318,7 @@ class FieldingAct(object):
             print "-- {} ({}) is attempting a catch at the wall! [{}]".format(
                 self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
             )
-            if batted_ball.at_bat.game.radio:
+            if batted_ball.at_bat.game.radio_announcer:
                 os.system('say {} is going for the catch at the wall!'.format(self.fielder))
                 time.sleep(0.5)
         else:
@@ -348,21 +346,16 @@ class FieldingAct(object):
             print "-- {} ({}) misses the ball [{}]".format(
                 self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
             )
-        if round(self.fielder_composure, 2) != round(self.fielder_composure_after):
-            print "-- {}'s composure changed from {} to {}".format(
-                self.fielder.last_name, round(self.fielder_composure, 2), round(self.fielder_composure_after, 2)
-            )
-        else:
-            print "-- {}'s composure remains {}".format(self.fielder.last_name, round(self.fielder_composure, 2))
 
 
 class Throw(object):
 
     # TODO add self as appropriate fielding_act.result
 
-    def __init__(self, batted_ball, thrown_by, thrown_to, base, runner_to_putout, release_time,
+    def __init__(self, playing_action, thrown_by, thrown_to, base, runner_to_putout, release_time,
                  distance_to_target, release, power, height_error, lateral_error, back_to_pitcher=False):
-        self.batted_ball = batted_ball
+        self.playing_action = playing_action
+        playing_action.throws.append(self)
         self.thrown_by = thrown_by
         self.thrown_to = thrown_to
         self.base = base
@@ -371,33 +364,51 @@ class Throw(object):
         self.release = release
         self.power = power
         self.distance_to_target = distance_to_target
-        self.dist_per_timestep = thrown_by.throwing_dist_per_timestep * power
+        self.initial_velocity = thrown_by.throwing_velocity * power
+        self.hang_time = self.determine_time_it_will_take_to_reach_target()
         self.height_error = height_error
         self.lateral_error = lateral_error
         self.back_to_pitcher = back_to_pitcher
         if not back_to_pitcher:
-            batted_ball.at_bat.potential_assistants.add(self.thrown_by)
+            playing_action.potential_assistants.add(self.thrown_by)
         # Dynamic; modified during play
         self.time_until_release = release_time
-        self.distance_traveled = 0.0
-        self.percent_to_target = 0.0
+        self.time_remaining_until_target_is_reached = self.hang_time
         self.reached_target = False
         self.timestep_reached_target = None
         self.resolved = False
 
+    def determine_time_it_will_take_to_reach_target(self):
+        distance_traveled = 0.0
+        time_elapsed = 0.0
+        velocity = self.initial_velocity
+        while distance_traveled < self.distance_to_target:
+            time_elapsed += 0.1
+            distance_traveled += velocity/10.
+            velocity *= 0.99
+        return time_elapsed
+
     def move(self):
-        if self.time_until_release > 0:
-            self.time_until_release -= 0.1
-        else:
-            self.distance_traveled += self.dist_per_timestep
-            self.percent_to_target = (
-                self.distance_traveled/self.distance_to_target
+        if not self.back_to_pitcher and not self.thrown_to.at_goal and self.distance_to_target < 100:
+            print "-- {} is waiting for {} to get to {} [{}]".format(
+                self.thrown_by.last_name, self.thrown_to.last_name, self.base,
+                self.playing_action.batted_ball.time_since_contact
             )
-            if self.percent_to_target >= 1.0:
+        elif self.time_until_release > 0:
+            self.time_until_release -= 0.1
+            if self.time_until_release <= 0.0:
+                print "-- {} has released the throw [{}]".format(
+                    self.thrown_by.last_name, self.playing_action.batted_ball.time_since_contact
+                )
+        else:
+            self.time_remaining_until_target_is_reached -= 0.1
+            if self.time_remaining_until_target_is_reached <= 0.0:
                 self.reached_target = True
                 # Record the precise time the throw reached its target, for potential use
                 # by umpire.call_play_at_base()
-                surplus_distance = self.distance_traveled-self.distance_to_target
-                surplus_time = (surplus_distance / self.dist_per_timestep) * 0.1
-                self.timestep_reached_target = self.batted_ball.time_since_contact - surplus_time
-                self.percent_to_target = 1.0
+                if self.time_remaining_until_target_is_reached < 0:
+                    self.timestep_reached_target = (
+                        self.playing_action.batted_ball.time_since_contact + self.time_remaining_until_target_is_reached
+                    )
+                elif self.time_remaining_until_target_is_reached == 0:
+                    self.timestep_reached_target = self.playing_action.batted_ball.time_since_contact

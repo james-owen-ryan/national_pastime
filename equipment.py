@@ -11,7 +11,7 @@ class Baseball(object):
 class Bat(object):
 
     def __init__(self):
-        self.weight = 33
+        self.weight = normal(32.5, 1.5)
 
 
 class Glove(object):

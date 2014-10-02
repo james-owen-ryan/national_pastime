@@ -1,63 +1,84 @@
 ### CAN DELETE ASAP IF NOT NEEDED
 
-if self.throw.runner:
-                                if not self.throw.runner.safely_on_base:
-                                    self.true_call = "Out"
-                                    if (self.throw.runner is batted_ball.running_to_first and
-                                            self.throw.runner.percent_to_base > 0.9):
-
-                                        # If it's close, umpire could potentially get it wrong
-                                        # TODO current method is designed for plays at first only...
-                                        call = self.umpire.call_play_at_base(baserunner=self.throw.runner,
-                                                                             throw=self.throw)
+if not self.throw:
+                # If there's a fielder with a chance, and the ball hasn't been fielded
+                # yet, and that player is not reorienting from a prior fielding miss,
+                # simulate the fielding attempt
+                if not batted_ball.fielded_by and batted_ball.fielder_with_chance:
+                    if batted_ball.fielder_with_chance.reorienting_after_fielding_miss > 0:
+                        batted_ball.fielder_with_chance.reorienting_after_fielding_miss -= 0.1
+                    if batted_ball.fielder_with_chance.reorienting_after_fielding_miss <= 0:
+                        # Attempt to field the ball
+                        batted_ball.fielder_with_chance.field_ball(batted_ball=batted_ball)
+                        if not batted_ball.fielded_by:
+                            # ** Defensive player didn't field the ball cleanly **
+                            # TODO may be scored as error, and then all the statistical nuances there
+                            if batted_ball.bobbled:
+                                pass  # Player will attempt to field ball again after reorienting
+                            elif not batted_ball.bobbled:
+                                # Batted ball will continue on its trajectory, so players need to
+                                # reassess whether and how they may attempt to field it
+                                batted_ball.get_reread_by_fielders()
+                            for baserunner in self.at_bat.frame.baserunners + [self.batter]:
+                                # if error:
+                                #       baserunner.advancing_due_to_error = True
+                                if (not baserunner.baserunning_full_speed and
+                                        (batted_ball.bobbled or
+                                         not any(f for f in self.fielders if f.attempting_fly_out))):
+                                    # (Note on above if statement: It's possible a fielder backing up
+                                    # the catch will somehow himself be making a fly out attempt now,
+                                    # in which case the baserunners should keep tentatively advancing)
+                                    baserunner.estimate_whether_you_can_beat_throw(batted_ball=batted_ball)
+                                    if (baserunner.believes_he_can_beat_throw or
+                                            baserunner.forced_to_advance):
+                                        # You weren't baserunning full-speed, but you will start now
+                                        baserunner.safely_on_base = False
+                                        baserunner._decided_finish = False
+                                        baserunner.will_round_base = False
+                                        baserunner.percent_to_base = 0.0
+                                        baserunner.baserun(batted_ball=batted_ball)
                                     else:
-                                        call = self.true_call
-                                    if call == "Out":
-                                        if self.throw.runner.forced_to_advance or self.throw.runner.forced_to_retreat:
-                                            ForceOut(batted_ball=batted_ball, baserunner=self.throw.runner,
-                                                     base=self.throw.base, true_call=self.true_call,
-                                                     forced_by=self.throw.thrown_to, assisted_by=[self.throw.thrown_by])
-                                        else:
-                                            TagOut(batted_ball=batted_ball, baserunner=self.throw.runner,
-                                                   true_call=self.true_call, tagged_by=self.throw.thrown_to,
-                                                   assisted_by=[self.throw.thrown_by])
-                                    elif call == "Safe":
-                                        # if self.batter is batted_ball.running_to_first:
-                                        #     hit = Single(batted_ball=batted_ball, true_call=true_call)
-                                        # elif self.batter is batted_ball.running_to_second:
-                                        #     hit = Double(batted_ball=batted_ball, true_call=true_call)
-                                        # hit.beat_throw_by = -0.1
-                                        pass
-                                elif self.throw.runner.safely_on_base and batted_ball.landed:
-                                    self.true_call = "Safe"
-                                    if (self.throw.runner is batted_ball.running_to_first and
-                                            self.throw.percent_to_target > 0.9):
-                                        print "-- Close play at {} -- umpire {} will make the call...".format(
-                                            self.throw.base, self.umpire.name
+                                        # Don't retreat already or stay on base -- keep tentatively
+                                        # advancing in case there is another fielding gaffe
+                                        print (
+                                            "-- {} still doesn't believe he can beat the throw, but "
+                                            "will tentatively advance to the next base in case of "
+                                            "another fielding gaffe [{}]"
+                                        ).format(
+                                            baserunner.last_name, batted_ball.time_since_contact
                                         )
-                                        # If it's close, umpire could potentially get it wrong
-                                        call = self.umpire.call_play_at_base(baserunner=self.batter, throw=self.throw)
-                                    else:
-                                        call = self.true_call
-                                    if call == "Safe":
-                                        # if self.throw:
-                                        #     beat_throw_by = 0.0
-                                        #     while not self.throw.reached_target:
-                                        #         self.throw.move()
-                                        #         beat_throw_by += 0.1
-                                        #     hit.beat_throw_by = beat_throw_by
-                                        pass
-                                    elif call == "Out":
-                                        if self.throw.runner.forced_to_advance or self.throw.runner.forced_to_retreat:
-                                            ForceOut(batted_ball=batted_ball, baserunner=self.throw.runner,
-                                                     base=self.throw.base, true_call=self.true_call,
-                                                     forced_by=self.throw.thrown_to, assisted_by=[self.throw.thrown_by])
-                                        else:
-                                            TagOut(batted_ball=batted_ball, baserunner=self.throw.runner,
-                                                   true_call=self.true_call, tagged_by=self.throw.thrown_to,
-                                                   assisted_by=[self.throw.thrown_by])
-                            elif not self.throw.runner:
-                                batted_ball.resolved = True
+                                        baserunner.safely_on_base = False
+                                        baserunner.tentatively_baserun(batted_ball=batted_ball)
+                            batted_ball.bobbled = False  # Reset to allow consideration of future bobbles
+                        elif batted_ball.fielded_by:
+                            for baserunner in self.at_bat.frame.baserunners + [self.batter]:
+                                if baserunner.tentatively_baserunning:
+                                    baserunner.retreat(batted_ball=batted_ball)
+                # If the ball has been fielded and the fielder hasn't decided his throw
+                # yet, have him decide his throw and then instantiate the throw
+                elif batted_ball.fielded_by:
+                    # elif here so that the umpire gets a timestep to make a call
+                    # as to whether it's a fly out or a trap, if necessary
+                    batted_ball.fielded_by.decide_throw_or_on_foot_approach_to_target(batted_ball=batted_ball)
+                    self.throw = batted_ball.fielded_by.throw(batted_ball=batted_ball)
+            if self.throw and not self.throw.reached_target:
+                self.throw.move()
+            if self.throw and self.throw.reached_target and self.throw.resolved:
+                self.throw.thrown_to.decide_throw_or_on_foot_approach_to_target(batted_ball=batted_ball)
+                self.throw = self.throw.thrown_to.throw(batted_ball=batted_ball)
+            # If the throw was in anticipation of an advancing runner and it has
+            # reached its target, resolve the play at the plate
+            elif self.throw and self.throw.reached_target and not self.throw.resolved:
+                print "-- Throw has reached {} ({}) [{}]".format(
+                    self.throw.thrown_to.last_name, self.throw.thrown_to.position,
+                    batted_ball.time_since_contact
+                )
+                self.throw.resolved = True
+                if self.throw.runner:
+                    self.umpire.call_play_at_base(baserunner=self.throw.runner, throw=self.throw)
+                elif not self.throw.runner:
+                    self.resolved = True
+            self.umpire.officiate(batted_ball=batted_ball)
 
 
 ###################

@@ -10,6 +10,7 @@ class BattedBall(object):
         self.at_bat = swing.at_bat
         self.ballpark = self.at_bat.game.ballpark
         self.swing = swing
+        swing.result = self
         if swing.bunt:
             self.bunt = True
         else:
@@ -59,6 +60,8 @@ class BattedBall(object):
         self.crossed_plane_foul = False
         self.left_playing_field = False
         self.ground_rule_incurred = False
+        # This attribute is dynamic, and used so that multiple fly outs aren't awarded by umpire.officiate()
+        self.fly_out_call_given = False
         # Prepare a dictionary that will map timesteps to batted ball
         # x-, y-, and z-coordinates; modified by compute_full_trajectory()
         self.position_at_timestep = {}
@@ -116,7 +119,7 @@ class BattedBall(object):
         # six or more inches in the air -- or contacts the foul pole, in which
         # case we know a home run will be called and the rest of the trajectory
         # is irrelevant and thus not worth computing
-        while (vx >= 1 or y > 0.1524 or time_since_contact < 0.6) and not self.contacted_foul_pole:
+        while (vx >= 1 or y > 0.1524 or time_since_contact < 0.6) and not self.foul_pole_contact_timestep:
             # Increment time
             last_timestep = time_since_contact
             time_since_contact += timestep
@@ -141,7 +144,6 @@ class BattedBall(object):
             # a home run on this timestep by umpire.officiate()
             if abs(coordinate_x) >= 226 and int(coordinate_x) == int(coordinate_y):
                 self.foul_pole_contact_timestep = last_timestep
-                vx = -1  # Just to get it to stop computing, which is not necessary anymore
             else:
                 # If ball hit an outfield fence or foul fence on last timestep, make it bounce off that
                 if (abs(coordinate_x) < 227 and not
@@ -490,7 +492,11 @@ class BattedBall(object):
         timesteps = self.position_at_timestep.keys()
         timesteps.sort()
         index_of_current_timestep = timesteps.index(self.time_since_contact)
-        for fielder in self.at_bat.fielders:
+        available_fielders = [f for f in self.at_bat.fielders if f not in (
+            self.at_bat.playing_action.covering_first, self.at_bat.playing_action.covering_second,
+            self.at_bat.playing_action.covering_third, self.at_bat.playing_action.covering_home
+        )]
+        for fielder in available_fielders:
             fielder.attempting_fly_out = False
             for timestep in timesteps[index_of_current_timestep:]:
                 height_of_ball_at_timestep = (
@@ -625,8 +631,6 @@ class BattedBall(object):
                             (0.1/fielder.full_speed_sec_per_foot) * max_rate_of_speed_to_this_location
                         )
                         fielder.relative_rate_of_speed = 100
-        available_fielders = [f for f in self.at_bat.fielders if f not in (self.covering_first, self.covering_second,
-                                                                           self.covering_third, self.covering_home)]
         self.obligated_fielder = min(available_fielders, key=lambda f: f.time_needed_to_field_ball)
         if self.obligated_fielder.playing_the_ball:
             print "-- {} ({}) will try again to field the ball [{}]".format(
@@ -644,7 +648,7 @@ class BattedBall(object):
         for fielder in self.at_bat.fielders:
             if fielder is not self.obligated_fielder:
                 fielder.playing_the_ball = False
-        self.obligated_fielder.decide_immediate_goal(batted_ball=self)
+        self.obligated_fielder.decide_immediate_goal(playing_action=self.at_bat.playing_action)
 
     def move(self):
         """Move the batted ball along its course for one timestep."""
@@ -770,48 +774,6 @@ class BattedBall(object):
                 self.x_velocity_at_timestep[self.time_since_contact] = self.speed
             else:
                 raise Exception("Call to BattedBall.move() for an invalid timestep.")
-
-    def enumerate_defensive_responsibilities(self):
-        print "\n"
-        print "- Playing the ball: {}".format(
-            next(f for f in self.at_bat.fielders if f.playing_the_ball).position
-        )
-        print "- Backing up the catch: {}".format(
-            ', '.join(f.position for f in self.at_bat.fielders if f.backing_up_the_catch))
-        if self.cut_off_man:
-            print "- Cut-off man: {}".format(self.cut_off_man.position)
-        else:
-            print "- Cut-off man: None"
-        if self.covering_first:
-            print "- Covering first: {}".format(self.covering_first.position)
-        else:
-            print "- Covering first: None (prob. 1B is going for clear foul ball)"
-        if self.covering_second:
-            print "- Covering second: {}".format(self.covering_second.position)
-        else:
-            print "- No one is currently covering second! Check to make sure SS ends up doing so."
-        if self.covering_third:
-            print "- Covering third: {}".format(self.covering_third.position)
-        else:
-            print "- Covering third: None (prob. 3B is going for clear foul ball)"
-        print "- Covering home: {}".format(self.covering_home.position)
-        if self.backing_up_first:
-            print "- Backing up first: {}".format(self.backing_up_first.position)
-        else:
-            print "- Backing up first: None"
-        if self.backing_up_second:
-            print "- Backing up second: {}".format(self.backing_up_second.position)
-        else:
-            print "- Backing up second: None"
-        if self.backing_up_third:
-            print "- Backing up third: {}".format(self.backing_up_third.position)
-        else:
-            print "- Backing up third: None"
-        if self.backing_up_home:
-            print "- Backing up home: {}".format(self.backing_up_home.position)
-        else:
-            print "- Backing up home: None"
-        print "\n"
 
     def __str__(self):
         return "{} hit by {} toward {}".format(self.type, self.batter.last_name, self.destination)

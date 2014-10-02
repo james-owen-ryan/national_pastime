@@ -96,6 +96,7 @@ class FoulBall(object):
     def __init__(self, batted_ball, anachronic_home_run=False):
         # NOTE: batted_ball may be a foul tip
         self.batted_ball = batted_ball
+        del batted_ball.at_bat.playing_action
         batted_ball.result = self
         # Modified below, depending on context and rules
         self.strike = False
@@ -122,7 +123,7 @@ class FoulBall(object):
             at_bat.strikes += 1
 
         print "-- Foul ball [{}]".format(batted_ball.time_since_contact)
-        if self.batted_ball.at_bat.game.radio:
+        if self.batted_ball.at_bat.game.radio_announcer:
             os.system('say Foul ball')
             time.sleep(0.5)
 
@@ -291,7 +292,7 @@ class FlyOut(object):
     def __init__(self, batted_ball):
         self.batted_ball = batted_ball
         self.difficulty = batted_ball.fielding_difficulty
-        batted_ball.result = self
+        playing_action = batted_ball.at_bat.playing_action
         self.at_bat = batted_ball.at_bat
         self.at_bat.outs.append(self)
         self.at_bat.result = self
@@ -314,20 +315,20 @@ class FlyOut(object):
             for baserunner in self.at_bat.frame.baserunners:
                 baserunner.forced_to_advance = False
                 baserunner.forced_to_retreat = True
-            if self.batter is batted_ball.running_to_first:
-                batted_ball.running_to_first = None
-            elif self.batter is batted_ball.retreating_to_first:
-                batted_ball.retreating_to_first = None
-            elif self.batter is batted_ball.running_to_second:
-                batted_ball.running_to_second = None
-            elif self.batter is batted_ball.retreating_to_second:
-                batted_ball.retreating_to_second = None
-            elif self.batter is batted_ball.running_to_third:
-                batted_ball.running_to_third = None
-            elif self.batter is batted_ball.retreating_to_third:
-                batted_ball.retreating_to_third = None
-            elif self.batter is batted_ball.running_to_home:
-                batted_ball.running_to_home = None
+            if self.batter is playing_action.running_to_first:
+                playing_action.running_to_first = None
+            elif self.batter is playing_action.retreating_to_first:
+                playing_action.retreating_to_first = None
+            elif self.batter is playing_action.running_to_second:
+                playing_action.running_to_second = None
+            elif self.batter is playing_action.retreating_to_second:
+                playing_action.retreating_to_second = None
+            elif self.batter is playing_action.running_to_third:
+                playing_action.running_to_third = None
+            elif self.batter is playing_action.retreating_to_third:
+                playing_action.retreating_to_third = None
+            elif self.batter is playing_action.running_to_home:
+                playing_action.running_to_home = None
         elif self.at_bat.frame.outs == 3:
             # Any baserunners who reached home before the fly out was completed
             # will not be awarded runs, so empty the at bat's run queue
@@ -365,14 +366,15 @@ class FlyOut(object):
 
 class ForceOut(object):
 
-    def __init__(self, batted_ball, baserunner, base, call, forced_by):
-        self.at_bat = batted_ball.at_bat
+    def __init__(self, playing_action, baserunner, base, call, forced_by):
+        self.playing_action = playing_action
+        self.at_bat = playing_action.at_bat
         self.at_bat.outs.append(self)
         self.baserunner = baserunner
         self.base = base
         self.call = call
         self.forced_by = forced_by
-        self.assisted_by = self.at_bat.potential_assistants
+        self.assisted_by = playing_action.potential_assistants
         self.result = None
         if baserunner is self.at_bat.batter:
             self.at_bat.result = self  # TODO SAC-FLY choices nuances
@@ -386,26 +388,26 @@ class ForceOut(object):
         # Effect consequences
         baserunner.safely_on_base = False
         baserunner.out = True
-        if baserunner is batted_ball.running_to_first:
-            batted_ball.running_to_first = None
-            if batted_ball.running_to_second:
-                batted_ball.running_to_second.forced_to_advance = False
-        elif baserunner is batted_ball.retreating_to_first:
-            batted_ball.retreating_to_first = None
-        elif baserunner is batted_ball.running_to_second:
-            batted_ball.running_to_second = None
-            if batted_ball.running_to_third:
-                batted_ball.running_to_third.forced_to_advance = False
-        elif baserunner is batted_ball.retreating_to_second:
-            batted_ball.retreating_to_second = None
-        elif baserunner is batted_ball.running_to_third:
-            batted_ball.running_to_third = None
-            if batted_ball.running_to_home:
-                batted_ball.running_to_home.forced_to_advance = False
-        elif baserunner is batted_ball.retreating_to_third:
-            batted_ball.retreating_to_third = None
-        elif baserunner is batted_ball.running_to_home:
-            batted_ball.running_to_home = None
+        if baserunner is playing_action.running_to_first:
+            playing_action.running_to_first = None
+            if playing_action.running_to_second:
+                playing_action.running_to_second.forced_to_advance = False
+        elif baserunner is playing_action.retreating_to_first:
+            playing_action.retreating_to_first = None
+        elif baserunner is playing_action.running_to_second:
+            playing_action.running_to_second = None
+            if playing_action.running_to_third:
+                playing_action.running_to_third.forced_to_advance = False
+        elif baserunner is playing_action.retreating_to_second:
+            playing_action.retreating_to_second = None
+        elif baserunner is playing_action.running_to_third:
+            playing_action.running_to_third = None
+            if playing_action.running_to_home:
+                playing_action.running_to_home.forced_to_advance = False
+        elif baserunner is playing_action.retreating_to_third:
+            playing_action.retreating_to_third = None
+        elif baserunner is playing_action.running_to_home:
+            playing_action.running_to_home = None
         self.at_bat.resolved = True
         self.at_bat.frame.outs += 1
         # If this was the third out of the inning and the baserunner put out
@@ -439,7 +441,7 @@ class ForceOut(object):
         print "-- {} is forced out by {} ({}); assisted by {} [{}]".format(
             baserunner.last_name, self.forced_by.last_name, self.forced_by.position,
             ', '.join("{} ({})".format(assistant.last_name, assistant.position) for assistant in self.assisted_by),
-            batted_ball.time_since_contact)
+            playing_action.batted_ball.time_since_contact)
 
     def __str__(self):
         return "Force out by {} ({}), assisted by {}".format(
@@ -450,14 +452,15 @@ class ForceOut(object):
 
 class TagOut(object):
 
-    def __init__(self, batted_ball, baserunner, call, tagged_by):
-        self.at_bat = batted_ball.at_bat
+    def __init__(self, playing_action, baserunner, call, tagged_by):
+        self.playing_action = playing_action
+        self.at_bat = playing_action.at_bat
         self.at_bat.outs.append(self)
         self.baserunner = baserunner
         baserunner.out = True
         self.call = call
         self.tagged_by = tagged_by
-        self.assisted_by = self.at_bat.potential_assistants
+        self.assisted_by = playing_action.potential_assistants
         self.result = None
         if baserunner is self.at_bat.batter and not baserunner.base_reached_on_hit:
             self.at_bat.result = self  # TODO SAC-FLY choices nuances
@@ -468,26 +471,26 @@ class TagOut(object):
         # Effect consequences
         baserunner.safely_on_base = False
         baserunner.out = True
-        if baserunner is batted_ball.running_to_first:
-            batted_ball.running_to_first = None
-            if batted_ball.running_to_second:
-                batted_ball.running_to_second.forced_to_advance = False
-        elif baserunner is batted_ball.retreating_to_first:
-            batted_ball.retreating_to_first = None
-        elif baserunner is batted_ball.running_to_second:
-            batted_ball.running_to_second = None
-            if batted_ball.running_to_third:
-                batted_ball.running_to_third.forced_to_advance = False
-        elif baserunner is batted_ball.retreating_to_second:
-            batted_ball.retreating_to_second = None
-        elif baserunner is batted_ball.running_to_third:
-            batted_ball.running_to_third = None
-            if batted_ball.running_to_home:
-                batted_ball.running_to_home.forced_to_advance = False
-        elif baserunner is batted_ball.retreating_to_third:
-            batted_ball.retreating_to_third = None
-        elif baserunner is batted_ball.running_to_home:
-            batted_ball.running_to_home = None
+        if baserunner is playing_action.running_to_first:
+            playing_action.running_to_first = None
+            if playing_action.running_to_second:
+                playing_action.running_to_second.forced_to_advance = False
+        elif baserunner is playing_action.retreating_to_first:
+            playing_action.retreating_to_first = None
+        elif baserunner is playing_action.running_to_second:
+            playing_action.running_to_second = None
+            if playing_action.running_to_third:
+                playing_action.running_to_third.forced_to_advance = False
+        elif baserunner is playing_action.retreating_to_second:
+            playing_action.retreating_to_second = None
+        elif baserunner is playing_action.running_to_third:
+            playing_action.running_to_third = None
+            if playing_action.running_to_home:
+                playing_action.running_to_home.forced_to_advance = False
+        elif baserunner is playing_action.retreating_to_third:
+            playing_action.retreating_to_third = None
+        elif baserunner is playing_action.running_to_home:
+            playing_action.running_to_home = None
         self.at_bat.resolved = True
         self.at_bat.frame.outs += 1
         # If this was the third out of the inning and the baserunner put out
@@ -508,7 +511,7 @@ class TagOut(object):
         print "-- {} is tagged out by {} ({}); assisted by {} [{}]".format(
             baserunner.last_name, self.tagged_by.last_name, self.tagged_by.position,
             ', '.join("{} ({})".format(assistant.last_name, assistant.position) for assistant in self.assisted_by),
-            batted_ball.time_since_contact)
+            playing_action.batted_ball.time_since_contact)
 
     def __str__(self):
         return "Tag out by {} ({}), assisted by {}".format(
@@ -522,7 +525,10 @@ class DoublePlay(object):
     def __init__(self, at_bat, outs):
         self.at_bat = at_bat
         if not any(out for out in outs if type(out) is FlyOut):
+            # If this is a conventional double play, write it as the at bat's result
             at_bat.result = self  # This will overwrite FlyOut, TagOut that put the runner out
+        # In any event, this is the playing action's result
+        playing_action = at_bat.playing_action
         self.outs = outs
         self.participants = set()
         for out in outs:
@@ -581,6 +587,7 @@ class TriplePlay(object):
     def __init__(self, at_bat, outs):
         self.at_bat = at_bat
         if not any(out for out in outs if type(out) is FlyOut):
+            # If this is a conventional triple play, write it as the at bat's result
             at_bat.result = self  # This will overwrite FlyOut, TagOut that put the runner out
         self.outs = outs
         self.participants = set()
@@ -653,6 +660,8 @@ class FieldersChoice(object):
 
 class HitOnError(object):
 
+    # TODO
+
     # When the batter reaches base solely because of a fielder's mistake, this is scored.
     # It doesn't count as a hit.
 
@@ -672,6 +681,8 @@ class HitOnError(object):
 
 class DroppedThirdStrike(object):
 
+    # TODO
+
     def __init__(self, strikeout):
         self.strikeout = strikeout
         self.at_bat = strikeout.at_bat
@@ -682,14 +693,13 @@ class DroppedThirdStrike(object):
 
 class Single(object):
 
-    def __init__(self, batted_ball, call):
-        self.batted_ball = batted_ball
-        batted_ball.result = self
-        self.at_bat = batted_ball.at_bat
+    def __init__(self, playing_action, call):
+        self.playing_action = playing_action
+        self.at_bat = playing_action.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
-        self.batter = batted_ball.batter
-        self.pitcher = batted_ball.pitcher
+        self.batter = self.at_bat.batter
+        self.pitcher = self.at_bat.pitcher
         self.call = call
         self.result = None
         self.out_on_the_throw = self.batter.out_on_the_throw  # Points to TagOut object if runner is out on the throw
@@ -725,14 +735,13 @@ class Single(object):
 
 class Double(object):
 
-    def __init__(self, batted_ball, call):
-        self.batted_ball = batted_ball
-        batted_ball.result = self
-        self.at_bat = batted_ball.at_bat
+    def __init__(self, playing_action, call):
+        self.playing_action = playing_action
+        self.at_bat = playing_action.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
-        self.batter = batted_ball.batter
-        self.pitcher = batted_ball.pitcher
+        self.batter = self.at_bat.batter
+        self.pitcher = self.at_bat.pitcher
         self.call = call
         self.result = None
         self.out_on_the_throw = self.batter.out_on_the_throw
@@ -768,14 +777,13 @@ class Double(object):
 
 class Triple(object):
 
-    def __init__(self, batted_ball, call):
-        self.batted_ball = batted_ball
-        batted_ball.result = self
-        self.at_bat = batted_ball.at_bat
+    def __init__(self, playing_action, call):
+        self.playing_action = playing_action
+        self.at_bat = playing_action.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
-        self.batter = batted_ball.batter
-        self.pitcher = batted_ball.pitcher
+        self.batter = self.at_bat.batter
+        self.pitcher = self.at_bat.pitcher
         self.call = call
         self.result = None
         self.out_on_the_throw = self.batter.out_on_the_throw
@@ -814,6 +822,7 @@ class HomeRun(object):
     def __init__(self, batted_ball, call=None, inside_the_park=False, off_the_pole=False):
         self.batted_ball = batted_ball
         batted_ball.result = self
+        batted_ball.result.result = self  # PlayingAction.result
         self.at_bat = batted_ball.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
@@ -830,7 +839,7 @@ class HomeRun(object):
             self.off_the_pole = False
         self.grand_slam = False
         # Radio stuff
-        if self.at_bat.game.radio:
+        if self.at_bat.game.radio_announcer:
             if not self.off_the_pole:
                 os.system('say home run!')
             else:
@@ -897,6 +906,7 @@ class GrandSlam(object):
     def __init__(self, batted_ball, call=None, inside_the_park=False):
         self.batted_ball = batted_ball
         batted_ball.result = self
+        batted_ball.result.result = self  # PlayingAction.result
         self.at_bat = batted_ball.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
@@ -913,7 +923,7 @@ class GrandSlam(object):
             self.off_the_pole = False
         self.grand_slam = True
         # Radio stuff
-        if self.at_bat.game.radio:
+        if self.at_bat.game.radio_announcer:
             if not self.off_the_pole:
                 os.system('say grand slam! its a grand slam by {}!'.format(self.batter.name))
             elif not self.off_the_pole:
@@ -966,7 +976,7 @@ class AutomaticDouble(object):
     """
     def __init__(self, batted_ball):
         self.batted_ball = batted_ball
-        batted_ball.result = self
+        playing_action = batted_ball.at_bat.playing_action
         self.at_bat = batted_ball.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
@@ -975,7 +985,7 @@ class AutomaticDouble(object):
         self.result = None
         self.runs = 0
         # Radio stuff
-        if self.at_bat.game.radio:
+        if self.at_bat.game.radio_announcer:
             os.system('say and the bounding ball has left the park, automatic double'.format(self.batter.name))
             time.sleep(0.5)
         # Effect consequences
@@ -993,11 +1003,11 @@ class AutomaticDouble(object):
             self.at_bat.frame.on_second.safely_on_base = False
             self.runs += 1
         if self.at_bat.frame.on_first:
-            batted_ball.running_to_third = self.at_bat.frame.on_first
+            playing_action.running_to_third = self.at_bat.frame.on_first
             self.at_bat.frame.on_first.safely_on_base = True
-        batted_ball.running_to_first = batted_ball.retreating_to_first = None
-        batted_ball.running_to_third = batted_ball.retreating_to_third = None
-        batted_ball.running_to_second = self.batter
+        playing_action.running_to_first = playing_action.retreating_to_first = None
+        playing_action.running_to_third = playing_action.retreating_to_third = None
+        playing_action.running_to_second = self.batter
         self.batter.safely_on_base = True
         self.batter.composure += 0.022
         print "-- {}'s composure increased from {} to {}".format(
@@ -1027,7 +1037,7 @@ class GroundRuleDouble(object):
     """
     def __init__(self, batted_ball):
         self.batted_ball = batted_ball
-        batted_ball.result = self
+        playing_action = batted_ball.at_bat.playing_action
         self.at_bat = batted_ball.at_bat
         self.at_bat.result = self
         self.at_bat.resolved = True
@@ -1050,11 +1060,11 @@ class GroundRuleDouble(object):
             self.at_bat.frame.on_second.safely_on_base = False
             self.runs += 1
         if self.at_bat.frame.on_first:
-            batted_ball.running_to_third = self.at_bat.frame.on_first
+            playing_action.running_to_third = self.at_bat.frame.on_first
             self.at_bat.frame.on_first.safely_on_base = True
-        batted_ball.running_to_first = batted_ball.retreating_to_first = None
-        batted_ball.running_to_third = batted_ball.retreating_to_third = None
-        batted_ball.running_to_second = self.batter
+        playing_action.running_to_first = playing_action.retreating_to_first = None
+        playing_action.running_to_third = playing_action.retreating_to_third = None
+        playing_action.running_to_second = self.batter
         self.batter.safely_on_base = True
         self.batter.composure += 0.022
         print "-- {}'s composure increased from {} to {}".format(
@@ -1091,13 +1101,13 @@ class Run(object):
                                                  frame.at_bats[-1].batted_ball.time_since_contact)
             else:
                 print "-- {} scores".format(self.runner.last_name)
-            if frame.game.radio:
+            if frame.game.radio_announcer:
                 os.system("say {} scores for the {}!".format(self.runner.last_name, frame.batting_team.nickname))
         elif queued:
             self.frame.at_bats[-1].run_queue.append(self)
             print "-- {} reaches home, but score may not be counted [{}]".format(
-                self.runner.last_name, frame.at_bats[-1].batted_ball.time_since_contact)
-            if frame.game.radio:
+                self.runner.last_name, frame.at_bats[-1].playing_action.batted_ball.time_since_contact)
+            if frame.game.radio_announcer:
                 os.system("say {} reaches home...".format(self.runner.last_name, frame.batting_team.nickname))
 
     def dequeue(self):
@@ -1108,6 +1118,6 @@ class Run(object):
         if self.batted_in_by:
             self.batted_in_by.rbi.append(self)
         print "-- {}'s score is tallied [{}]".format(
-            self.runner.last_name, self.frame.at_bats[-1].batted_ball.time_since_contact)
-        if self.frame.game.radio:
+            self.runner.last_name, self.frame.at_bats[-1].playing_action.batted_ball.time_since_contact)
+        if self.frame.game.radio_announcer:
             os.system("say {}'s will count".format(self.runner.last_name, self.frame.batting_team.nickname))

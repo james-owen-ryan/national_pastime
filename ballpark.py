@@ -107,7 +107,7 @@ class Ballpark(object):
         # I devised, with 7-foot fences all around the stadium
         outfield_fence_height = {}
         for i in xrange(-225, 226):
-            outfield_fence_height[i] = 7.0
+            outfield_fence_height[i] = 10.0
         outfield_fence_height[-226] = 90.0  # Left foul pole
         outfield_fence_height[226] = 90.0  # Right foul pole
         return outfield_fence_height
