@@ -49,7 +49,7 @@ class Team(object):
         self.pitcher = None
         self.fielders = []
 
-        self.records_timeline = []
+        self.records_timeline = {}
         self.pennants = []
         self.championships = []
 
@@ -72,7 +72,8 @@ class Team(object):
         self.names_timeline = [self.name + ' ' + str(self.country.year) + '-']
 
         if expansion:
-            print '\n {team} ({league}) have been enfranchised.'.format(team=self.name, league=self.league.name)
+            print '{team} ({league}) have been enfranchised.'.format(team=self.name, league=self.league.name)
+            os.system('say a new franchise called the {} have been added to the league'.format(self.name))
         # if not expansion:
         #     print '\n {team} have been enfranchised.'.format(team=self.name)
 
@@ -111,6 +112,7 @@ class Team(object):
     def sign_players(self):
         print "\nA new franchise in {} is fielding a team".format(self.city.name)
         pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
+        pool = [p for p in pool if 16 < p.age < 41]
         pool = set(pool)
         # Find pitcher
         subpool = [player for player in pool if player.pitch_speed > 85]
@@ -146,8 +148,6 @@ class Team(object):
         self.players = self.fielders = [self.pitcher, self.catcher, first, second, third, ss, lf, cf, rf]
         for player in self.players:
             player.team = self
-            player.state.free_agents.remove(player)
-            self.country.free_agents.remove(player)
         self.pitcher.position = "P"
         self.catcher.position = "C"
         self.catcher.glove = Mitt()
@@ -163,6 +163,76 @@ class Team(object):
         self.fielders[8].position = "RF"
         for f in self.fielders[6:]:
             f.outfielder = True
+
+    def sign_replacement(self, replacement_for):
+        print "{} are looking for a replacement for {} ({})".format(
+            self.name, replacement_for.name, replacement_for.position
+        )
+        position_of_need = replacement_for.position
+        pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
+        pool = [p for p in pool if 16 < p.age < 41]
+        pool = set(pool)
+        if position_of_need == "P":
+            # Find pitcher
+            subpool = [player for player in pool if player.pitch_speed > 85]
+            self.pitcher = max(subpool, key=lambda p: self.grade_pitcher(p))
+            print "{} has been signed as a pitcher".format(self.pitcher)
+            self.players[0] = self.fielders[0] = self.pitcher
+            self.pitcher.position = "P"
+            self.pitcher.infielder = True
+        elif position_of_need == "C":
+            # Find catcher
+            self.catcher = max(pool, key=lambda p: self.grade_catcher(p))
+            print "{} has been signed as a catcher".format(self.catcher)
+            self.players[1] = self.fielders[1] = self.catcher
+            self.catcher.position = "C"
+            self.catcher.infielder = True
+        elif position_of_need == "LF":
+            # Find outfielders
+            lf = max(pool, key=lambda p: self.grade_left_fielder(p))
+            print "{} has been signed as a left fielder".format(lf)
+            self.players[-3] = self.fielders[-3] = lf
+            lf.position = "LF"
+            lf.outfielder = True
+        elif position_of_need == "CF":
+            cf = max(pool, key=lambda p: self.grade_center_fielder(p))
+            print "{} has been signed as a center fielder".format(cf)
+            self.players[-2] = self.fielders[-2] = cf
+            cf.position = "CF"
+            cf.outfielder = True
+        elif position_of_need == "RF":
+            rf = max(pool, key=lambda p: self.grade_right_fielder(p))
+            print "{} has been signed as a right fielder".format(rf)
+            self.players[-1] = self.fielders[-1] = rf
+            rf.position = "RF"
+            rf.outfielder = True
+        elif position_of_need == "1B":
+            # Find infielders
+            first = max(pool, key=lambda p: self.grade_first_baseman(p))
+            print "{} has been signed as a first baseman".format(first)
+            self.players[2] = self.fielders[2] = first
+            first.position = "1B"
+            first.infielder = True
+        elif position_of_need == "2B":
+            second = max(pool, key=lambda p: self.grade_second_baseman(p))
+            print "{} has been signed as a second baseman".format(second)
+            self.players[3] = self.fielders[3] = second
+            second.position = "2B"
+            second.infielder = True
+        elif position_of_need == "3B":
+            third = max(pool, key=lambda p: self.grade_third_baseman(p))
+            print "{} has been signed as a third baseman".format(third)
+            self.players[4] = self.fielders[4] = third
+            third.position = "3B"
+            third.infielder = True
+        elif position_of_need == "SS":
+            ss = max(pool, key=lambda p: self.grade_shortstop(p))
+            print "{} has been signed as a shortstop".format(ss)
+            self.players[5] = self.fielders[5] = ss
+            ss.position = "SS"
+            ss.infielder = True
+        for player in self.players:
+            player.team = self
 
     def __str__(self):
 
@@ -245,25 +315,7 @@ class Team(object):
 
     def progress(self):
 
-        self.ortgs.append(self.ortg)
         self.win_diffs.append(self.wins-self.losses)
-        self.ortg = int(round(normal(self.ortg, 1)))
-        x = random.randint(0, 2)
-        if x == 1:
-            # Regress team offensive rating to mean
-            d = 7-self.ortg
-            y = random.randint(0, abs(d))
-            if d < 0:
-                n = int(round(normal(-y, 1)))
-            if d > 0:
-                n = int(round(normal(y, 1)))
-            if d == 0:
-                x = random.randint(0, 1)
-                if x == 0:
-                    n = int(round(normal(-y, 1)))
-                if x == 1:
-                    n = int(round(normal(y, 1)))
-            self.ortg += n
 
         self.tradition = (
             (1 + len([c for c in self.championships if c > self.in_city_since])) *
@@ -284,7 +336,6 @@ class Team(object):
                 int(round(normal(25,2)))):
                 y = random.randint(0, self.country.year-self.league.founded)
                 if y == 0:
-                    n_teams = len(self.league.teams)
                     self.fold()
                     # League will consider expansion more than usual to
                     # replace folded team
@@ -318,6 +369,7 @@ class Team(object):
 
     def relocate(self, city):
 
+        former_name = self.name
         print (self.name + ' (' + self.league.name +
                ') have relocated to become the...')
         self.city.teams.remove(self)
@@ -342,12 +394,14 @@ class Team(object):
         self.names_timeline[-1] = self.names_timeline[-1] + str(self.country.year)
         self.names_timeline.append(self.name + ' ' + str(self.country.year) + '-')
 
-        raw_input('\t' + self.name + ' ')
+        print('\t' + self.name + ' ')
+        os.system('say the {} have relocated to become the {}'.format(former_name, self.name))
 
     def fold(self):
 
-        raw_input('\n' + self.name + ' (' + self.league.name +
+        print('\n' + self.name + ' (' + self.league.name +
                   ') have folded. ')
+        os.system('say the {} have folded'.format(self.name))
         self.city.teams.remove(self)
         self.city.former_teams.append(self)
         self.league.teams.remove(self)
@@ -360,3 +414,6 @@ class Team(object):
         self.country.major_nicknames.remove(self.nickname)
 
         self.folded = True
+
+        for player in self.players:
+            player.team = None

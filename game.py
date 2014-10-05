@@ -5,8 +5,9 @@ from playing_action import PitchInterim, PlayingAction
 
 class Game(object):
 
-    def __init__(self, ballpark, home_team, away_team, league, rules, radio=False, debug=False):
+    def __init__(self, ballpark, home_team, away_team, league, rules, radio=False, trace=False, debug=False):
         self.debug = debug
+        self.trace = trace
         self.ballpark = ballpark
         self.league = league
         self.home_team = home_team
@@ -59,10 +60,13 @@ class Game(object):
         else:
             self.winner = self.away_team
             self.loser = self.home_team
-        print "{} has beaten {} {}-{}".format(
-            self.winner.city.name, self.loser.city.name, self.away_team.runs, self.home_team.runs
+        print "{} ({}-{}) has beaten {} ({}-{}) {}-{}".format(
+            self.winner.city.name, self.winner.wins, self.winner.losses,
+            self.loser.city.name, self.loser.wins, self.loser.losses,
+            self.winner.runs, self.loser.runs
         )
-        self.print_box_score()
+        if self.trace:
+            self.print_box_score()
         self.effect_consequences()
         # print "\n\t\tComposures before and after\n"
         # diffs = []
@@ -83,9 +87,10 @@ class Game(object):
                 player.composure = 0.5
             elif player.composure > 1.5:
                 player.composure = 1.5
-            print "{}'s confidence changed by {}; his composure reverted from {} to {}".format(
-                player.name, player.confidence-conf_before, round(comp_before, 2), round(player.composure, 2)
-            )
+            if self.trace:
+                print "{}'s confidence changed by {}; his composure reverted from {} to {}".format(
+                    player.name, player.confidence-conf_before, round(comp_before, 2), round(player.composure, 2)
+                )
         self.winner.wins += 1
         self.loser.losses += 1
 
@@ -203,8 +208,8 @@ class Frame(object):
         self.runs = 0  # Runs batting team has scored this inning
         self.outs = 0
         self.at_bats = []  # Appended to by AtBat.__init__()
-
-        print "\n\t\t*****  {}  *****\n\n".format(self)
+        if self.game.trace:
+            print "\n\t\t*****  {}  *****\n\n".format(self)
         if self.game.radio_announcer:
             self.game.radio_announcer.call_new_frame(frame=self)
         self.enact()
@@ -253,9 +258,10 @@ class Frame(object):
     def enact(self):
         while self.outs < 3:
             AtBat(frame=self)
-            print "\n{}. {} outs. Score is {}-{}.\n".format(
-                self.at_bats[-1].result, self.outs, self.game.away_team.runs, self.game.home_team.runs
-            )
+            if self.game.trace:
+                print "\n{}. {} outs. Score is {}-{}.\n".format(
+                    self.at_bats[-1].result, self.outs, self.game.away_team.runs, self.game.home_team.runs
+                )
             # raw_input("")
 
     def review(self):
@@ -268,11 +274,12 @@ class Frame(object):
         if type(self.at_bats[-1].result) is FieldersChoice:
             self.batting_team.left_on_base.append(self.at_bats[-1].batter)
             temp_lob.append(self.at_bats[-1].batter)
-        for lob in temp_lob:
+        for _ in temp_lob:
             self.at_bats[-1].batter.composure -= 0.05
-        print "{} left these players on base: {}\n".format(
+        if self.game.trace:
+            print "{} left these players on base: {}\n".format(
                 self.batting_team.city.name, ', '.join(b.last_name for b in temp_lob)
-        )
+            )
 
     @property
     def baserunners(self):
@@ -316,14 +323,12 @@ class AtBat(object):
         # Modified below
         self.playing_action = None
         self.outs = []  # Kept track of as a listener for double- and triple plays
-        self.batted_ball = None
-        self.potential_assistants = set()
-        self.throw = None
         self.resolved = False
         self.result = None
         self.run_queue = []  # Runs that may be counted if a third out isn't recorded
 
-        print "1B: {}, 2B: {}, 3B: {}, AB: {}".format(frame.on_first, frame.on_second, frame.on_third, self.batter)
+        if self.game.trace:
+            print "1B: {}, 2B: {}, 3B: {}, AB: {}".format(frame.on_first, frame.on_second, frame.on_third, self.batter)
 
         if not self.game.radio_announcer:
             self.enact()
@@ -343,9 +348,9 @@ class AtBat(object):
             PitchInterim(at_bat=self)
             # The pitch...
             pitch = self.pitcher.pitch(at_bat=self)
-            self.batter.decide_whether_to_swing(pitch)
-            if not self.batter.will_swing:
-                if not pitch.bean:
+            if not pitch.bean:
+                self.batter.decide_whether_to_swing(pitch)
+                if not self.batter.will_swing:
                     # Catcher attempts to receive pitch
                     pitch.caught = self.catcher.receive_pitch(pitch)  # TODO wild pitches, passed balls
                     # Umpire makes his call
@@ -354,26 +359,24 @@ class AtBat(object):
                         Strike(pitch=pitch, looking=True)
                     elif pitch.call == "Ball":
                         Ball(pitch=pitch)
-                elif pitch.bean:
-                    pass  # Handled automatically
-            # The swing...
-            elif self.batter.will_swing:
-                self.batter.decide_swing(pitch)
-                swing = self.batter.swing(pitch)
-                if not swing.contact:
-                    # Swing and a miss!
-                    Strike(pitch=pitch, looking=False)
-                elif swing.foul_tip:
-                    foul_tip = swing.result
-                    if self.catcher.receive_foul_tip():
-                        Strike(pitch=pitch, looking=False, foul_tip=foul_tip)
-                    else:
-                        FoulBall(batted_ball=foul_tip)
-                elif swing.contact:
-                    self.playing_action = PlayingAction(batted_ball=swing.result)
-                    self.playing_action.enact()
-                    if self.batter.safely_on_base:
-                        self.resolved = True
+                # The swing...
+                elif self.batter.will_swing:
+                    self.batter.decide_swing(pitch)
+                    swing = self.batter.swing(pitch)
+                    if not swing.contact:
+                        # Swing and a miss!
+                        Strike(pitch=pitch, looking=False)
+                    elif swing.foul_tip:
+                        foul_tip = swing.result
+                        if self.catcher.receive_foul_tip():
+                            Strike(pitch=pitch, looking=False, foul_tip=foul_tip)
+                        else:
+                            FoulBall(batted_ball=foul_tip)
+                    elif swing.contact:
+                        self.playing_action = PlayingAction(batted_ball=swing.result)
+                        self.playing_action.enact()
+                        if self.batter.safely_on_base:
+                            self.resolved = True
         if self.playing_action:
             self.review()
 
@@ -394,7 +397,7 @@ class AtBat(object):
             elif self.batter.base_reached_on_hit == "3B":
                 Triple(playing_action=self.playing_action, call=None)
             elif self.batter.base_reached_on_hit == "H":
-                HomeRun(batted_ball=self.batted_ball, call=None, inside_the_park=True)
+                HomeRun(batted_ball=self.playing_action.batted_ball, call=None, inside_the_park=True)
         # Next, check for whether a double- or triple play was turned -- if one was, instantiate
         # the appropriate outcome object
         if len(self.outs) == 2:

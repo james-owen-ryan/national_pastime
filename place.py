@@ -4,6 +4,7 @@ import os
 import random
 
 from person import Person
+from ballpark import Ballpark
 from league import League
 from data import CityData
 
@@ -26,7 +27,7 @@ class Country(object):
         self.players = []
         for city in self.cities:
             self.players += city.players
-        self.free_agents = self.players
+        self.former_big_leaguers = []
         self.leagues = []
         League(country=self)
 
@@ -48,6 +49,17 @@ class Country(object):
 
     def __str__(self):
         return self.name
+
+    @property
+    def free_agents(self):
+        all_players = list(self.players)
+        free_agents = list(self.players)
+        for player in all_players:
+            if player.retired:
+                free_agents.remove(player)
+            elif player.team and player in player.team.players:
+                free_agents.remove(player)
+        return free_agents
 
     @property
     def league_names(self):
@@ -72,7 +84,6 @@ class State(object):
         self.players = []
         for city in self.cities:
             self.players += city.players
-        self.free_agents = self.players
 
     def init_cities(self):
         """Instantiate objects for all cities currently in our database."""
@@ -86,6 +97,17 @@ class State(object):
     def __str__(self):
         return self.name
 
+    @property
+    def free_agents(self):
+        all_players = list(self.players)
+        free_agents = list(self.players)
+        for player in all_players:
+            if player.retired:
+                free_agents.remove(player)
+            elif player.team and player in player.team.players:
+                free_agents.remove(player)
+        return free_agents
+
 
 class FederalDistrict(object):
     """A district in a country in a baseball-centric game world."""
@@ -97,7 +119,6 @@ class FederalDistrict(object):
         self.players = []
         for city in self.cities:
             self.players += city.players
-        self.free_agents = self.players
 
     def init_cities(self):
         """Instantiate objects for all cities currently in our database."""
@@ -110,6 +131,17 @@ class FederalDistrict(object):
 
     def __str__(self):
         return self.name
+
+    @property
+    def free_agents(self):
+        all_players = list(self.players)
+        free_agents = list(self.players)
+        for player in all_players:
+            if player.retired:
+                free_agents.remove(player)
+            elif player.team and player in player.team.players:
+                free_agents.remove(player)
+        return free_agents
 
 
 class City(object):
@@ -136,6 +168,8 @@ class City(object):
         # Prepare various baseball lists about this city
         self.free_agents = self.players = self.init_players()
         self.teams = []
+        self.former_teams = []
+        self.ballpark = Ballpark(city=self)
 
     def init_players(self):
         players_in_this_city = []

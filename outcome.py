@@ -78,13 +78,14 @@ class Bean(object):
         self.intentional = False  # TODO
         # Effect consequences
         at_bat = pitch.at_bat
+        at_bat.pitches.append(self)
         if at_bat.game.rules.hit_batter_awarded_base:
-            self.result = BaseOnBalls(at_bat=at_bat)
+            self.result = HitByPitch(at_bat=at_bat)
         else:
             at_bat.balls += 1  # TODO was this always the case?
             if at_bat.balls == at_bat.game.rules.n_balls_for_walk:
                 # Base on balls
-                self.result = HitByPitch(at_bat=at_bat)
+                self.result = BaseOnBalls(at_bat=at_bat)
             else:
                 self.result = None
         # Record statistics
@@ -122,8 +123,9 @@ class FoulBall(object):
             self.strike = True
             at_bat.strikes += 1
 
-        print "-- Foul ball [{}]".format(batted_ball.time_since_contact)
-        if self.batted_ball.at_bat.game.radio_announcer:
+        if at_bat.game.trace:
+            print "-- Foul ball [{}]".format(batted_ball.time_since_contact)
+        if at_bat.game.radio_announcer:
             os.system('say Foul ball')
             time.sleep(0.5)
 
@@ -162,18 +164,18 @@ class Strikeout(object):
             pass
         if self.batter.position != "P":
             self.batter.composure -= 0.015
-            print "-- {}'s composure decreased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure+0.015, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure+0.015, 2), round(self.batter.composure, 2)
+            # )
         else:
             self.batter.composure -= 0.005
-            print "-- {}'s composure decreased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
+            # )
         self.pitcher.composure += 0.01
-        print "-- {}'s composure increased from {} to {}".format(
-            self.pitcher.last_name, round(self.pitcher.composure-0.01, 2), round(self.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.pitcher.last_name, round(self.pitcher.composure-0.01, 2), round(self.pitcher.composure, 2)
+        # )
         # Record statistics
         self.batter.plate_appearances.append(at_bat)
         self.batter.at_bats.append(at_bat)
@@ -220,14 +222,14 @@ class BaseOnBalls(object):
             at_bat.frame.on_first = self.at_bat.batter
         # Effect consequences
         self.batter.composure += 0.008
-        print "-- {}'s composure increased from {} to {}".format(
-            self.batter.last_name, round(self.batter.composure-0.008, 2), round(self.batter.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.batter.last_name, round(self.batter.composure-0.008, 2), round(self.batter.composure, 2)
+        # )
         if not self.intentional:
             self.pitcher.composure -= 0.01
-            print "-- {}'s composure decreased from {} to {}".format(
-                self.pitcher.last_name, round(self.pitcher.composure+0.01, 2), round(self.pitcher.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     self.pitcher.last_name, round(self.pitcher.composure+0.01, 2), round(self.pitcher.composure, 2)
+            # )
         # Record statistics
         self.batter.plate_appearances.append(at_bat)
         self.pitcher.pitching_walks.append(self)
@@ -268,14 +270,14 @@ class HitByPitch(object):
             at_bat.frame.on_first = self.at_bat.batter
         # Effect consequences
         self.batter.composure += 0.005
-        print "-- {}'s composure increased from {} to {}".format(
-            self.batter.last_name, round(self.batter.composure-0.005, 2), round(self.batter.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.batter.last_name, round(self.batter.composure-0.005, 2), round(self.batter.composure, 2)
+        # )
         if not self.intentional:
             self.pitcher.composure -= 0.25
-            print "-- {}'s composure decreased from {} to {}".format(
-                self.pitcher.last_name, round(self.pitcher.composure+0.025, 2), round(self.pitcher.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     self.pitcher.last_name, round(self.pitcher.composure+0.025, 2), round(self.pitcher.composure, 2)
+            # )
         # Record statistics
         self.batter.plate_appearances.append(at_bat)
         self.pitcher.pitching_walks.append(self)
@@ -289,8 +291,9 @@ class FlyOut(object):
 
     # TODO attribute calls to these
 
-    def __init__(self, batted_ball):
+    def __init__(self, batted_ball, call):
         self.batted_ball = batted_ball
+        self.call = call
         self.difficulty = batted_ball.fielding_difficulty
         playing_action = batted_ball.at_bat.playing_action
         self.at_bat = batted_ball.at_bat
@@ -335,16 +338,16 @@ class FlyOut(object):
             self.at_bat.run_queue = []
         if self.at_bat.batter.position != "P":
             self.at_bat.batter.composure -= 0.005
-            print "-- {}'s composure decreased from {} to {}".format(
-                self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.005, 2),
-                round(self.at_bat.batter.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.005, 2),
+            #     round(self.at_bat.batter.composure, 2)
+            # )
         else:
             self.at_bat.batter.composure -= 0.0025
-            print "-- {}'s composure decreased from {} to {}".format(
-                self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.0025, 2),
-                round(self.at_bat.batter.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.0025, 2),
+            #     round(self.at_bat.batter.composure, 2)
+            # )
         # TODO self.result = SacrificeFly()
         # Record statistics
         self.batter.plate_appearances.append(self.at_bat)
@@ -352,10 +355,11 @@ class FlyOut(object):
         self.batter.outs.append(self)
         self.fielder.putouts.append(self)
 
-        print "-- Ball caught in flight by {} ({}) at {} ft. distance [Difficulty: {}] [{}]".format(
-            self.fielder.last_name, self.fielder.position, self.batted_ball.true_distance,
-            round(self.difficulty, 3), batted_ball.time_since_contact
-        )
+        if self.at_bat.game.trace:
+            print "-- Ball caught in flight by {} ({}) at {} ft. distance [Difficulty: {}] [{}]".format(
+                self.fielder.last_name, self.fielder.position, self.batted_ball.true_distance,
+                round(self.difficulty, 3), batted_ball.time_since_contact
+            )
 
     def __str__(self):
         return "Fly out by {} ({}) at {} ft. distance [Difficulty: {}]".format(
@@ -419,16 +423,16 @@ class ForceOut(object):
         if baserunner is self.at_bat.batter:
             if self.at_bat.batter.position != "P":
                 self.at_bat.batter.composure -= 0.005
-                print "-- {}'s composure decreased from {} to {}".format(
-                    self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.005, 2),
-                    round(self.at_bat.batter.composure, 2)
-                )
+                # print "-- {}'s composure decreased from {} to {}".format(
+                #     self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.005, 2),
+                #     round(self.at_bat.batter.composure, 2)
+                # )
             else:
                 self.at_bat.batter.composure -= 0.0025
-                print "-- {}'s composure decreased from {} to {}".format(
-                    self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.0025, 2),
-                    round(self.at_bat.batter.composure, 2)
-                )
+                # print "-- {}'s composure decreased from {} to {}".format(
+                #     self.at_bat.batter.last_name, round(self.at_bat.batter.composure+0.0025, 2),
+                #     round(self.at_bat.batter.composure, 2)
+                # )
         # Record statistics
         if baserunner is self.at_bat.batter:
             self.at_bat.batter.at_bats.append(self.at_bat)
@@ -438,10 +442,11 @@ class ForceOut(object):
         for fielder in self.assisted_by:
             fielder.assists.append(self)
 
-        print "-- {} is forced out by {} ({}); assisted by {} [{}]".format(
-            baserunner.last_name, self.forced_by.last_name, self.forced_by.position,
-            ', '.join("{} ({})".format(assistant.last_name, assistant.position) for assistant in self.assisted_by),
-            playing_action.batted_ball.time_since_contact)
+        if self.at_bat.game.trace:
+            print "-- {} is forced out by {} ({}); assisted by {} [{}]".format(
+                baserunner.last_name, self.forced_by.last_name, self.forced_by.position,
+                ', '.join("{} ({})".format(assistant.last_name, assistant.position) for assistant in self.assisted_by),
+                playing_action.batted_ball.time_since_contact)
 
     def __str__(self):
         return "Force out by {} ({}), assisted by {}".format(
@@ -508,10 +513,11 @@ class TagOut(object):
         for fielder in self.assisted_by:
             fielder.assists.append(self)
 
-        print "-- {} is tagged out by {} ({}); assisted by {} [{}]".format(
-            baserunner.last_name, self.tagged_by.last_name, self.tagged_by.position,
-            ', '.join("{} ({})".format(assistant.last_name, assistant.position) for assistant in self.assisted_by),
-            playing_action.batted_ball.time_since_contact)
+        if self.at_bat.game.trace:
+            print "-- {} is tagged out by {} ({}); assisted by {} [{}]".format(
+                baserunner.last_name, self.tagged_by.last_name, self.tagged_by.position,
+                ', '.join("{} ({})".format(assistant.last_name, assistant.position) for assistant in self.assisted_by),
+                playing_action.batted_ball.time_since_contact)
 
     def __str__(self):
         return "Tag out by {} ({}), assisted by {}".format(
@@ -547,28 +553,28 @@ class DoublePlay(object):
         # Effect consequences
         if at_bat.batter.position != "P":
             at_bat.batter.composure -= 0.015
-            print "-- {}'s composure decreased from {} to {}".format(
-                at_bat.batter.last_name, round(at_bat.batter.composure+0.015, 2), round(at_bat.batter.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     at_bat.batter.last_name, round(at_bat.batter.composure+0.015, 2), round(at_bat.batter.composure, 2)
+            # )
         else:
             at_bat.batter.composure -= 0.007
-            print "-- {}'s composure decreased from {} to {}".format(
-                at_bat.batter.last_name, round(at_bat.batter.composure+0.007, 2), round(at_bat.batter.composure, 2)
-            )
+            # print "-- {}'s composure decreased from {} to {}".format(
+            #     at_bat.batter.last_name, round(at_bat.batter.composure+0.007, 2), round(at_bat.batter.composure, 2)
+            # )
         if self.unassisted:
             fielder = list(self.participants)[0]
             fielder.composure += 0.025
-            print "-- {}'s composure increased from {} to {}".format(
-                fielder.last_name, round(fielder.composure-0.025, 2), round(fielder.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     fielder.last_name, round(fielder.composure-0.025, 2), round(fielder.composure, 2)
+            # )
         else:
             for participant in self.participants:
                 participant.composure += 0.015
-            print "-- {}".format(
-                '; '.join("{}'s composure increased from {} to {}".format(
-                    participant.last_name, round(participant.composure-0.015, 2), round(participant.composure, 2)
-                ) for participant in self.participants)
-            )
+            # print "-- {}".format(
+            #     '; '.join("{}'s composure increased from {} to {}".format(
+            #         participant.last_name, round(participant.composure-0.015, 2), round(participant.composure, 2)
+            #     ) for participant in self.participants)
+            # )
         # Record statistics
         if not any(out for out in outs if type(out) is FlyOut):
             at_bat.batter.double_plays_grounded_into.append(self)
@@ -606,23 +612,23 @@ class TriplePlay(object):
             self.unassisted = False
         # Effect consequences
         at_bat.batter.composure -= 0.02
-        print "-- {}'s composure decreased from {} to {}".format(
-            at_bat.batter.last_name, round(at_bat.batter.composure+0.02, 2), round(at_bat.batter.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     at_bat.batter.last_name, round(at_bat.batter.composure+0.02, 2), round(at_bat.batter.composure, 2)
+        # )
         if self.unassisted:
             fielder = list(self.participants)[0]
             fielder.composure += 0.05
-            print "-- {}'s composure increased from {} to {}".format(
-                fielder.last_name, round(fielder.composure-0.05, 2), round(fielder.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     fielder.last_name, round(fielder.composure-0.05, 2), round(fielder.composure, 2)
+            # )
         else:
             for participant in self.participants:
                 participant.composure += 0.03
-            print "-- {}".format(
-                '; '.join("{}'s composure increased from {} to {}".format(
-                    participant.last_name, round(participant.composure-0.03, 2), round(participant.composure, 2)
-                ) for participant in self.participants)
-            )
+            # print "-- {}".format(
+            #     '; '.join("{}'s composure increased from {} to {}".format(
+            #         participant.last_name, round(participant.composure-0.03, 2), round(participant.composure, 2)
+            #     ) for participant in self.participants)
+            # )
         # Record statistics
         if not any(out for out in outs if type(out) is FlyOut):
             at_bat.batter.double_plays_grounded_into.append(self)  # This is what baseball-reference does
@@ -647,9 +653,9 @@ class FieldersChoice(object):
         at_bat.resolved = True
         # Effect consequences
         at_bat.batter.composure -= 0.005
-        print "-- {}'s composure decreased from {} to {}".format(
-            at_bat.batter.last_name, round(at_bat.batter.composure+0.005, 2), round(at_bat.batter.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     at_bat.batter.last_name, round(at_bat.batter.composure+0.005, 2), round(at_bat.batter.composure, 2)
+        # )
         # Record statistics
         at_bat.batter.at_bats.append(at_bat)
         at_bat.batter.plate_appearances.append(at_bat)
@@ -705,20 +711,20 @@ class Single(object):
         self.out_on_the_throw = self.batter.out_on_the_throw  # Points to TagOut object if runner is out on the throw
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.005
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.005, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.005, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if not self.out_on_the_throw:
             self.batter.composure += 0.015
-            print "-- {}'s composure increased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure-0.015, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure-0.015, 2), round(self.batter.composure, 2)
+            # )
         else:
             self.batter.composure -= 0.005
-            print "-- {}'s composure increased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
+            # )
         # Record statistics
         self.batter.plate_appearances.append(self.at_bat)
         self.batter.at_bats.append(self.at_bat)
@@ -747,20 +753,20 @@ class Double(object):
         self.out_on_the_throw = self.batter.out_on_the_throw
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.01
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.01, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.01, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if not self.out_on_the_throw:
             self.batter.composure += 0.022
-            print "-- {}'s composure increased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure-0.022, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure-0.022, 2), round(self.batter.composure, 2)
+            # )
         else:
             self.batter.composure -= 0.005
-            print "-- {}'s composure increased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
+            # )
         # Record statistics
         self.batter.plate_appearances.append(self.at_bat)
         self.batter.at_bats.append(self.at_bat)
@@ -789,20 +795,20 @@ class Triple(object):
         self.out_on_the_throw = self.batter.out_on_the_throw
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.015
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.015, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.015, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if not self.out_on_the_throw:
             self.batter.composure += 0.028
-            print "-- {}'s composure increased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure-0.028, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure-0.028, 2), round(self.batter.composure, 2)
+            # )
         else:
             self.batter.composure -= 0.05
-            print "-- {}'s composure increased from {} to {}".format(
-                self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
-            )
+            # print "-- {}'s composure increased from {} to {}".format(
+            #     self.batter.last_name, round(self.batter.composure+0.005, 2), round(self.batter.composure, 2)
+            # )
         # Record statistics
         self.batter.plate_appearances.append(self.at_bat)
         self.batter.at_bats.append(self.at_bat)
@@ -847,10 +853,10 @@ class HomeRun(object):
             time.sleep(0.5)
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.025
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.025, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.025, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if not inside_the_park:
             if self.at_bat.frame.on_third:
                 Run(frame=self.at_bat.frame, runner=self.at_bat.frame.on_third, batted_in_by=self.batter)
@@ -868,9 +874,9 @@ class HomeRun(object):
             self.batter.safely_on_base = False
             self.runs += 1
         self.batter.composure += 0.033
-        print "-- {}'s composure increased from {} to {}".format(
-            self.batter.last_name, round(self.batter.composure-0.033, 2), round(self.batter.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.batter.last_name, round(self.batter.composure-0.033, 2), round(self.batter.composure, 2)
+        # )
         # Record statistics
         self.batter.plate_appearances.append(self.at_bat)
         self.batter.at_bats.append(self.at_bat)
@@ -931,19 +937,19 @@ class GrandSlam(object):
             time.sleep(0.5)
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.05
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.05, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.05, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if not inside_the_park:
             Run(frame=self.at_bat.frame, runner=self.at_bat.frame.on_third, batted_in_by=self.batter)
             Run(frame=self.at_bat.frame, runner=self.at_bat.frame.on_second, batted_in_by=self.batter)
             Run(frame=self.at_bat.frame, runner=self.at_bat.frame.on_first, batted_in_by=self.batter)
             Run(frame=self.at_bat.frame, runner=self.batter, batted_in_by=self.batter)
         self.batter.composure += 0.04
-        print "-- {}'s composure increased from {} to {}".format(
-            self.batter.last_name, round(self.batter.composure-0.04, 2), round(self.batter.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.batter.last_name, round(self.batter.composure-0.04, 2), round(self.batter.composure, 2)
+        # )
         # Record statistics
         self.batter.plate_appearances.append(self.at_bat)
         self.batter.at_bats.append(self.at_bat)
@@ -990,10 +996,10 @@ class AutomaticDouble(object):
             time.sleep(0.5)
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.01
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.01, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.01, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if self.at_bat.frame.on_third:
             Run(frame=self.at_bat.frame, runner=self.at_bat.frame.on_third, batted_in_by=self.batter)
             self.at_bat.frame.on_third.safely_on_base = False
@@ -1010,9 +1016,9 @@ class AutomaticDouble(object):
         playing_action.running_to_second = self.batter
         self.batter.safely_on_base = True
         self.batter.composure += 0.022
-        print "-- {}'s composure increased from {} to {}".format(
-            self.batter.last_name, round(self.batter.composure-0.022, 2), round(self.batter.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.batter.last_name, round(self.batter.composure-0.022, 2), round(self.batter.composure, 2)
+        # )
         # Record statistics
         # TODO crazy stuff when winning run is batted in here, see
         # TODO http://baseballscoring.wordpress.com/2014/05/06/ground-rule-double-not/
@@ -1047,10 +1053,10 @@ class GroundRuleDouble(object):
         self.runs = 0
         # Effect consequences
         self.at_bat.pitcher.composure -= 0.01
-        print "-- {}'s composure decreased from {} to {}".format(
-            self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.01, 2),
-            round(self.at_bat.pitcher.composure, 2)
-        )
+        # print "-- {}'s composure decreased from {} to {}".format(
+        #     self.at_bat.pitcher.last_name, round(self.at_bat.pitcher.composure+0.01, 2),
+        #     round(self.at_bat.pitcher.composure, 2)
+        # )
         if self.at_bat.frame.on_third:
             Run(frame=self.at_bat.frame, runner=self.at_bat.frame.on_third, batted_in_by=self.batter)
             self.at_bat.frame.on_third.safely_on_base = False
@@ -1067,9 +1073,9 @@ class GroundRuleDouble(object):
         playing_action.running_to_second = self.batter
         self.batter.safely_on_base = True
         self.batter.composure += 0.022
-        print "-- {}'s composure increased from {} to {}".format(
-            self.batter.last_name, round(self.batter.composure-0.022, 2), round(self.batter.composure, 2)
-        )
+        # print "-- {}'s composure increased from {} to {}".format(
+        #     self.batter.last_name, round(self.batter.composure-0.022, 2), round(self.batter.composure, 2)
+        # )
         # Record statistics
         # TODO crazy stuff when winning run is batted in here, see
         # TODO http://baseballscoring.wordpress.com/2014/05/06/ground-rule-double-not/
@@ -1096,17 +1102,21 @@ class Run(object):
             runner.runs.append(self)
             if batted_in_by:
                 batted_in_by.rbi.append(self)
-            if frame.at_bats[-1].batted_ball:
-                print "-- {} scores [{}]".format(self.runner.last_name,
-                                                 frame.at_bats[-1].batted_ball.time_since_contact)
-            else:
-                print "-- {} scores".format(self.runner.last_name)
+            if frame.game.trace:
+                if frame.at_bats[-1].playing_action and frame.at_bats[-1].playing_action.batted_ball:
+                    print "-- {} scores [{}]".format(
+                        self.runner.last_name, frame.at_bats[-1].playing_action.batted_ball.time_since_contact
+                    )
+                else:
+                    print "-- {} scores".format(self.runner.last_name)
             if frame.game.radio_announcer:
                 os.system("say {} scores for the {}!".format(self.runner.last_name, frame.batting_team.nickname))
         elif queued:
             self.frame.at_bats[-1].run_queue.append(self)
-            print "-- {} reaches home, but score may not be counted [{}]".format(
-                self.runner.last_name, frame.at_bats[-1].playing_action.batted_ball.time_since_contact)
+            if frame.game.trace:
+                # Queueing only happens when there's a playing action, so we don't needed to check for that first
+                print "-- {} reaches home, but score may not be counted [{}]".format(
+                    self.runner.last_name, frame.at_bats[-1].playing_action.batted_ball.time_since_contact)
             if frame.game.radio_announcer:
                 os.system("say {} reaches home...".format(self.runner.last_name, frame.batting_team.nickname))
 
@@ -1117,7 +1127,8 @@ class Run(object):
         self.runner.runs.append(self)
         if self.batted_in_by:
             self.batted_in_by.rbi.append(self)
-        print "-- {}'s score is tallied [{}]".format(
-            self.runner.last_name, self.frame.at_bats[-1].playing_action.batted_ball.time_since_contact)
+        if self.frame.game.trace:
+            print "-- {}'s score is tallied [{}]".format(
+                self.runner.last_name, self.frame.at_bats[-1].playing_action.batted_ball.time_since_contact)
         if self.frame.game.radio_announcer:
             os.system("say {}'s will count".format(self.runner.last_name, self.frame.batting_team.nickname))

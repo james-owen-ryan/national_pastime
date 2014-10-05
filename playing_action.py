@@ -73,12 +73,14 @@ class PlayingAction(object):
         self.throw = None
         # Fielders read the batted ball and decide immediate goals
         batted_ball.get_read_by_fielders()
-        print "-- {}; Oblig: {} [0.0]".format(batted_ball, batted_ball.obligated_fielder.position)
+        if self.at_bat.game.trace:
+            print "-- {}; Oblig: {} [0.0]".format(batted_ball, batted_ball.obligated_fielder.position)
         if self.at_bat.game.radio_announcer:
             self.at_bat.game.radio_announcer.call_batted_ball(batted_ball=batted_ball)
         for fielder in self.fielder_control_sequence:
             fielder.decide_immediate_goal(playing_action=self)
-        self.enumerate_defensive_responsibilities()
+        if self.at_bat.game.trace:
+            self.enumerate_defensive_responsibilities()
         for _ in xrange(4):
             batted_ball.time_since_contact += 0.1
             # While defensive players and baserunners are reading the ball,
@@ -93,6 +95,7 @@ class PlayingAction(object):
                 if baserunner.took_off_early:
                     baserunner.baserun(playing_action=self)
         while not self.resolved:
+            assert batted_ball.time_since_contact < 100, "Playing action has fallen into infinite loop."
             if self.at_bat.game.debug:
                 self.report_baserunner_progress()
             batted_ball.time_since_contact += 0.1
@@ -141,13 +144,14 @@ class PlayingAction(object):
                                     else:
                                         # Don't retreat already or stay on base -- keep tentatively
                                         # advancing in case there is another fielding gaffe
-                                        print (
-                                            "-- {} still doesn't believe he can beat the throw, but "
-                                            "will tentatively advance to the next base in case of "
-                                            "another fielding gaffe [{}]"
-                                        ).format(
-                                            baserunner.last_name, batted_ball.time_since_contact
-                                        )
+                                        if self.at_bat.game.trace:
+                                            print (
+                                                "-- {} still doesn't believe he can beat the throw, but "
+                                                "will tentatively advance to the next base in case of "
+                                                "another fielding gaffe [{}]"
+                                            ).format(
+                                                baserunner.last_name, batted_ball.time_since_contact
+                                            )
                                         baserunner.safely_on_base = False
                                         baserunner.tentatively_baserun(playing_action=self)
                             batted_ball.bobbled = False  # Reset to allow consideration of future bobbles
@@ -169,13 +173,17 @@ class PlayingAction(object):
                 self.throw.thrown_to.decide_throw_or_on_foot_approach_to_target(playing_action=self)
                 if self.throw.thrown_to.will_throw:
                     self.throw = self.throw.thrown_to.throw(playing_action=self)
+                else:
+                    print "WTF?? SEE PLAYING_ACTION.PY 10052014"
+                    raw_input("")
             # If the throw was in anticipation of an advancing runner and it has
             # reached its target, resolve the play at the plate
             elif self.throw and self.throw.reached_target and not self.throw.resolved:
-                print "-- Throw has reached {} ({}) [{}]".format(
-                    self.throw.thrown_to.last_name, self.throw.thrown_to.position,
-                    batted_ball.time_since_contact
-                )
+                if self.at_bat.game.trace:
+                    print "-- Throw has reached {} ({}) [{}]".format(
+                        self.throw.thrown_to.last_name, self.throw.thrown_to.position,
+                        batted_ball.time_since_contact
+                    )
                 self.throw.resolved = True
                 if self.throw.runner:
                     self.umpire.call_play_at_base(
@@ -184,10 +192,11 @@ class PlayingAction(object):
                 elif not self.throw.runner:
                     self.resolved = True
             elif self.fielder_afoot_for_putout and self.fielder_afoot_for_putout[0].at_goal:
-                print "-- {} has reached {} [{}]".format(
-                    self.fielder_afoot_for_putout[0].last_name, self.fielder_afoot_for_putout[-1],
-                    batted_ball.time_since_contact
-                )
+                if self.at_bat.game.trace:
+                    print "-- {} has reached {} [{}]".format(
+                        self.fielder_afoot_for_putout[0].last_name, self.fielder_afoot_for_putout[-1],
+                        batted_ball.time_since_contact
+                    )
                 self.umpire.call_play_at_base(
                     playing_action=self, baserunner=self.fielder_afoot_for_putout[1],
                     base=self.fielder_afoot_for_putout[2], fielder_afoot=self.fielder_afoot_for_putout[0]

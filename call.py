@@ -51,17 +51,18 @@ class PlayAtBaseCall(object):
         # Record statistics
         umpire.play_at_base_calls.append(self)
 
-        if abs(true_difference) < 0.15:
-            if self.correct:
-                print "-- Close call at {} is '{}', which umpire {} got right [{}] [{}]".format(
-                    base, self.call, self.umpire.name, round(self.true_difference, 2),
-                    at_bat.playing_action.batted_ball.time_since_contact
-                )
-            elif not self.correct:
-                print "-- Close call at {} is '{}', which umpire {} got wrong [{}] [{}]".format(
-                    base, self.call, self.umpire.name, round(self.true_difference, 2),
-                    at_bat.playing_action.batted_ball.time_since_contact
-                )
+        if at_bat.game.trace:
+            if abs(true_difference) < 0.15:
+                if self.correct:
+                    print "-- Close call at {} is '{}', which umpire {} got right [{}] [{}]".format(
+                        base, self.call, self.umpire.name, round(self.true_difference, 2),
+                        at_bat.playing_action.batted_ball.time_since_contact
+                    )
+                elif not self.correct:
+                    print "-- Close call at {} is '{}', which umpire {} got wrong [{}] [{}]".format(
+                        base, self.call, self.umpire.name, round(self.true_difference, 2),
+                        at_bat.playing_action.batted_ball.time_since_contact
+                    )
 
 
 class FlyOutCall(object):
@@ -84,17 +85,18 @@ class FlyOutCall(object):
         else:
             self.difficulty = "Medium"
         self.batted_ball = batted_ball
-        if abs(true_difference) < 0.15:
-            if self.correct:
-                print "-- Close call on the fielding act is '{}', which umpire {} got right [{}]".format(
-                    self.call, self.umpire.name, batted_ball.time_since_contact
-                )
-            elif not self.correct:
-                print "-- Close call on the fielding act is '{}', which umpire {} got wrong [{}]".format(
-                    self.call, self.umpire.name, batted_ball.time_since_contact
-                )
+        if batted_ball.at_bat.game.trace:
+            if abs(true_difference) < 0.15:
+                if self.correct:
+                    print "-- Close call on the fielding act is '{}', which umpire {} got right [{}]".format(
+                        self.call, self.umpire.name, batted_ball.time_since_contact
+                    )
+                elif not self.correct:
+                    print "-- Close call on the fielding act is '{}', which umpire {} got wrong [{}]".format(
+                        self.call, self.umpire.name, batted_ball.time_since_contact
+                    )
         # Effect consequences
         if self.call == "Out":
-            FlyOut(batted_ball=batted_ball)
+            FlyOut(batted_ball=batted_ball, call=self)
         # Record statistics
         umpire.fly_out_calls.append(self)

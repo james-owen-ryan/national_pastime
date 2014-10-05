@@ -1,8 +1,14 @@
+from game import Game
+import random
+import os
+
+
 class Season(object):
 
     def __init__(self, league):
 
         self.league = league
+        league.current_season = self
         league.seasons.append(self)
         self.year = league.country.year
         self.teams = league.teams
@@ -14,6 +20,16 @@ class Season(object):
             t.losses = 0
             t.record = '0-0'
 
+        for team in league.teams:
+            for player in team.players:
+                player.teams_timeline[self.league.country.year] = team
+
+        for team in self.league.teams:
+            team.times_played = {}
+            for other_team in self.league.teams:
+                if team is not other_team:
+                    team.times_played[other_team] = 0
+
         self.sim_season()
 
 
@@ -22,71 +38,43 @@ class Season(object):
         rep = str(self.year) + ' ' + self.league.name + ' season'
         return rep
 
+    def sim_season(self):
 
-    def sim_game(self, host, visitor, show_score=False, postseason=False):
+        while any(team for team in self.league.teams if team.wins+team.losses < 152):
+            random.shuffle(self.league.teams)
+            home_team = next(team for team in self.league.teams if team.wins+team.losses < 152)
+            away_team = min([o for o in self.league.teams if o is not home_team],
+                            key=lambda t: home_team.times_played[t])
+            game = Game(ballpark=home_team.city.ballpark, league=self.league, home_team=home_team,
+                        away_team=away_team, rules=self.league.rules, radio=False, trace=True)
+            self.league.error_game = game
+            game.enact()
+            home_team.times_played[away_team] += 1
+            away_team.times_played[home_team] += 1
+        for team in self.league.teams:
+            self.records[team] = [team.wins, team.losses]
+        self.champion = self.determine_champ()
+        self.champion.pennants.append(self.year)
 
-        extra_innings = 0
+    def determine_champ(self):
 
-        host_runs = int(round(((2 * normal(host.ortg, 5)) * 0.55)))
-        vis_runs = int(round(((2 * normal(visitor.ortg, 5)) * 0.45)))
+        champion = max(self.teams, key=lambda team: team.wins)
 
-        if host_runs < 0:
-            host_runs = 0
-        if vis_runs < 0:
-            vis_runs = 0
+        if any(team for team in self.teams if team is not champion and team.wins == champion.wins):
+            print "\n--\tTIEBREAKER GAME TO DETERMINE WORLD'S CHAMPIONS\t--"
+            other_champion = next(team for team in self.teams if team is not champion and
+                                  team.wins == champion.wins)
+            if random.random() > 0.5:
+                home_team, away_team = champion, other_champion
+            else:
+                home_team, away_team = other_champion, champion
+            tiebreaker = Game(ballpark=home_team.city.ballpark, league=self.league, home_team=home_team,
+                              away_team=away_team, rules=self.league.rules, radio=False)
+            tiebreaker.enact()
+            champion = tiebreaker.winner
 
-        while host_runs == vis_runs:
-            extra_innings += 1
-            if show_score:
-                raw_input('\nGame extends into ' + str(9+extra_innings) +
-                          'th inning with score tied ' + str(host_runs) +
-                          '-' + str(vis_runs) + '... ')
-            vis_score = (int(round(((2 * normal(visitor.ortg,5))*0.45)))
-                          / 9)
-            if vis_score < 0:
-                vis_score = 0
-            vis_runs += vis_score
-            if show_score:
-                if vis_score == 1:
-                    raw_input('\n' + visitor.city.name +
-                              ' scores 1 run in top of inning. ')
-                else:
-                    raw_input('\n' + visitor.city.name + ' scores ' +
-                              str(vis_score) +
-                              ' runs in top of inning. ')
-            host_score = (int(round(((2 * normal(host.ortg,5))*0.55)))
-                          / 9)
-            if host_score < 0:
-                host_score = 0
-            host_runs += host_score
-            if show_score:
-                if host_score == 1:
-                    raw_input('\n' + host.city.name + ' scores 1 run. ')
-                else:
-                    raw_input('\n' + host.city.name + ' scores ' +
-                              str(host_score) +
-                              ' runs in bottom of inning. ')
+        os.system('say and the champions of the {} {} season are the {} and {} {}'.format(
+            self.league.country.year, self.league.name, champion.wins, champion.losses, champion.name
+        ))
 
-        if host_runs > vis_runs:
-            winner = host
-            loser = visitor
-        if vis_runs > host_runs:
-            winner = visitor
-            loser = host
-
-        if show_score:
-            print(host.name + ' ' + str(host_runs) + ', ' + visitor.name +
-                  ' ' + str(vis_runs))
-
-        if not postseason:
-            winner.wins += 1
-            winner.cumulative_wins += 1
-            loser.losses += 1
-            loser.cumulative_losses += 1
-            host.record = str(host.wins) + '-' + str(host.losses)
-            visitor.record = str(visitor.wins) + '-' + str(visitor.losses)
-
-        host.ortg = int(round(normal(host.ortg, 0.15)))
-        visitor.ortg = int(round(normal(visitor.ortg, 0.15)))
-
-        return winner
+        return champion

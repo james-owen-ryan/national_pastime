@@ -783,6 +783,13 @@ Salt Lake City, Utah
 		Summits
 		Pioneers
 
+San Antonio, Texas
+	1840
+		Texas
+	1875
+		Bighorns
+
+
 San Francisco, California
 	1840
 		California

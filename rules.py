@@ -7,7 +7,7 @@ class Rules(object):
         self.n_fouls_for_out = None
         self.foul_bunts_are_strikes = True
         self.fouls_are_strikes_except_on_third = True
-        self.hit_batter_awarded_base = False
+        self.hit_batter_awarded_base = True
         self.fair_ball_on_first_bounce_is_out = False
         self.foul_ball_on_first_bounce_is_out = False
         self.bound_that_leaves_park_is_home_run = False

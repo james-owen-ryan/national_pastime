@@ -229,7 +229,7 @@ class BattedBall(object):
             self.hang_time = time_since_contact
         if not self.landing_timestep:
             self.landing_timestep = time_since_contact-timestep
-        self.final_location = [int(coordinate_x), int(coordinate_y)]
+        self.final_location = [coordinate_x, coordinate_y]
 
     def classify_self(self):
         """Determine batted-ball type and destination."""
@@ -355,7 +355,7 @@ class BattedBall(object):
         timesteps = self.position_at_timestep.keys()
         timesteps.sort()
         for fielder in self.at_bat.fielders:
-            for timestep in timesteps[5:]:  # Fielders take 0.4s to react
+            for timestep in timesteps[6:]:  # Fielders take 0.5s to react
                 height_of_ball_at_timestep = (
                     self.position_at_timestep[timestep][2]
                 )
@@ -364,9 +364,7 @@ class BattedBall(object):
                     # ball location at that timestep
                     x1, y1 = fielder.location
                     x2, y2 = self.position_at_timestep[timestep][:2]
-                    x_diff = (x2-x1)**2
-                    y_diff = (y2-y1)**2
-                    dist_from_fielder_origin_at_timestep = math.sqrt(x_diff + y_diff)
+                    dist_from_fielder_origin_at_timestep = math.hypot(x1-x2, y1-y2)
                     # Determine slope between fielder origin location and
                     # ball location at that timestep
                     x_change = x2-x1
@@ -419,9 +417,9 @@ class BattedBall(object):
                         dist_from_fielder_origin_at_timestep *
                         (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
                     )
-                    # Account for the fact that it takes fielders 0.4 seconds to begin
+                    # Account for the fact that it takes fielders 0.5 seconds to begin
                     # moving once the ball is hit
-                    time_to_ball_location_at_timestep += 0.4
+                    time_to_ball_location_at_timestep += 0.5
                     # Check if fielder could make it to that ball location in time
                     # to potentially field it
                     if time_to_ball_location_at_timestep <= timestep:
@@ -453,7 +451,7 @@ class BattedBall(object):
                         # at in his approach to the immediate goal location (again,
                         # should he end up fielding the ball)
                         fielder.dist_per_timestep = (
-                            (dist_from_fielder_origin_at_timestep/(timestep-0.4)) * 0.1
+                            (dist_from_fielder_origin_at_timestep/(timestep-0.5)) * 0.1
                         )
                         fielder.relative_rate_of_speed = (
                             1000 * fielder.dist_per_timestep *
@@ -479,7 +477,7 @@ class BattedBall(object):
                         fielder.dist_per_timestep = (
                             (0.1/fielder.full_speed_sec_per_foot) * max_rate_of_speed_to_this_location
                         )
-                        fielder.relative_rate_of_speed = 100
+                        fielder.relative_rate_of_speed = 90
         self.obligated_fielder = (
             min(self.at_bat.fielders, key=lambda f: f.time_needed_to_field_ball)
         )
@@ -498,7 +496,12 @@ class BattedBall(object):
         )]
         for fielder in available_fielders:
             fielder.attempting_fly_out = False
-            for timestep in timesteps[index_of_current_timestep:]:
+            for timestep in timesteps[index_of_current_timestep+1:]:
+                # 'index_of_current_timestep+1' because the fielder won't begin moving until
+                # the while-loop iteration representing the *next* timestep -- sort of like how
+                # we had to add 0.5s to all considerations in batted_ball.get_read_by_fielders to
+                # simulate their delayed reaction time, here we have to add 0.1s to all considerations
+                # to accommodate the control sequence of playing_action.enact()
                 height_of_ball_at_timestep = (
                     self.position_at_timestep[timestep][2]
                 )
@@ -507,9 +510,7 @@ class BattedBall(object):
                     # ball location at that timestep
                     x1, y1 = fielder.location
                     x2, y2 = self.position_at_timestep[timestep][:2]
-                    x_diff = (x2-x1)**2
-                    y_diff = (y2-y1)**2
-                    dist_from_current_fielder_location_at_timestep = math.sqrt(x_diff + y_diff)
+                    dist_from_current_fielder_location_at_timestep = math.hypot(x1-x2, y1-y2)
                     # Determine slope between fielder origin location and
                     # ball location at that timestep
                     x_change = x2-x1
@@ -573,6 +574,7 @@ class BattedBall(object):
                         (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
                     )
                     time_to_ball_location_at_timestep += fielder.reorienting_after_fielding_miss
+                    time_to_ball_location_at_timestep += 0.1  # For reason stated at beginning of for loop
                     # Check if fielder could make it to that ball location in time
                     # to potentially field it
                     if time_to_ball_location_at_timestep <= timestep-self.time_since_contact:
@@ -597,19 +599,6 @@ class BattedBall(object):
                         # fielder (though this person may be called off)
                         fielder.time_needed_to_field_ball = timestep-self.time_since_contact
                         fielder.timestep_of_planned_fielding_attempt = timestep
-                        # Set location where fielding attempt will occur, if this
-                        # fielder ends up playing the ball
-                        fielder.immediate_goal = self.position_at_timestep[timestep]
-                        # Set speed, in feet per timestep, that fielder will act
-                        # at in his approach to the immediate goal location (again,
-                        # should he end up fielding the ball)
-                        fielder.dist_per_timestep = (
-                            (dist_from_current_fielder_location_at_timestep/(timestep-self.time_since_contact)) * 0.1
-                        )
-                        fielder.relative_rate_of_speed = (
-                            1000 * fielder.dist_per_timestep *
-                            (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
-                        )
                         break
                     elif timestep == timesteps[-1]:
                         # Fielder can only make it to the ball after it has stopped
@@ -621,33 +610,45 @@ class BattedBall(object):
                         while actual_timestep_it_will_happen < fielder.time_needed_to_field_ball:
                             actual_timestep_it_will_happen += 0.1
                         fielder.timestep_of_planned_fielding_attempt = actual_timestep_it_will_happen
-                        # Set location where fielding attempt will occur, if this
-                        # fielder ends up playing the ball
-                        fielder.immediate_goal = self.position_at_timestep[timestep]
-                        # This fielder will act at full speed in his approach to the
-                        # immediate goal location (again, should he end up fielding
-                        # the ball)
-                        fielder.dist_per_timestep = (
-                            (0.1/fielder.full_speed_sec_per_foot) * max_rate_of_speed_to_this_location
-                        )
-                        fielder.relative_rate_of_speed = 100
         self.obligated_fielder = min(available_fielders, key=lambda f: f.time_needed_to_field_ball)
         if self.obligated_fielder.playing_the_ball:
-            print "-- {} ({}) will try again to field the ball [{}]".format(
-                self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
-            )
+            if self.at_bat.game.trace:
+                print "-- {} ({}) will try again to field the ball [{}]".format(
+                    self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
+                )
         else:
-            print "-- {} ({}) will now attempt to field the ball [{}]".format(
-                self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
-            )
+            if self.at_bat.game.trace:
+                print "-- {} ({}) will now attempt to field the ball [{}]".format(
+                    self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
+                )
         self.obligated_fielder.making_goal_revision = True
         self.obligated_fielder.playing_the_ball = True
+        self.obligated_fielder.at_goal = False
+        # Set these attributes here, because, unlike with batted_ball.get_read_by_fielders(), any
+        # available fielders who don't end up playing the ball will not then decide their actual
+        # goals, thereby writing over the temporary .immediate_goal, etc., set during the above
+        # computation -- rather, we want them to retain their goals and only the one who now
+        # will play the ball to set the goal decided in the above computation
+        if self.obligated_fielder.timestep_of_planned_fielding_attempt in self.position_at_timestep:
+            self.obligated_fielder.immediate_goal = (
+                self.position_at_timestep[self.obligated_fielder.timestep_of_planned_fielding_attempt]
+            )
+        else:
+            # Fielder is planning to field the ball after it has stopped, thus his planned timestep
+            # for the fielding attempt in not in batted_ball.position_at_timestep
+            self.obligated_fielder.immediate_goal = self.final_location
+        self.obligated_fielder.dist_per_timestep = 0.1/self.obligated_fielder.full_speed_sec_per_foot
+        # Assume flat-rate relative rate of speed, because there will always be a rush
+        # to get to a missed ball, but the ball won't be flying through the air in a way
+        # that would allow any fielder to reach full speed before attempting to field it
+        self.obligated_fielder.relative_rate_of_speed = 90
         # Make it so that our new obligated fielder is calling the ball and the
         # guy who was just playing the ball and missed is no longer playing it
         self.obligated_fielder.playing_the_ball = True
         for fielder in self.at_bat.fielders:
             if fielder is not self.obligated_fielder:
                 fielder.playing_the_ball = False
+                fielder.attempting_fly_out = False
         self.obligated_fielder.decide_immediate_goal(playing_action=self.at_bat.playing_action)
 
     def move(self):
@@ -663,9 +664,10 @@ class BattedBall(object):
             if self.height <= 0.0:
                 self.height = 0.0
                 if not self.landed:
-                    print "-- Ball has landed at [{}, {}] [{}]".format(
-                        int(self.location[0]), int(self.location[1]), self.time_since_contact
-                    )
+                    if self.at_bat.game.trace:
+                        print "-- Ball has landed at [{}, {}] [{}]".format(
+                            int(self.location[0]), int(self.location[1]), self.time_since_contact
+                        )
                     self.landed = True
                     if self.in_foul_territory:
                         self.landed_foul = True
@@ -692,13 +694,16 @@ class BattedBall(object):
                 # Check for any change in batted ball attributes
                 if self.outfield_fence_contact_timestep == self.time_since_contact:
                     self.contacted_outfield_wall = True
-                    print "-- Ball bounces off the outfield wall [{}]".format(self.time_since_contact)
+                    if self.at_bat.game.trace:
+                        print "-- Ball bounces off the outfield wall [{}]".format(self.time_since_contact)
                 elif self.foul_fence_contact_timestep == self.time_since_contact:
                     self.contacted_foul_fence = True
-                    print "-- Ball bounces off a foul fence [{}]".format(self.time_since_contact)
+                    if self.at_bat.game.trace:
+                        print "-- Ball bounces off a foul fence [{}]".format(self.time_since_contact)
                 elif self.foul_pole_contact_timestep == self.time_since_contact:
                     self.contacted_foul_pole = True
-                    print "-- Ball bounces off a foul pole [{}]".format(self.time_since_contact)
+                    if self.at_bat.game.trace:
+                        print "-- Ball bounces off a foul pole [{}]".format(self.time_since_contact)
                 if (self.location[1] < 0 or
                         abs(self.location[0]) > self.location[1]):
                     self.in_foul_territory = True
@@ -706,9 +711,10 @@ class BattedBall(object):
                     self.in_foul_territory = False
                 if self.height <= 0:
                     if not self.landed:
-                        print "-- Ball has landed at [{}, {}] [{}]".format(
-                            int(self.location[0]), int(self.location[1]), self.time_since_contact
-                        )
+                        if self.at_bat.game.trace:
+                            print "-- Ball has landed at [{}, {}] [{}]".format(
+                                int(self.location[0]), int(self.location[1]), self.time_since_contact
+                            )
                         self.landed = True
                         if self.in_foul_territory:
                             self.landed_foul = True
@@ -773,7 +779,9 @@ class BattedBall(object):
                 self.stopped = True  # Ball has stopped moving, so nothing will change
                 self.x_velocity_at_timestep[self.time_since_contact] = self.speed
             else:
-                raise Exception("Call to BattedBall.move() for an invalid timestep.")
+                raise Exception("Call to BattedBall.move() for an invalid timestep: {}.".format(
+                    self.time_since_contact)
+                )
 
     def __str__(self):
         return "{} hit by {} toward {}".format(self.type, self.batter.last_name, self.destination)
