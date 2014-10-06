@@ -157,7 +157,17 @@ class PlayingAction(object):
                             batted_ball.bobbled = False  # Reset to allow consideration of future bobbles
                         elif batted_ball.fielded_by:
                             for baserunner in self.at_bat.frame.baserunners + [self.batter]:
-                                if baserunner.tentatively_baserunning:
+                                if baserunner.forced_to_advance:
+                                    # The fielder *was* attempting a fly out, but they fielded it
+                                    # it in a way that wasn't called a fly out, e.g., off the outfield
+                                    # wall or with a trap -- in this case, you were tentatively baserunning
+                                    # waiting for resolution of the fielding attempt, but now you need to
+                                    # baserun full speed, because you're forced to advance
+                                    baserunner.baserun(playing_action=self)
+                                elif baserunner.tentatively_baserunning:
+                                    # You are not forced to advance, but we're inching along to make sure
+                                    # a major fielding gaffe wouldn't allow you to advance -- no such
+                                    # gaffe occurred, so retreat back now before you get nabbed
                                     baserunner.retreat(playing_action=self)
                 # If the ball has been fielded and the fielder hasn't decided his throw
                 # yet, have him decide his throw and then instantiate the throw
@@ -173,9 +183,6 @@ class PlayingAction(object):
                 self.throw.thrown_to.decide_throw_or_on_foot_approach_to_target(playing_action=self)
                 if self.throw.thrown_to.will_throw:
                     self.throw = self.throw.thrown_to.throw(playing_action=self)
-                else:
-                    print "WTF?? SEE PLAYING_ACTION.PY 10052014"
-                    raw_input("")
             # If the throw was in anticipation of an advancing runner and it has
             # reached its target, resolve the play at the plate
             elif self.throw and self.throw.reached_target and not self.throw.resolved:
@@ -190,7 +197,8 @@ class PlayingAction(object):
                         playing_action=self, baserunner=self.throw.runner, base=self.throw.base, throw=self.throw
                     )
                 elif not self.throw.runner:
-                    self.resolved = True
+                    if self.throw.thrown_to is not self.cut_off_man:
+                        self.resolved = True
             elif self.fielder_afoot_for_putout and self.fielder_afoot_for_putout[0].at_goal:
                 if self.at_bat.game.trace:
                     print "-- {} has reached {} [{}]".format(

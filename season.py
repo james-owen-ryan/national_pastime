@@ -46,7 +46,7 @@ class Season(object):
             away_team = min([o for o in self.league.teams if o is not home_team],
                             key=lambda t: home_team.times_played[t])
             game = Game(ballpark=home_team.city.ballpark, league=self.league, home_team=home_team,
-                        away_team=away_team, rules=self.league.rules, radio=False, trace=True)
+                        away_team=away_team, rules=self.league.rules, radio=False, trace=False)
             self.league.error_game = game
             game.enact()
             home_team.times_played[away_team] += 1

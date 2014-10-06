@@ -38,7 +38,7 @@ else:
 
 # game = Game(ballpark=ballpark, league=l, home_team=home_team,
 #             away_team=random.choice([t for t in l.teams if t is not home_team]),
-#             rules=Rules(), radio=False); game.enact()
+#             rules=Rules(), radio=False, trace=True); game.enact()
 # inning = Inning(game=game, number=5); frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame); ab.enact(); print ab.result
 # ab.draw_playing_field()
 # frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame);

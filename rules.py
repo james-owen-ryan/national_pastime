@@ -12,3 +12,7 @@ class Rules(object):
         self.foul_ball_on_first_bounce_is_out = False
         self.bound_that_leaves_park_is_home_run = False
         self.home_run_must_land_fair = False
+
+
+        # TODO
+        # infield fly rule

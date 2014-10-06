@@ -1484,6 +1484,12 @@ class Person(object):
             self.at_goal = False
             self._slope = None
             self.making_goal_revision = False
+            # If you are now playing the ball by virtue of batted_ball.get_reread_by_fielders()'s
+            # computation, make sure you are not still playing_action.cut_off_man and not still
+            # attributed as backing up the catch
+            if self is playing_action.cut_off_man:
+                playing_action.cut_off_man = None
+            self.backing_up_the_catch = False
         if not self.playing_the_ball:
             if self.position == "1B":
                 # Cover first base
@@ -1879,12 +1885,11 @@ class Person(object):
                         math.hypot(self.location[0]-batted_ball.location[0],
                                    self.location[1]-batted_ball.location[1])
                     )
-                    if dist_from_fielder_to_bb > 8:
-                        if batted_ball.at_bat.game.trace:
-                            print "-- {} is a 'fielder with chance' but is {} ft from the batted ball [{}]".format(
-                                self.last_name, round(dist_from_fielder_to_bb, 1), batted_ball.time_since_contact
-                            )
-                            raw_input("")
+                    if dist_from_fielder_to_bb > 1:
+                        print "-- {} is a 'fielder with chance' but is {} ft from the batted ball [{}]".format(
+                            self.last_name, round(dist_from_fielder_to_bb, 1), batted_ball.time_since_contact
+                        )
+                        raw_input("")
 
     def baserun(self, playing_action):
         """Run along the base paths, as appropriate."""
@@ -2670,12 +2675,11 @@ class Person(object):
         # surest chance for an out (assuming any have even a reasonable chance of tallying a put out),
         # so if there are two outs, determine what throw or on-foot advance has the surest chance of
         # turning an out
-        two_outs_and_chance_for_third_out = (
-            batted_ball.at_bat.frame.outs == 2 and
-                (chance_for_out_at_first or chance_for_out_at_second or
-                    chance_for_out_at_third or chance_for_out_at_home)
+        chance_for_putout = (
+            chance_for_out_at_first or chance_for_out_at_second or
+            chance_for_out_at_third or chance_for_out_at_home
         )
-        if two_outs_and_chance_for_third_out:
+        if batted_ball.at_bat.frame.outs == 2 and chance_for_putout:
             # Determine which approach will give the best chance for a putout
             pertinent_expected_throw_and_on_foot_diffs = []
             if chance_for_out_at_first:
@@ -2704,7 +2708,7 @@ class Person(object):
             diff_for_throw_to_third, diff_for_on_foot_approach_to_third,
             diff_for_throw_to_home, diff_for_on_foot_approach_to_home
         )
-        if two_outs_and_chance_for_third_out and best_bet_throw_or_on_foot_approach < 0.2:
+        if batted_ball.at_bat.frame.outs == 2 and chance_for_putout and best_bet_throw_or_on_foot_approach < 0.2:
             # If the best bet looks to have a reasonable chance of actually producing a putout (say,
             # it should get to its target less than a fifth of a second after the runner is expected
             # to get there), then throw, or go afoot with, the best bet
@@ -2714,13 +2718,15 @@ class Person(object):
                 all_throw_and_on_foot_advance_diffs=all_throw_and_on_foot_advance_diffs)
         # If there's less than two outs (or two outs but no reasonable chance for making the third out),
         # throw or run to the highest base to which there is a runner advancing whom you believe you
-        # could beat with your throw or on-foot advance -- first, pack up our list of threatening runners,
-        # because that will be needed by the method called here
+        # could beat with your throw or on-foot advance -- or, if there appear to be no such options,
+        # throw to a cut-off man potentially, or just back to the pitcher, or if you are the pitcher,
+        # just walk back to the mound and end the playing action; first, however, pack up our list of
+        # threatening runners, because that will be needed by the method called here
         else:
             all_runners_threatening_advance = (
                 runner_threatening_second, runner_threatening_third, runner_threatening_home
             )
-            self.make_throw_on_on_foot_approach_of_highest_utility(
+            self.make_throw_or_on_foot_approach_of_highest_utility(
                 playing_action=playing_action, all_chances_for_outs=all_chances_for_outs,
                 all_runners_threatening_advance=all_runners_threatening_advance,
                 all_throw_and_on_foot_advance_diffs=all_throw_and_on_foot_advance_diffs
@@ -2875,7 +2881,7 @@ class Person(object):
             print "Something went wrong -- person.py error code 09302014"
             raw_input("")
 
-    def make_throw_on_on_foot_approach_of_highest_utility(self, playing_action, all_chances_for_outs,
+    def make_throw_or_on_foot_approach_of_highest_utility(self, playing_action, all_chances_for_outs,
                                                           all_runners_threatening_advance,
                                                           all_throw_and_on_foot_advance_diffs):
         batted_ball = playing_action.batted_ball
@@ -2949,6 +2955,15 @@ class Person(object):
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="1B")
+        # If there's no apparent chance for you to throw or run to a putout attempt and if
+        # you are an outfielder and there is a cut-off man in place, throw to him
+        elif self.outfielder and playing_action.cut_off_man:
+            if playing_action.at_bat.game.trace:
+                print "-- {} ({}) will make a cut-off throw to {} ({}) [{}]".format(
+                        self.last_name, self.position, playing_action.cut_off_man.last_name,
+                        playing_action.cut_off_man.position, batted_ball.time_since_contact
+                )
+            self.set_throw_target(playing_action=playing_action, base=None, relay=True)
         elif runner_threatening_home:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to home preemptively [{}]".format(
