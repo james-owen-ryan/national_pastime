@@ -190,7 +190,7 @@ class City(object):
         """Return Pythagorean distance between another city and this one."""
         lat_dist = self.latitude-city.latitude
         long_dist = self.longitude-city.longitude
-        dist = math.sqrt((lat_dist * lat_dist) + (long_dist * long_dist))
+        dist = math.sqrt((lat_dist**2) + (long_dist**2))
         return dist
 
     def progress(self):

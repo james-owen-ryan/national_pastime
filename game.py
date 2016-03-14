@@ -333,7 +333,7 @@ class AtBat(object):
         if not self.game.radio_announcer:
             self.enact()
         if self.game.radio_announcer:
-            self.game.radio_annnouncer.call_at_bat(at_bat=self)  # This will enact the at bat midwau
+            self.game.radio_announcer.call_at_bat(at_bat=self)  # This will enact the at bat midway
 
     def enact(self):
         # TODO substitutions will change where this should be done

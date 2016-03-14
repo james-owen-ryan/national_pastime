@@ -58,14 +58,15 @@ class Team(object):
 
         self.in_city_since = self.league.country.year
 
+        nickname = self.init_name()
+        if nickname in self.country.major_nicknames:
+            self.nickname = "Generics"
+        else:
+            self.nickname = nickname
+
         city.teams.append(self)
         league.teams.append(self)
         league.cities.append(city)
-
-        self.nickname = self.init_name()
-        self.name = self.city.name + ' ' + self.nickname
-        if self.nickname in self.country.major_nicknames:
-            self.nickname = "Generics"
 
         self.sign_players()
 
@@ -80,6 +81,10 @@ class Team(object):
         # Statistical stuff
         self.games_played = []
         self.left_on_base = []
+
+    @property
+    def name(self):
+        return "{} {}".format(self.city.name, self.nickname)
 
     def init_name(self):
         city_apt_team_nicknames = None

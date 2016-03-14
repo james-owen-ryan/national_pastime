@@ -36,16 +36,16 @@ if any(t for t in l.teams if t.city.name in ("Minneapolis", "St. Paul", "Duluth"
 else:
     away_team = l.teams[1]
 
-# game = Game(ballpark=ballpark, league=l, home_team=home_team,
-#             away_team=random.choice([t for t in l.teams if t is not home_team]),
-#             rules=Rules(), radio=False, trace=True); game.enact()
+game = Game(ballpark=ballpark, league=l, home_team=home_team,
+            away_team=random.choice([t for t in l.teams if t is not home_team]),
+            rules=Rules(), radio=False, trace=True); game.enact()
 # inning = Inning(game=game, number=5); frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame); ab.enact(); print ab.result
 # ab.draw_playing_field()
 # frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame);
 
-for i in xrange(31):
-    l.conduct_season()
-    us.year += 1
-    l.conduct_offseason()
-    for player in us.players:
-        player.increase_in_age()
+# for i in xrange(31):
+#     l.conduct_season()
+#     us.year += 1
+#     l.conduct_offseason()
+#     for player in us.players:
+#         player.increase_in_age()
