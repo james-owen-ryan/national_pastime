@@ -41,7 +41,7 @@ class PlayAtBaseCall(object):
         if call == "Out":
             if throw:
                 putout_by = throw.thrown_to
-            elif fielder_afoot:
+            else:  # elif fielder_afoot
                 putout_by = fielder_afoot
             if baserunner.forced_to_advance or baserunner.forced_to_retreat:
                 ForceOut(playing_action=at_bat.playing_action, baserunner=baserunner, base=base, call=self,
