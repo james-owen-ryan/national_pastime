@@ -1,4 +1,4 @@
 national_pastime
 ================
 
-A playable baseball history generator.
+A sports game about people; a baseball dwarflike.
