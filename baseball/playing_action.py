@@ -150,7 +150,7 @@ class PlayingAction(object):
                                                 "will tentatively advance to the next base in case of "
                                                 "another fielding gaffe [{}]"
                                             ).format(
-                                                baserunner.last_name, batted_ball.time_since_contact
+                                                baserunner.person.last_name, batted_ball.time_since_contact
                                             )
                                         baserunner.safely_on_base = False
                                         baserunner.tentatively_baserun(playing_action=self)
@@ -188,7 +188,7 @@ class PlayingAction(object):
             elif self.throw and self.throw.reached_target and not self.throw.resolved:
                 if self.at_bat.game.trace:
                     print "-- Throw has reached {} ({}) [{}]".format(
-                        self.throw.thrown_to.last_name, self.throw.thrown_to.position,
+                        self.throw.thrown_to.person.last_name, self.throw.thrown_to.position,
                         batted_ball.time_since_contact
                     )
                 self.throw.resolved = True
@@ -202,7 +202,7 @@ class PlayingAction(object):
             elif self.fielder_afoot_for_putout and self.fielder_afoot_for_putout[0].at_goal:
                 if self.at_bat.game.trace:
                     print "-- {} has reached {} [{}]".format(
-                        self.fielder_afoot_for_putout[0].last_name, self.fielder_afoot_for_putout[-1],
+                        self.fielder_afoot_for_putout[0].person.last_name, self.fielder_afoot_for_putout[-1],
                         batted_ball.time_since_contact
                     )
                 self.umpire.call_play_at_base(
@@ -261,22 +261,22 @@ class PlayingAction(object):
         running_to_first = self.running_to_first or self.retreating_to_first
         if running_to_first:
             print "{} is {}% to first".format(
-                running_to_first.last_name, int(round(running_to_first.percent_to_base*100))
+                running_to_first.person.last_name, int(round(running_to_first.percent_to_base*100))
             )
         running_to_second = self.running_to_second or self.retreating_to_second
         if running_to_second:
             print "{} is {}% to second".format(
-                running_to_second.last_name, int(round(running_to_second.percent_to_base*100))
+                running_to_second.person.last_name, int(round(running_to_second.percent_to_base*100))
             )
         running_to_third = self.running_to_third or self.retreating_to_third
         if running_to_third:
             print "{} is {}% to third".format(
-                running_to_third.last_name, int(round(running_to_third.percent_to_base*100))
+                running_to_third.person.last_name, int(round(running_to_third.percent_to_base*100))
             )
         running_to_home = self.running_to_home
         if running_to_home:
             print "{} is {}% to home".format(
-                running_to_home.last_name, int(round(running_to_home.percent_to_base*100))
+                running_to_home.person.last_name, int(round(running_to_home.percent_to_base*100))
             )
 
     def progress_all_baserunners(self):

@@ -21,23 +21,22 @@ GEN_TEAM_NAMES = [name[:-1] for name in open(
 
 
 class Team(object):
+    """A baseball team in a baseball cosmos."""
 
     def __init__(self, city, league, expansion=False):
-
+        """Initialize a Team object."""
         self.city = city
         self.state = city.state
         self.country = city.country
+        self.cosmos = city.cosmos
         self.league = league
 
-        self.founded = self.country.year
+        self.ballpark = self.city.ballpark
+
+        self.founded = self.cosmos.year
         self.folded = False
         self.tradition = 0
-        if not expansion:
-            self.charter_team = True
-            self.expansion = False
-        if expansion:
-            self.charter_team = False
-            self.expansion = True
+        self.charter_team, self.expansion = (True, False) if not expansion else (False, True)
 
         self.players = []
 
@@ -56,10 +55,10 @@ class Team(object):
         self.cumulative_wins = 0
         self.cumulative_losses = 0
 
-        self.in_city_since = self.league.country.year
+        self.in_city_since = self.cosmos.year
 
         nickname = self.init_name()
-        if nickname in self.country.major_nicknames:
+        if nickname in self.cosmos.major_league_team_nicknames:
             self.nickname = "Generics"
         else:
             self.nickname = nickname
@@ -70,7 +69,7 @@ class Team(object):
 
         self.sign_players()
 
-        self.names_timeline = [self.name + ' ' + str(self.country.year) + '-']
+        self.names_timeline = [self.name + ' ' + str(self.cosmos.year) + '-']
 
         if expansion:
             print '{team} ({league}) have been enfranchised.'.format(team=self.name, league=self.league.name)
@@ -87,15 +86,16 @@ class Team(object):
         return "{} {}".format(self.city.name, self.nickname)
 
     def init_name(self):
-        city_apt_team_nicknames = None
-        if self.city.yearly_apt_team_nicknames:
-            if any(year for year in self.city.yearly_apt_team_nicknames.keys() if self.country.year <= year):
-                year = min(self.city.yearly_apt_team_nicknames.keys(), key=lambda year: self.country.year-year)
-                city_apt_team_nicknames = self.city.yearly_apt_team_nicknames[year]
-        if city_apt_team_nicknames:
-            x = random.randint(4, 23)
-        else:
-            x = random.randint(4, 14)
+        # city_apt_team_nicknames = None
+        # if self.city.yearly_apt_team_nicknames:
+        #     if any(year for year in self.city.yearly_apt_team_nicknames.keys() if self.cosmos.year <= year):
+        #         year = min(self.city.yearly_apt_team_nicknames.keys(), key=lambda year: self.cosmos.year-year)
+        #         city_apt_team_nicknames = self.city.yearly_apt_team_nicknames[year]
+        # if city_apt_team_nicknames:
+        #     x = random.randint(4, 23)
+        # else:
+        #     x = random.randint(4, 14)
+        x = random.randint(4, 14)
         if x in (0, 1):
             nickname = random.choice(COLORS) + ' Stockings'
         if x == 2:
@@ -108,16 +108,16 @@ class Team(object):
             nickname = random.choice(ANIMAL_NAMES) + 's'
         if x == 13:
             nickname = random.choice(ANIMAL_NAMES_IRREG)
-        if x == 14:
+        else:
             nickname = random.choice(GEN_TEAM_NAMES) + 's'
-        if x > 14:
-            nickname = random.choice(self.city.yearly_apt_team_nicknames[self.country.year])
+        # if x > 14:
+        #     nickname = random.choice(self.city.yearly_apt_team_nicknames[self.cosmos.year])
         return nickname
 
     def sign_players(self):
         print "\nA new franchise in {} is fielding a team".format(self.city.name)
-        pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
-        pool = [p for p in pool if 16 < p.age < 41]
+        pool = self.state.free_agents + random.sample(self.country.free_agents, 1000)
+        pool = [p for p in pool if 16 < p.person.age < 41]
         pool = set(pool)
         # Find pitcher
         subpool = [player for player in pool if player.pitch_speed > 85]
@@ -168,6 +168,9 @@ class Team(object):
         self.fielders[8].position = "RF"
         for f in self.fielders[6:]:
             f.outfielder = True
+        for p in self.players:
+            p.career.team = self
+            p.primary_position = p.position
 
     def sign_replacement(self, replacement_for):
         print "{} are looking for a replacement for {} ({})".format(
@@ -175,7 +178,7 @@ class Team(object):
         )
         position_of_need = replacement_for.position
         pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
-        pool = [p for p in pool if 16 < p.age < 41]
+        pool = [p for p in pool if 16 < p.person.age < 41]
         pool = set(pool)
         if position_of_need == "P":
             # Find pitcher
@@ -240,9 +243,8 @@ class Team(object):
             player.team = self
 
     def __str__(self):
-
-        rep = self.name
-        return rep
+        """Return string representation."""
+        return self.name
 
     @staticmethod
     def grade_pitcher(player):
@@ -295,7 +297,7 @@ class Team(object):
     def grade_left_fielder(player):
         rating = (
             player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
-            1.5*(2-player.swing_timing_error/0.14) + (player.full_speed_sec_per_foot/0.040623) +
+            1.5*(2-player.swing_timing_error/0.14) + (player.person.body.full_speed_seconds_per_foot/0.040623) +
             player.bat_speed/2.0 + player.composure
         )
         return rating
@@ -304,7 +306,7 @@ class Team(object):
     def grade_center_fielder(player):
         rating = (
             player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
-            1.75*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
+            1.75*(2-player.swing_timing_error/0.14) + 0.75*(player.person.body.full_speed_seconds_per_foot/0.040623) +
             1.5*(player.bat_speed/2.0) + player.composure
         )
         return rating
@@ -313,7 +315,7 @@ class Team(object):
     def grade_right_fielder(player):
         rating = (
             0.75*player.fly_ball_fielding + (player.throwing_velocity_mph/72.0) +
-            2*(2-player.swing_timing_error/0.14) + 0.75*(player.full_speed_sec_per_foot/0.040623) +
+            2*(2-player.swing_timing_error/0.14) + 0.75*(player.person.body.full_speed_seconds_per_foot/0.040623) +
             1.75*(player.bat_speed/2.0) + player.composure
         )
         return rating
@@ -324,7 +326,7 @@ class Team(object):
 
         self.tradition = (
             (1 + len([c for c in self.championships if c > self.in_city_since])) *
-            (self.country.year-self.in_city_since))
+            (self.cosmos.year-self.in_city_since))
 
         if self.cumulative_wins + self.cumulative_losses:
             # Make sure expansions don't already consider folding, relocation
@@ -337,9 +339,9 @@ class Team(object):
         if (float(self.cumulative_wins)/(
                   self.cumulative_wins+self.cumulative_losses)
             < .45):
-            if (self.country.year-self.league.founded <
+            if (self.cosmos.year-self.league.founded <
                 int(round(normal(25,2)))):
-                y = random.randint(0, self.country.year-self.league.founded)
+                y = random.randint(0, self.cosmos.year-self.league.founded)
                 if y == 0:
                     self.fold()
                     # League will consider expansion more than usual to
@@ -351,9 +353,9 @@ class Team(object):
         fanbase_memory = int(round(normal(27, 5)))
         # Newer teams will not relocate, but only will possibly fold, since
         # they would have no more value to another city than an expansion
-        if self.country.year-self.in_city_since > fanbase_memory:
+        if self.cosmos.year-self.in_city_since > fanbase_memory:
             if (not self.championships or
-                self.country.year-self.championships[-1] > fanbase_memory):
+                self.cosmos.year-self.championships[-1] > fanbase_memory):
                 # Check if averaging losing season for duration of
                 # fanbase memory and prior season losing season
                 if (sum([d for d in self.win_diffs[-fanbase_memory:]]) /
@@ -384,20 +386,16 @@ class Team(object):
         self.city = city
         city.teams.append(self)
 
-        self.in_city_since = self.league.country.year
+        self.in_city_since = self.league.cosmos.year
 
         x = random.randint(0,10)
         if x < 8:
-            self.country.major_nicknames.remove(self.nickname)
             self.nickname = self.init_name()
-            while self.nickname in self.country.major_nicknames:
+            while self.nickname in self.country.major_league_team_nicknames:
                 self.nickname = self.init_name()
-            self.country.major_nicknames.append(self.nickname)
-        else:
-            self.name = self.city.name + ' ' + self.nickname
 
-        self.names_timeline[-1] = self.names_timeline[-1] + str(self.country.year)
-        self.names_timeline.append(self.name + ' ' + str(self.country.year) + '-')
+        self.names_timeline[-1] = self.names_timeline[-1] + str(self.cosmos.year)
+        self.names_timeline.append(self.name + ' ' + str(self.cosmos.year) + '-')
 
         print('\t' + self.name + ' ')
         os.system('say the {} have relocated to become the {}'.format(former_name, self.name))
@@ -411,12 +409,11 @@ class Team(object):
         self.city.former_teams.append(self)
         self.league.teams.remove(self)
         self.league.cities.remove(self.city)
-        if self.country.year == self.founded:
+        if self.cosmos.year == self.founded:
              self.names_timeline[-1][:-1] += ' (folded)'
         else:
-            self.names_timeline[-1] += str(self.country.year) + ' (folded)'
+            self.names_timeline[-1] += str(self.cosmos.year) + ' (folded)'
         self.league.defunct.append(self)
-        self.country.major_nicknames.remove(self.nickname)
 
         self.folded = True
 

@@ -3,10 +3,9 @@ import math
 import os
 import random
 
-from person import Person
-from ballpark import Ballpark
+
 from league import League
-from data import CityData
+from corpora import CityData
 
 
 CITY_DATA = CityData()
@@ -174,7 +173,7 @@ class City(object):
     def init_players(self):
         players_in_this_city = []
         for i in range(self.pop * 5):
-            players_in_this_city.append(Person(birthplace=self))
+            players_in_this_city.append(Player(birthplace=self))
         return players_in_this_city
 
     def __str__(self):

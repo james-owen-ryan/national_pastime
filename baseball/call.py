@@ -49,7 +49,7 @@ class PlayAtBaseCall(object):
             else:
                 TagOut(playing_action=at_bat.playing_action, baserunner=baserunner, call=self, tagged_by=putout_by)
         # Record statistics
-        umpire.play_at_base_calls.append(self)
+        umpire.career.statistics.play_at_base_calls.append(self)
 
         if at_bat.game.trace:
             if abs(true_difference) < 0.15:
@@ -99,4 +99,4 @@ class FlyOutCall(object):
         if self.call == "Out":
             FlyOut(batted_ball=batted_ball, call=self)
         # Record statistics
-        umpire.fly_out_calls.append(self)
+        umpire.career.statistics.fly_out_calls.append(self)

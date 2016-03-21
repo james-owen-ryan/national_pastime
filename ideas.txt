@@ -1,0 +1,5 @@
+0. Players form mental models that represent their conceptions of themselves as players. A
+    cool way to change the world is to persuade a player to alter their fundamental conception
+    of themself. E.g., a player with low confidence doesn't believe they are a power hitter, but
+    you convince them that they are, thereby unlocking that potential (and of course it could also
+    go wrongly in the obverse).

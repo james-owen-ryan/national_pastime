@@ -1,89 +1,64 @@
 ### CAN DELETE ASAP IF NOT NEEDED
 
-if not self.throw:
-                # If there's a fielder with a chance, and the ball hasn't been fielded
-                # yet, and that player is not reorienting from a prior fielding miss,
-                # simulate the fielding attempt
-                if not batted_ball.fielded_by and batted_ball.fielder_with_chance:
-                    if batted_ball.fielder_with_chance.reorienting_after_fielding_miss > 0:
-                        batted_ball.fielder_with_chance.reorienting_after_fielding_miss -= 0.1
-                    if batted_ball.fielder_with_chance.reorienting_after_fielding_miss <= 0:
-                        # Attempt to field the ball
-                        batted_ball.fielder_with_chance.field_ball(batted_ball=batted_ball)
-                        if not batted_ball.fielded_by:
-                            # ** Defensive player didn't field the ball cleanly **
-                            # TODO may be scored as error, and then all the statistical nuances there
-                            if batted_ball.bobbled:
-                                pass  # Player will attempt to field ball again after reorienting
-                            elif not batted_ball.bobbled:
-                                # Batted ball will continue on its trajectory, so players need to
-                                # reassess whether and how they may attempt to field it
-                                batted_ball.get_reread_by_fielders()
-                            for baserunner in self.at_bat.frame.baserunners + [self.batter]:
-                                # if error:
-                                #       baserunner.advancing_due_to_error = True
-                                if (not baserunner.baserunning_full_speed and
-                                        (batted_ball.bobbled or
-                                         not any(f for f in self.fielders if f.attempting_fly_out))):
-                                    # (Note on above if statement: It's possible a fielder backing up
-                                    # the catch will somehow himself be making a fly out attempt now,
-                                    # in which case the baserunners should keep tentatively advancing)
-                                    baserunner.estimate_whether_you_can_beat_throw(batted_ball=batted_ball)
-                                    if (baserunner.believes_he_can_beat_throw or
-                                            baserunner.forced_to_advance):
-                                        # You weren't baserunning full-speed, but you will start now
-                                        baserunner.safely_on_base = False
-                                        baserunner._decided_finish = False
-                                        baserunner.will_round_base = False
-                                        baserunner.percent_to_base = 0.0
-                                        baserunner.baserun(batted_ball=batted_ball)
-                                    else:
-                                        # Don't retreat already or stay on base -- keep tentatively
-                                        # advancing in case there is another fielding gaffe
-                                        print (
-                                            "-- {} still doesn't believe he can beat the throw, but "
-                                            "will tentatively advance to the next base in case of "
-                                            "another fielding gaffe [{}]"
-                                        ).format(
-                                            baserunner.last_name, batted_ball.time_since_contact
-                                        )
-                                        baserunner.safely_on_base = False
-                                        baserunner.tentatively_baserun(batted_ball=batted_ball)
-                            batted_ball.bobbled = False  # Reset to allow consideration of future bobbles
-                        elif batted_ball.fielded_by:
-                            for baserunner in self.at_bat.frame.baserunners + [self.batter]:
-                                if baserunner.tentatively_baserunning:
-                                    baserunner.retreat(batted_ball=batted_ball)
-                # If the ball has been fielded and the fielder hasn't decided his throw
-                # yet, have him decide his throw and then instantiate the throw
-                elif batted_ball.fielded_by:
-                    # elif here so that the umpire gets a timestep to make a call
-                    # as to whether it's a fly out or a trap, if necessary
-                    batted_ball.fielded_by.decide_throw_or_on_foot_approach_to_target(batted_ball=batted_ball)
-                    self.throw = batted_ball.fielded_by.throw(batted_ball=batted_ball)
-            if self.throw and not self.throw.reached_target:
-                self.throw.move()
-            if self.throw and self.throw.reached_target and self.throw.resolved:
-                self.throw.thrown_to.decide_throw_or_on_foot_approach_to_target(batted_ball=batted_ball)
-                self.throw = self.throw.thrown_to.throw(batted_ball=batted_ball)
-            # If the throw was in anticipation of an advancing runner and it has
-            # reached its target, resolve the play at the plate
-            elif self.throw and self.throw.reached_target and not self.throw.resolved:
-                print "-- Throw has reached {} ({}) [{}]".format(
-                    self.throw.thrown_to.last_name, self.throw.thrown_to.position,
-                    batted_ball.time_since_contact
-                )
-                self.throw.resolved = True
-                if self.throw.runner:
-                    self.umpire.call_play_at_base(baserunner=self.throw.runner, throw=self.throw)
-                elif not self.throw.runner:
-                    self.resolved = True
-            self.umpire.officiate(batted_ball=batted_ball)
+def rate_potential_lot(self, lot):
+        """Rate the desirability of living at the location of a lot.
 
+        By this method, a person appraises a vacant home or lot in the city for
+        how much they would like to move or build there, given considerations to the people
+        that live nearby it (this reasoning via self.score_potential_home_or_lot()). There is
+        a penalty that makes people less willing to build a home on a vacant lot than to move
+        into a vacant home.
+        """
+        config = self.cosmos.config
+        desire_to_live_near_family = self._determine_desire_to_move_near_family()
+        # Score home for its proximity to family (either positively or negatively, depending); only
+        # consider family members that are alive, in town, and not living with you already (i.e., kids)
+        relatives_in_town = {
+            f for f in self.extended_family if f.home and f.home.city is lot.city and f.home is not self.home
+        }
+        score = 0
+        for relative in relatives_in_town:
+            relation_to_me = self.relation_to_me(person=relative)
+            pull_toward_someone_of_that_relation = config.pull_to_live_near_family[relation_to_me]
+            dist = lot.city.distance_between(relative.home.lot, lot) + 1.0  # To avoid ZeroDivisionError
+            score += (desire_to_live_near_family * pull_toward_someone_of_that_relation) / dist
+        # Score for proximity to friends (only positively)
+        friends_in_town = {
+            f for f in self.friends if f.home and f.home.city is lot.city and f.home is not self.home
+        }
+        for friend in friends_in_town:
+            dist = lot.city.distance_between(friend.home.lot, lot) + 1.0
+            score += config.pull_to_live_near_a_friend / dist
+        # Score for proximity to workplace (only positively) -- will be only criterion for person
+        # who is new to the city (and thus knows no one there yet)
+        if self.occupation and self.occupation.company and self.occupation.company.city is lot.city:
+            dist = lot.city.distance_between(self.occupation.company.lot, lot) + 1.0
+            score += config.pull_to_live_near_workplace / dist
+        return score
 
 ###################
 ###################
 ###################
+
+def init_name(self):
+        first_name = NAMES.a_masculine_name
+        middle_name = NAMES.a_masculine_name
+        if self.hometown.state.name == "Wisconsin":
+            last_name = NAMES.a_german_surname
+        elif self.hometown.state.name == "Minnesota":
+            last_name = NAMES.a_scandinavian_surname
+        elif self.hometown.name == "Boston":
+            last_name = NAMES.an_irish_surname
+        elif self.hometown.name == "Philadelphia":
+            if random.random() < 0.6:
+                last_name = NAMES.an_irish_surname
+            else:
+                last_name = NAMES.an_english_surname
+        elif self.hometown.state.name == "Louisiana":
+            last_name = NAMES.a_french_surname
+        else:
+            last_name = NAMES.any_surname
+        return first_name, middle_name, last_name
 
 
 

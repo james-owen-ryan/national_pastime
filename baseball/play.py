@@ -14,7 +14,7 @@ class Pitch(object):
         self.ball = ball
         self.at_bat = at_bat
         self.pitcher = at_bat.pitcher
-        self.pitcher.pitches.append(self)
+        self.pitcher.career.statistics.pitches.append(self)
         self.batter = at_bat.batter
         self.catcher = at_bat.catcher
         self.umpire = at_bat.umpire
@@ -282,7 +282,7 @@ class FieldingAct(object):
     def __init__(self, fielder, batted_ball, objective_difficulty, subjective_difficulty,
                  line_drive_at_pitcher, ball_totally_missed):
         self.fielder = fielder
-        self.fielder.fielding_acts.append(self)
+        self.fielder.career.statistics.fielding_acts.append(self)
         self.location = self.fielder.location
         self.fielder_position = fielder.position
         self.batted_ball = batted_ball
@@ -313,39 +313,39 @@ class FieldingAct(object):
         if batted_ball.at_bat.game.trace:
             if line_drive_at_pitcher:
                 print "-- Line drive right at {} ({}) [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
             elif batted_ball.at_the_foul_wall or batted_ball.at_the_outfield_wall or batted_ball.left_playing_field:
                 print "-- {} ({}) is attempting a catch at the wall! [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
                 if batted_ball.at_bat.game.radio_announcer:
                     os.system('say {} is going for the catch at the wall!'.format(self.fielder))
                     time.sleep(0.5)
             else:
                 print "-- {} ({}) is attempting to field the ball at [{}, {}] [Diff: {}] [{}]".format(
-                    self.fielder.last_name, self.fielder_position, int(self.location[0]), int(self.location[1]),
+                    self.fielder.person.last_name, self.fielder_position, int(self.location[0]), int(self.location[1]),
                     round(self.objective_difficulty, 3), batted_ball.time_since_contact
                 )
             if self.successful and batted_ball.landed:
                 print "-- {} ({}) cleanly fields the ball [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
             elif self.successful and not batted_ball.landed:
                 print "-- {} ({}) makes the catch [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
             elif batted_ball.stopped and batted_ball.bobbled:
                 print "-- {} ({}) bobbles the stopped ball [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
             elif not batted_ball.stopped and batted_ball.bobbled:
                 print "-- {} ({}) gets a glove on the ball, but drops it [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
             elif ball_totally_missed:
                 print "-- {} ({}) misses the ball [{}]".format(
-                    self.fielder.last_name, self.fielder_position, batted_ball.time_since_contact
+                    self.fielder.person.last_name, self.fielder_position, batted_ball.time_since_contact
                 )
 
 
@@ -393,7 +393,7 @@ class Throw(object):
         if not self.back_to_pitcher and not self.thrown_to.at_goal and self.distance_to_target < 100:
             if self.playing_action.batted_ball.at_bat.game.trace:
                 print "-- {} is waiting for {} to get to {} [{}]".format(
-                    self.thrown_by.last_name, self.thrown_to.last_name, self.base,
+                    self.thrown_by.person.last_name, self.thrown_to.person.last_name, self.base,
                     self.playing_action.batted_ball.time_since_contact
                 )
         elif self.time_until_release > 0:
@@ -401,7 +401,7 @@ class Throw(object):
             if self.time_until_release <= 0.0:
                 if self.playing_action.batted_ball.at_bat.game.trace:
                     print "-- {} has released the throw [{}]".format(
-                        self.thrown_by.last_name, self.playing_action.batted_ball.time_since_contact
+                        self.thrown_by.person.last_name, self.playing_action.batted_ball.time_since_contact
                     )
         else:
             self.time_remaining_until_target_is_reached -= 0.1

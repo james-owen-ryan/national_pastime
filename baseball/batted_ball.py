@@ -415,7 +415,7 @@ class BattedBall(object):
                     # calculated in the above block
                     time_to_ball_location_at_timestep = (
                         dist_from_fielder_origin_at_timestep *
-                        (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
+                        (fielder.person.body.full_speed_seconds_per_foot * max_rate_of_speed_to_this_location)
                     )
                     # Account for the fact that it takes fielders 0.5 seconds to begin
                     # moving once the ball is hit
@@ -455,7 +455,7 @@ class BattedBall(object):
                         )
                         fielder.relative_rate_of_speed = (
                             1000 * fielder.dist_per_timestep *
-                            (fielder.full_speed_sec_per_foot * max_rate_of_speed_to_this_location)
+                            (fielder.person.body.full_speed_seconds_per_foot * max_rate_of_speed_to_this_location)
                         )
                         break
                     elif timestep == timesteps[-1]:
@@ -475,7 +475,7 @@ class BattedBall(object):
                         # immediate goal location (again, should he end up fielding
                         # the ball)
                         fielder.dist_per_timestep = (
-                            (0.1/fielder.full_speed_sec_per_foot) * max_rate_of_speed_to_this_location
+                            (0.1/fielder.person.body.full_speed_seconds_per_foot) * max_rate_of_speed_to_this_location
                         )
                         fielder.relative_rate_of_speed = 90
         self.obligated_fielder = (
@@ -571,7 +571,7 @@ class BattedBall(object):
                     # movement in the fielder's approach to the ball location at that
                     # timestep, which affected the maximum rate of speed that we
                     # calculated in the above block
-                    full_speed_dist_per_timestep = 0.1/fielder.full_speed_sec_per_foot
+                    full_speed_dist_per_timestep = 0.1/fielder.person.body.full_speed_seconds_per_foot
                     full_speed_dist_per_timestep *= max_rate_of_speed_to_this_location
                     time_to_ball_location_at_timestep = (
                         dist_from_current_fielder_location_at_timestep / full_speed_dist_per_timestep
@@ -617,12 +617,12 @@ class BattedBall(object):
         if self.obligated_fielder.playing_the_ball:
             if self.at_bat.game.trace:
                 print "-- {} ({}) will try again to field the ball [{}]".format(
-                    self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
+                    self.obligated_fielder.person.last_name, self.obligated_fielder.position, self.time_since_contact
                 )
         else:
             if self.at_bat.game.trace:
                 print "-- {} ({}) will now attempt to field the ball [{}]".format(
-                    self.obligated_fielder.last_name, self.obligated_fielder.position, self.time_since_contact
+                    self.obligated_fielder.person.last_name, self.obligated_fielder.position, self.time_since_contact
                 )
         self.obligated_fielder.making_goal_revision = True
         self.obligated_fielder.playing_the_ball = True
@@ -639,7 +639,7 @@ class BattedBall(object):
             # Fielder is planning to field the ball after it has stopped, thus his planned timestep
             # for the fielding attempt in not in batted_ball.position_at_timestep
             self.obligated_fielder.immediate_goal = self.final_location
-        fielder_full_speed_dist_per_timestep = 0.1/self.obligated_fielder.full_speed_sec_per_foot
+        fielder_full_speed_dist_per_timestep = 0.1/self.obligated_fielder.person.body.full_speed_seconds_per_foot
         fielder_full_speed_dist_per_timestep *= fielder_max_rates_of_speed[self.obligated_fielder]
         self.obligated_fielder.dist_per_timestep = fielder_full_speed_dist_per_timestep
         # Assume flat-rate relative rate of speed, because there will always be a rush
@@ -793,7 +793,7 @@ class BattedBall(object):
                 )
 
     def __str__(self):
-        return "{} hit by {} toward {}".format(self.type, self.batter.last_name, self.destination)
+        return "{} hit by {} toward {}".format(self.type, self.batter.person.last_name, self.destination)
 
     @property
     def vacuum_distance(self):

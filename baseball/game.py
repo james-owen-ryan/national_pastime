@@ -1,18 +1,36 @@
 import random
+from people.event import Event
 from outcome import Strike, Ball, FoulBall, Single, Double, Triple, HomeRun, Run, DoublePlay, TriplePlay, FieldersChoice
 from playing_action import PitchInterim, PlayingAction
 
 
-class Game(object):
+# First ever Talk of the Town-integrated game to be completed (03-18-2016):
 
-    def __init__(self, ballpark, home_team, away_team, league, rules, radio=False, trace=False, debug=False):
-        self.debug = debug
-        self.trace = trace
-        self.ballpark = ballpark
-        self.league = league
+# Southwark (0-0) has beaten Reading (0-0) 4-3
+#
+# 		    1   2   3   4   5   6   7   8   9
+# 		    __________________________________
+# Southwark	0   4   0   0   0   0   0   0   0	4
+#
+# Reading	0   0   0   0   0   0   0   0   3	3
+
+
+class Game(Event):
+
+    def __init__(self, home_team, away_team, ballpark=None, league=None, rules=None,
+                 radio=False, trace=False, debug=False):
+        self.cosmos = home_team.city.cosmos
+        super(Game, self).__init__(cosmos=self.cosmos)  # This will collect metadata about the date, etc.
         self.home_team = home_team
         self.away_team = away_team
-        self.rules = rules  # Rules game will be played under
+        # Turn debug or trace parameters on or off
+        self.debug = debug
+        self.trace = trace
+        # Determine ballpark, league, rules of play, and umpire
+        self.ballpark = home_team.ballpark if not ballpark else ballpark  # In case of neutral field
+        self.league = home_team.league if not league else ballpark  # In case of non-league play
+        self.rules = home_team.league.rules if not rules else rules  # In case of weird rules jazz
+        self.umpire = self.league.umpire
         # Prepare for game
         self.home_team.runs = self.away_team.runs = 0
         home_team.pitcher = home_team.pitcher
@@ -23,23 +41,28 @@ class Game(object):
         away_team.batter = away_team.batting_order[-1]
         self.home_team.runs = self.away_team.runs = 0
         self.innings = []
-        self.umpire = next(z for z in self.league.country.players if
-                           z.hometown.name in ("Minneapolis", "St. Paul", "Duluth"))
         if radio:
             self.radio_announcer = random.choice(self.home_team.city.players)
             while self.radio_announcer in self.home_team.players+self.away_team.players:
                 self.radio_announcer = random.choice(self.home_team.city.players)
         else:
             self.radio_announcer = None
-        self.umpire.games_umpired.append(self)
-        self.determine_salience()
+        self._init_determine_salience()
         self.composures_before = {}
         for player in away_team.players+home_team.players:
             self.composures_before[player] = player.composure
         if self.radio_announcer:
             self.radio_announcer.call_pregame(game=self)
 
-    def determine_salience(self):
+    def __str__(self):
+        """Return string representation."""
+        return "{away_team} at {home_team}, {date}".format(
+            away_team=self.away_team.name,
+            home_team=self.home_team.name,
+            date=self.date
+        )
+
+    def _init_determine_salience(self):
         """Determine the salience of this game.
 
         More salient games will have greater ramifications on player composure, confidence,
@@ -79,9 +102,9 @@ class Game(object):
 
     def effect_consequences(self):
         for player in self.away_team.players+self.home_team.players:
-            conf_before, comp_before = player.confidence, player.composure
-            diff = player.composure-player.confidence
-            player.confidence += (diff/100.) * self.salience
+            conf_before, comp_before = player.person.personality.confidence, player.composure
+            diff = player.composure-player.person.personality.confidence
+            player.person.personality.confidence += (diff/100.) * self.salience
             player.composure -= (diff/10.) * self.salience
             if player.composure < 0.5:
                 player.composure = 0.5
@@ -89,7 +112,9 @@ class Game(object):
                 player.composure = 1.5
             if self.trace:
                 print "{}'s confidence changed by {}; his composure reverted from {} to {}".format(
-                    player.name, player.confidence-conf_before, round(comp_before, 2), round(player.composure, 2)
+                    player.person.name, round(player.person.personality.confidence-conf_before, 4),
+                    round(comp_before, 2),
+                    round(player.composure, 2)
                 )
         self.winner.wins += 1
         self.loser.losses += 1
@@ -121,8 +146,8 @@ class Game(object):
         print '\n\n\t {}\n'.format(self.away_team.name)
         print '\t\t\tAB\tR\tH\t2B\t3B\tHR\tRBI\tBB\tSO\tSB\tAVG'
         for p in self.away_team.players:
-            if len(p.at_bats) > 0:
-                batting_avg = round(len(p.hits)/float(len(p.at_bats)), 3)
+            if len(p.career.statistics.at_bats) > 0:
+                batting_avg = round(len(p.career.statistics.hits)/float(len(p.career.statistics.at_bats)), 3)
                 if batting_avg == 1.0:
                     batting_avg = '1.000'
                 else:
@@ -131,20 +156,23 @@ class Game(object):
                 batting_avg = '.000'
             while len(batting_avg) < 4:
                 batting_avg += '0'
-            if len(p.last_name) >= 8:
+            if len(p.person.last_name) >= 8:
                 tabs_needed = '\t'
             else:
                 tabs_needed = '\t\t'
             print "{}{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
-                p.last_name, tabs_needed, p.position, len(p.at_bats), len(p.runs), len(p.hits),
-                len(p.doubles), len(p.triples), len(p.home_runs), len(p.rbi),
-                len(p.batting_walks), len(p.batting_strikeouts), len(p.stolen_bases), batting_avg
+                p.person.last_name, tabs_needed, p.position, len(p.career.statistics.at_bats), 
+                len(p.career.statistics.runs),
+                len(p.career.statistics.hits),
+                len(p.career.statistics.doubles), 
+                len(p.career.statistics.triples), len(p.career.statistics.home_runs), len(p.career.statistics.rbi),
+                len(p.career.statistics.batting_walks), len(p.career.statistics.batting_strikeouts), len(p.career.statistics.stolen_bases), batting_avg
             )
         print '\n\n\t {}\n'.format(self.home_team.name)
         print '\t\t\tAB\tR\tH\t2B\t3B\tHR\tRBI\tBB\tSO\tSB\tAVG'
         for p in self.home_team.players:
-            if len(p.at_bats) > 0:
-                batting_avg = round(len(p.hits)/float(len(p.at_bats)), 3)
+            if len(p.career.statistics.at_bats) > 0:  # TODO Did I screw this up by checking the career stats?
+                batting_avg = round(len(p.career.statistics.hits)/float(len(p.career.statistics.at_bats)), 3)
                 if batting_avg == 1.0:
                     batting_avg = '1.000'
                 else:
@@ -153,14 +181,18 @@ class Game(object):
                 batting_avg = '.000'
             while len(batting_avg) < 4:
                 batting_avg += '0'
-            if len(p.last_name) >= 8:
+            if len(p.person.last_name) >= 8:
                 tabs_needed = '\t'
             else:
                 tabs_needed = '\t\t'
             print "{}{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
-                p.last_name, tabs_needed, p.position, len(p.at_bats), len(p.runs), len(p.hits),
-                len(p.doubles), len(p.triples), len(p.home_runs), len(p.rbi),
-                len(p.batting_walks), len(p.batting_strikeouts), len(p.stolen_bases), batting_avg
+                p.person.last_name, tabs_needed, p.position, len(p.career.statistics.at_bats), len(p.career.statistics.runs),
+                len(p.career.statistics.hits),
+                len(p.career.statistics.doubles), len(p.career.statistics.triples), 
+                len(p.career.statistics.home_runs), len(p.career.statistics.rbi),
+                len(p.career.statistics.batting_walks), 
+                len(p.career.statistics.batting_strikeouts), 
+                len(p.career.statistics.stolen_bases), batting_avg
             )
 
 
@@ -266,7 +298,7 @@ class Frame(object):
 
     def review(self):
         # TODO substitution will change how this should be done
-        self.pitching_team.pitcher.innings_pitched.append(self)
+        self.pitching_team.pitcher.career.statistics.innings_pitched.append(self)
         temp_lob = []
         for baserunner in self.baserunners:
             self.batting_team.left_on_base.append(baserunner)
@@ -278,7 +310,7 @@ class Frame(object):
             self.at_bats[-1].batter.composure -= 0.05
         if self.game.trace:
             print "{} left these players on base: {}\n".format(
-                self.batting_team.city.name, ', '.join(b.last_name for b in temp_lob)
+                self.batting_team.city.name, ', '.join(b.person.last_name for b in temp_lob)
             )
 
     @property
@@ -337,10 +369,6 @@ class AtBat(object):
 
     def enact(self):
         # TODO substitutions will change where this should be done
-        if self.game not in self.pitcher.games_played:
-            self.pitcher.games_played.append(self.game)
-        if self.game not in self.batter.games_played:
-            self.batter.games_played.append(self.game)
         assert not self.resolved, "Call to enact() of already resolved AtBat."
         while not self.resolved:
             self.playing_action = None  # Don't retain prior playing action

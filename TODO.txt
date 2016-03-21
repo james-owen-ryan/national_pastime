@@ -1,0 +1,12 @@
+0. Orphanages!
+
+1. People don't even meet doctors who deliver their children, lawyers, etc. Need to have those
+    events occur as parts of routines. Like, that's where you're going today if you're in labor,
+    etc. That way, all the social stuff that is handled as parts of routines will get handled.
+
+2. It's kind of awkward to, e.g., have a barbershop empire in 1870. Make holding companies only form for
+    certain kinds of businesses.
+
+3. Convert PersonExNihilo to Immigrant class, and then specify which country they're coming from.
+    Can then give them appropriate surname for the country and move them to appropriate city
+    given their nationality.

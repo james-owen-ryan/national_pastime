@@ -10119,7 +10119,7 @@ Platt
 Platten
 Platter
 Platts
-Person
+Player
 Playford
 Pleas
 Pleasant
@@ -14225,7 +14225,7 @@ Workman
 Works
 Worl
 Worland
-World
+Cosmos
 Worley
 Worm
 Wormald

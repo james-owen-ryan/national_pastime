@@ -1,25 +1,31 @@
+# TODO
+# - ground rules! Can just be a set of (x, y) coordinates, and if
+# batted_ball.location in ballpark.ground_rules, then instantiate GroundRuleDouble()
+# - mapping of coordinates to whether they are in the stands, on base paths, etc.
+# - mapping of coordinates to ground rule double areas
+# - type of grass, and coefficient of restitution for that grass and
+#   coefficient of friction for that grass (which will be each be a dynamic @property)
+#   (CORs:  0.562 for non-turfed base paths (increases with more sub-surface soil compaction)
+#           0.479 for turf grass (varies per cutting height and moisture)
+#           0.520 for synthetic turf (varies according to material composition))
+# - coefficient of friction and restitution for playing-field boundary fences
+# - weather and altitude stuff
+# - dampness of grass
+
+
 class Ballpark(object):
+    """A baseball park in a city."""
 
-    # # Want these things included
-    # - ground rules! Can just be a set of (x, y) coordinates, and if
-    # batted_ball.location in ballpark.ground_rules, then instantiate GroundRuleDouble()
-    # - mapping of coordinates to whether they are in the stands, on base paths, etc.
-    # - mapping of coordinates to ground rule double areas
-    # - type of grass, and coefficient of restitution for that grass and
-    #   coefficient of friction for that grass (which will be each be a dynamic @property)
-    #   (CORs:  0.562 for non-turfed base paths (increases with more sub-surface soil compaction)
-    #           0.479 for turf grass (varies per cutting height and moisture)
-    #           0.520 for synthetic turf (varies according to material composition))
-    # - coefficient of friction and restitution for playing-field boundary fences
-    # - weather and altitude stuff
-    # - dampness of grass
-
-    def __init__(self, city, tenants=[]):
+    def __init__(self, city, tenants=None):
+        """Initialize a Ballpark object."""
         self.country = city.country
         self.city = city
         self.intersection = None
-        self.tenants = tenants
-        # Trivia
+        self.tenants = [] if not tenants else tenants
+
+        self.name = "{} Municipal Field".format(self.city.name)  # TODO MAKE COOL
+
+        # Trivia -- TODO simulate these concerns (e.g. have architect design it)
         # self.broke_ground = self.city.country.date
         # self.opened = self.broke_ground  # For testing only
         self.renovated = None
@@ -54,6 +60,10 @@ class Ballpark(object):
         self.right_foul_pole_height = self.outfield_fence_height[self.right_foul_pole_location[0]]
         # Set ground-rule coordinates TODO
         self.ground_rule_coords = set()
+
+    def __str__(self):
+        """Return string representation."""
+        return self.name
 
     @staticmethod
     def get_playing_field_boundaries():

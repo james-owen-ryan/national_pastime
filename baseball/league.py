@@ -8,15 +8,17 @@ from rules import Rules
 
 
 class League(object):
+    """A baseball league in a baseball cosmos."""
     
     def __init__(self, country):
-
+        """Initialize a League object."""
         self.country = country
+        self.cosmos = country.cosmos
         self.name = self.init_name()
-        while self.name in country.league_names:
+        while self.name in {league.name for league in self.cosmos.leagues}:
             self.name = self.init_name()
-        country.leagues.append(self)
-        self.founded = country.year
+        self.cosmos.leagues.append(self)
+        self.founded = self.cosmos.year
         self.cities = []
         self.teams = []
         self.defunct = []
@@ -52,14 +54,14 @@ class League(object):
                                 'Continental', 'Continental', 
                                 'Conglomerated', 'Civil', 'United'])
         
-       # if self.country.year > int(round(normal(1918,8))):
+       # if self.cosmos.year > int(round(normal(1918,8))):
        #     sport_name = 'Baseball'
        # else:
        #     sport_name = 'Base Baseball'
             
         stem = random.choice(['League', 'Association'])
         
-       # if self.country.year < int(round(normal(1880,2))):
+       # if self.cosmos.year < int(round(normal(1880,2))):
        #     self.name = prefix + ' ' + sport_name + ' ' + suffix
         
         name = "{prefix} {stem}".format(prefix=prefix, stem=stem)
@@ -68,19 +70,19 @@ class League(object):
         
 
     def init_headquarters(self):
-        
+
         n = int(round(normal(0,4)))
         while n < 1:
             n = int(round(normal(0,1)))
-        
+
         pops = sorted([city.pop for city in self.country.cities], reverse=True)
         chosen = pops[n]
-        
-        headquarters = [city for city in self.country.cities if city.pop == 
+
+        headquarters = [city for city in self.country.cities if city.pop ==
                         chosen][0]
-        
+
         return headquarters
-    
+
     def init_teams(self):
 
         # Determine potential value of candidate cities to league, given
@@ -115,19 +117,19 @@ class League(object):
         
         vals = {}
         
-        if self.country.year < 1945:
+        if self.cosmos.year < 1945:
             central = self.central
             for c in [c for c in self.country.cities if c not in self.cities]:
                 if (c.latitude == central.latitude and
                             c.longitude == central.longitude):
                     v = c.pop
-                elif central.get_dist(c) < 1:
+                elif central.distance_to(c) < 1:
                     v = c.pop
                 else:
-                    v = int(c.pop/central.get_dist(c))
+                    v = int(c.pop/central.distance_to(c))
                 vals[c] = v
         
-        if self.country.year >= 1945:
+        if self.cosmos.year >= 1945:
             mean_pop = sum([c.pop for c in self.country.cities])/len(self.country.cities)
             for c in [c for c in self.country.cities if c not in self.cities]:
                 v = c.pop
@@ -142,16 +144,16 @@ class League(object):
         for team in self.teams:
             team.cumulative_wins += team.wins
             team.cumulative_losses += team.losses
-            team.records_timeline[self.country.year] = [team.wins, team.losses]
+            team.records_timeline[self.cosmos.year] = [team.wins, team.losses]
         self.champion = s.champion
-        self.champions_timeline[self.country.year] = self.champion
+        self.champions_timeline[self.cosmos.year] = self.champion
         self.print_league_standings()
         self.print_league_leaders()
         for team in self.teams:
             team.wins = team.losses = 0
 
         # if updates:
-        #     print ('\t\n' + str(self.country.year) + ' ' + self.name +
+        #     print ('\t\n' + str(self.cosmos.year) + ' ' + self.name +
         #            ' Champions: ' + s.champion.name + ' (' +
         #            s.champion.record + ')\n')
         #     raw_input ('')
@@ -162,11 +164,11 @@ class League(object):
         #
         # self.champion = s.champion
         # self.champions.append(s.champion)
-        # self.champions_timeline.append(str(self.country.year) + ': ' +
+        # self.champions_timeline.append(str(self.cosmos.year) + ': ' +
         #                                s.champion.name)
         #
         # for team in self.teams:
-        #     team.records_timeline.append(str(self.country.year) + ': ' +
+        #     team.records_timeline.append(str(self.cosmos.year) + ': ' +
         #                                  team.record)
         # s.champion.records_timeline[-1] += '^'
         
@@ -211,7 +213,7 @@ class League(object):
                         cands.remove(chosen_city)
 
     def print_league_standings(self):
-        print "\n\n\t\t\tFinal {} {} Standings\n\n".format(self.country.year, self.name)
+        print "\n\n\t\t\tFinal {} {} Standings\n\n".format(self.cosmos.year, self.name)
         self.teams.sort(key=lambda t: t.wins, reverse=True)
         for team in self.teams:
             print "{}: {}-{}".format(team.name, team.wins, team.losses)
@@ -221,31 +223,31 @@ class League(object):
         print "\n\n\t\tBATTING AVERAGE LEADERS"
         for player in self.players:
             batting_average = len(player.hits)/float(len(player.at_bats))
-            player.yearly_batting_averages[self.country.year] = round(batting_average, 3)
+            player.yearly_batting_averages[self.cosmos.year] = round(batting_average, 3)
             player.career_hits += player.hits
             player.career_at_bats += player.at_bats
             player.hits = []
             player.at_bats = []
         leaders = list(self.players)
-        leaders.sort(key=lambda p: p.yearly_batting_averages[self.country.year], reverse=True)
-        leaders[0].batting_titles.append(self.current_season)
+        leaders.sort(key=lambda p: p.yearly_batting_averages[self.cosmos.year], reverse=True)
+        # leaders[0].batting_titles.append(self.current_season)
         for i in xrange(9):
             print "{}\t{}\t{}\t{}".format(
-                i+1, round(leaders[i].yearly_batting_averages[self.country.year], 3),
+                i+1, round(leaders[i].yearly_batting_averages[self.cosmos.year], 3),
                 leaders[i].name, leaders[i].team.city.name,
             )
         # Home run leaders
         print "\n\n\t\tHOME RUN KINGS"
         for player in self.players:
-            player.yearly_home_runs[self.country.year] = len(player.home_runs)
+            player.yearly_home_runs[self.cosmos.year] = len(player.home_runs)
             player.career_home_runs += player.home_runs
             player.home_runs = []
         leaders = list(self.players)
-        leaders.sort(key=lambda p: p.yearly_home_runs[self.country.year], reverse=True)
-        leaders[0].home_run_titles.append(self.current_season)
+        leaders.sort(key=lambda p: p.yearly_home_runs[self.cosmos.year], reverse=True)
+        # leaders[0].home_run_titles.append(self.current_season)
         for i in xrange(9):
             print "{}\t{}\t{}\t{}".format(
-                i+1, leaders[i].yearly_home_runs[self.country.year],
+                i+1, leaders[i].yearly_home_runs[self.cosmos.year],
                 self.players[i].name, leaders[i].team.city.name,
             )
 

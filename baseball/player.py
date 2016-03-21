@@ -5,57 +5,67 @@ import time
 import re
 from random import normalvariate as normal
 
-from data import Names
+from corpora import Names
 from equipment import Bat, Baseball, Glove, Mitt
 from play import Pitch, Swing, Bunt, FieldingAct, Throw
-from call import PlayAtBaseCall, FlyOutCall
-from outcome import FoulBall, FlyOut, HomeRun, GrandSlam, AutomaticDouble, GroundRuleDouble
-from outcome import Strikeout, BaseOnBalls  # for radio
+from career import PlayerCareer
 
 
-NAMES = Names()
+# TODO  progress skills according to age, practice, and also according to era somehow (maybe
+# TODO  have the averages, used often in diff_from_avg snippets, change over time?)
 
 
-# TODO model baseball scorers, where the main intrigue will be the scorer
-# having biases and inconsistency with how he decides what 'ordinary effort'
-# is in potentially assigning errors -- a big consideration here is any
-# statistical context of the game, e.g., the scorer will be more likely to
-# call an error when a potential no-hitter is developing
+class Player(object):
+    """The baseball-player layer of a person's being."""
 
+    def __init__(self, person):
+        """Initialize a Player object."""
 
-class Person(object):
+        # TEMP TODO FIGURE OUT WHAT TO DO ABOUT THESE
+        self.composure = person.mood.composure
+        self.speed_home_to_first = person.body.speed_home_to_first
+        self.height = person.body.height
+        self.vertical_reach = person.body.vertical_reach
+        self.full_speed_seconds_per_foot = person.body.full_speed_seconds_per_foot
+        self.audacity = person.personality.audacity
+        self.reflexes = person.body.reflexes
 
-    def __init__(self, birthplace):
-        self.father = self.mother = None
-        self.country = birthplace.country
-        self.city = self.hometown = birthplace
-        self.state = birthplace.state
-        self.location = birthplace
-        self.team = None
-        self.first_name, self.middle_name, self.last_name = self.init_name()
-        self.full_name = "{} {} {}".format(self.first_name, self.middle_name, self.last_name)
-        self.name = "{} {}".format(self.first_name, self.last_name)
-        self.init_physical_attributes()
-        self.init_personality_and_mental_attributes()
-        self.init_baseball_attributes()
-        self.init_umpire_biases()
-
-        self.strike_zone = self.init_strike_zone()
-
-        self.retired = False
-        self.teams_timeline = {}
-
-        self.age = random.randint(0, 81)
-        self.birth_year = self.country.year - self.age
-
-
-        # Miscellaneous -- put here for now
+        self.person = person  # The person in whom this player layer embeds
+        # Prepare career attribute
+        self.career = PlayerCareer(player=self)
+        self._init_baseball_attributes()
+        self.strike_zone = self._determine_strike_zone()
         self.bat = None
         self.glove = Glove()
         self.primary_position = None
-        self.outfielder = self.infielder = False
-        # Dynamic attributes that change during a game
-        self.position = None  # Position currently at -- used during game
+        # Inherent attributes that only change gradually over the course of a
+        # life; these are set by _init_baseball_attributes(), and more info
+        # on these can be found in the comments there
+        self.fieldable_ball_max_height = None
+        self.fly_ball_fielding = None
+        self.ground_ball_fielding = None
+        self.throwing_velocity_mph = None
+        self.throwing_velocity = None  # This one is in ft/s, which is more convenient
+        self.throwing_release_time = None
+        self.throwing_error_per_foot = None
+        self.sidearm_throwing_error_per_foot = None
+        self.pitch_control = None
+        self.pitch_speed = None
+        self.pitch_speed_sd = None  # Standard deviation of pitch speed
+        self.pitch_recognition = None
+        self.swing_timing_error = None
+        self.swing_contact_error = None
+        self.batting_power_coefficient = None  # This one is actually used in determining bat speed on a swing
+        self.batting_power = None  # This one is for human readability; average is 1.0, greater is stronger
+        self.swing_pull_ability = None
+        self.pitch_receiving = None
+        self.pitch_blocking = None
+        self.pitch_framing = None
+        self.ball_tracking_ability = None
+        # Dynamic attributes that change during a game and are reset after the game ends
+        self.position = None  # Position player is currently playing
+        self.infielder = False
+        self.outfielder = False
         self.location = None  # Exact x, y coordinates on the field
         self.percent_to_base = None  # Percentage of way to base you're running to
         self.safely_on_base = False  # Physically reached the next base, not necessarily safely
@@ -65,6 +75,7 @@ class Person(object):
         self.playing_the_ball = False
         self.attempting_fly_out = False
         self.immediate_goal = None
+        self.making_goal_revision = False
         self.dist_per_timestep = None  # Feet per timestep in approach to immediate goal
         self.relative_rate_of_speed = None
         self._slope = None
@@ -73,351 +84,14 @@ class Person(object):
         self._straight_ahead_y = None
         self._moving_left = False
         self._moving_right = False
-        # Prepare statistical lists
-        # -- Service
-        self.games_played = []
-        # -- Pitching
-        self.innings_pitched = []
-        self.pitches = []
-        self.strikes = []
-        self.balls = []
-        self.beans = []
-        self.pitching_strikeouts = []
-        self.pitching_walks = []
-        self.hits_allowed = []
-        self.home_runs_allowed = []
-        self.grand_slams_allowed = []
-        # -- Batting
-        self.batting_strikeouts = []
-        self.batting_walks = []
-        self.plate_appearances = []
-        self.at_bats = []
-        self.hits = []
-        self.singles = []
-        self.doubles = []
-        self.triples = []
-        self.home_runs = []
-        self.grand_slams = []
-        self.rbi = []
-        self.runs = []
-        self.outs = []  # Instances where a player was called out
-        self.double_plays_grounded_into = []
-        self.left_on_base = 0
-        self.stolen_bases = []
-        # -- Fielding
-        self.putouts = []
-        self.assists = []
-        self.double_plays_participated_in = []
-        self.triple_plays_participated_in = []
-        # -- Umpiring
-        self.games_umpired = []
-        self.play_at_base_calls = []
-        self.fly_out_calls = []
-        # Prepare extra-statistical lists
-        self.throws = []
-        self.fielding_acts = []
+        # Set inherent baseball attributes
+        self._init_baseball_attributes()
 
-        self.career_hits = []
-        self.career_at_bats = []
-        self.career_home_runs = []
-        self.yearly_batting_averages = {}
-        self.yearly_home_runs = {}
-        self.home_run_titles = []
-        self.batting_titles = []
-
-    def init_name(self):
-        first_name = NAMES.a_masculine_name
-        middle_name = NAMES.a_masculine_name
-        if self.hometown.state.name == "Wisconsin":
-            last_name = NAMES.a_german_surname
-        elif self.hometown.state.name == "Minnesota":
-            last_name = NAMES.a_scandinavian_surname
-        elif self.hometown.name == "Boston":
-            last_name = NAMES.an_irish_surname
-        elif self.hometown.name == "Philadelphia":
-            if random.random() < 0.6:
-                last_name = NAMES.an_irish_surname
-            else:
-                last_name = NAMES.an_english_surname
-        elif self.hometown.state.name == "Louisiana":
-            last_name = NAMES.a_french_surname
-        else:
-            last_name = NAMES.any_surname
-        return first_name, middle_name, last_name
-
-    def init_physical_attributes(self):
-        self.height = int(normal(71, 2))  # TODO
-        # Determine weight, which is correlated with height
-        self.weight = int(normal(self.height*2.45, self.height*0.2))
-        # Determine body mass index (BMI)
-        self.bmi = float(self.weight)/self.height**2 * 703
-        # Determine coordination, which is correlated to BMI
-        if self.bmi > 24:
-            primitive_coordination = (21-(self.bmi-21))/23.
-        else:
-            primitive_coordination = 1.0
-        self.coordination = normal(primitive_coordination, 0.1)
-        # Determine reflexes, which is correlated to coordination
-        base_reflexes = normal(self.coordination, self.coordination/10)
-        self.reflexes = base_reflexes**0.3
-        # Determine agility, which is correlated to coordination and
-        # height (with 5'6 somewhat arbitrarily being the ideal height
-        # for agility)
-        primitive_agility = (
-            self.coordination - abs((self.height-66)/66.)
-        )
-        self.agility = normal(primitive_agility, 0.1)
-        # Determine jumping ability, which is correlated to coordination and
-        # height (with 6'6 somewhat arbitrarily being the ideal height
-        # for jumping)
-        primitive_jumping = (
-            self.coordination - abs((self.height-78)/78.)
-        )
-        if primitive_jumping < 0.3:
-            primitive_jumping = 0.3
-        self.vertical = normal(primitive_jumping**1.5 * 22, 3)
-        if self.vertical < 2:
-            self.vertical = 2 + random.random()*2
-        # Determine the maximum height of fieldable batted balls for the player,
-        # which is determined by sum of the player's vertical and vertical reach
-        # (the latter being how high they can reach while standing on the ground)
-        self.vertical_reach = (self.height * 1.275) / 12.0
-        self.fieldable_ball_max_height = (
-            self.vertical_reach + (self.vertical / 12.0)
-        )
-        # Determine footspeed, which is correlated to coordination and
-        # height (with 6'1 somewhat arbitrarily being the ideal height
-        # for footspeed) -- we do this by generating a 60-yard dash time
-        # and then dividing that by its 180 feet to get a full-speed
-        # second-per-foot time
-        primitive_footspeed = (
-            (1.5 * self.coordination) - abs((self.height-73)/73.)
-        )
-        diff_from_avg = primitive_footspeed - 1.21
-        if diff_from_avg >= 0:
-            diff_from_avg /= 2.3
-            self.full_speed_sec_per_foot = (7.3 - abs(normal(0, diff_from_avg))) / 180
-        else:
-            diff_from_avg /= 1.8
-            self.full_speed_sec_per_foot = (7.3 + abs(normal(0, abs(diff_from_avg)))) / 180
-        #   THIS IS THE NEW ONE -- FEET PER SECOND
-        self.full_speed_feet_per_second = 20 + primitive_footspeed*4.05
-        # Determine baserunning speed,
-        # [TODO penalize long follow-through and lefties on speed to first]
-        self.speed_home_to_first = (
-            (self.full_speed_sec_per_foot*180) / (1.62 + normal(0, 0.01))
-        )
-        7.2 - abs(normal(0, 0.17*2))
-        if random.random() < 0.1:
-            self.lefty = True
-            self.righty = False
-        else:
-            self.lefty = False
-            self.righty = True
-
-    def init_personality_and_mental_attributes(self):
-        """Initialize values for each of the Big Five personality traits and other mental traits."""
-        #       --    INHERENT ATTRIBUTES     --
-        # Initialize values for Big 5 personality traits
-        if self.father:
-            # Openness to experience (studies indicate 57% heritability)
-            takes_after = random.choice([self.father, self.mother])
-            self.openness_to_experience = normal(takes_after.openness_to_experience, 0.15)
-            if self.openness_to_experience > 1:
-                self.openness_to_experience = 1.0
-            elif self.openness_to_experience < -1:
-                self.openness_to_experience = -1.0
-            # Conscientiousness (studies indicate 54% heritability)
-            takes_after = random.choice([self.father, self.mother])
-            self.conscientiousness = normal(takes_after.conscientiousness, 0.13)
-            if self.conscientiousness > 1:
-                self.conscientiousness = 1.0
-            elif self.conscientiousness < -1:
-                self.conscientiousness = -1.0
-            # Extroversion (studies indicate 49% heritability)
-            takes_after = random.choice([self.father, self.mother])
-            self.extroversion = normal(takes_after.extroversion, 0.11)
-            if self.extroversion > 1:
-                self.extroversion = 1.0
-            elif self.extroversion < -1:
-                self.extroversion = -1.0
-            # Agreeableness (studies indicate 48% heritability)
-            takes_after = random.choice([self.father, self.mother])
-            self.agreeableness = normal(takes_after.agreeableness, 0.11)
-            if self.agreeableness > 1:
-                self.agreeableness = 1.0
-            elif self.agreeableness < -1:
-                self.extroversion = -1.0
-            # Neuroticism (studies indicate 42% heritability)
-            takes_after = random.choice([self.father, self.mother])
-            self.neuroticism = normal(takes_after.neuroticism, 0.09)
-            if self.neuroticism > 1:
-                self.neuroticism = 1.0
-            elif self.neuroticism < -1:
-                self.neuroticism = -1.0
-        elif not self.father:
-            # Openness to experience (study indicates mean of ~3.75 -- 0.375 on my scale)
-            self.openness_to_experience = normal(0.375, 0.35)
-            if self.openness_to_experience > 1:
-                self.openness_to_experience = 1.0
-            elif self.openness_to_experience < -1:
-                self.openness_to_experience = -1.0
-            # Conscientiousness (study indicates mean of ~3.5 -- 0.25 on my scale)
-            self.conscientiousness = normal(0.25, 0.35)
-            if self.conscientiousness > 1:
-                self.conscientiousness = 1.0
-            elif self.conscientiousness < -1:
-                self.conscientiousness = -1.0
-            # Extroversion (study indicates mean of ~3.3 -- 0.15 on my scale)
-            self.extroversion = normal(0.15, 0.35)
-            if self.extroversion > 1:
-                self.extroversion = 1.0
-            elif self.extroversion < -1:
-                self.extroversion = -1.0
-            # Agreeableness (study indicates mean of ~3.7 -- 0.35 on my scale)
-            self.agreeableness = normal(0.35, 0.35)
-            if self.agreeableness > 1:
-                self.agreeableness = 1.0
-            elif self.agreeableness < -1:
-                self.extroversion = -1.0
-            # Neuroticism (study indicates mean of ~3.0 -- 0.0 on my scale)
-            self.neuroticism = normal(0.0, 0.35)
-            if self.neuroticism > 1:
-                self.neuroticism = 1.0
-            elif self.neuroticism < -1:
-                self.neuroticism = -1.0
-        # -- Confidence (high values have the signal E+, N-); follows a normal distribution
-        # around 0.8, where 1.0 represents ideal confidence (in the sense of accurately judging
-        # one's own abilities), while lower and higher values represent under- and overconfidence,
-        # respectively; affects estimating whether you can beat a throw on the base paths,
-        base_confidence = self.extroversion + -self.neuroticism
-        self.confidence = 0.78 + base_confidence/0.49158017656787317/10
-        # -- Audacity (high values have the signal E+, O+); follows a normal distribution
-        # around 0.8, where there is no ideal audacity, just that lower values will make the
-        # player less likely to take risks (which may or may have paid off) and higher values will
-        # make the player more likely to take risks; affects deciding whether to challenge a close
-        # throw on the base paths,
-        base_audacity = self.extroversion + self.openness_to_experience
-        self.audacity = 0.7 + base_audacity/0.487468441582416/10
-        # -- Cleverness (high values have the signal O+, N-); follows a normal distribution
-        # around 1.0 -- average people have average cleverness, and the higher cleverness the better;
-        # affects typical composure
-        base_cleverness = self.openness_to_experience + -self.neuroticism
-        self.cleverness = 0.93 + base_cleverness/0.48588506450686808/10
-        # -- Focus (high values have the signal N-, C+); follows a normal distribution
-        # around 1.0 -- average people have average focus, and the higher focus the better;
-        # affects ball-tracking ability, fly-ball fielding ability, ground-ball fielding
-        # ability, throwing accuracy,
-        base_focus = -self.neuroticism + self.conscientiousness
-        self.focus = 0.95 + base_focus/0.49030688680600359/10
-        # -- Ego (high values have the signal E+, N-, A-); follows a normal distribution around
-        # 1.0 -- average people have an average ego
-        base_ego = self.confidence + -self.agreeableness
-        self.ego = 0.87 + base_ego/0.35398757217468318/10
-        # -- Intuition (high values have the signal O+, N-, N-, C+); follows a normal
-        # distribution around 1.0; affects the player's ability to accurately estimate
-        # things like how long a throw will take
-        base_intuition = self.cleverness + self.focus
-        self.intuition = -.15 + base_intuition/0.17312741255907588/10
-        # -- Ball tracking ability is correlated to a player's focus rating
-        # and affects a player's ability to anticipate the trajectories of
-        # balls in movement -- most saliently, it affects the speed with
-        # which a fielder can move in getting in position to field a fly ball
-        # while still properly tracking that ball; values approaching 1.5
-        # represent once-in-a-generation talents that would be capable of
-        # something like Willie Mays' catch.
-        self.ball_tracking_ability = (self.focus * 0.6666666666666666) * 1.5
-        #       --    DYNAMIC ATTRIBUTES     --
-        # These take inherent attributes as primitives, but can change over time, either
-        # rapidly or gradually
-        # -- Composure; this is a dynamic confidence measure that can change over the course
-        # of a game or more gradually over longer stretches of time; it works as a feedback
-        # loop on player performance; affects fielding, swing timing; is increased by impressive
-        # acts, good plate-appearance outcomes; is decreased by fielding bloopers, bad
-        # plate-appearance outcomes
-        self.composure = (self.confidence + self.focus) / 2
-        if self.composure > 1:
-            self.composure = 1.0
-
-    def init_intangibles(self):
-        self.hustle = 1.0
-
-    def init_baseball_attributes(self):
-
-        #       -- Fundamental attributes --
-
-        # Every fielding chance has a specified difficulty, which
-        # approximately represents the percentage likelihood that an
-        # average player would successfully field the ball given the
-        # circumstances at hand -- a player's fielding rating specifies
-        # how increased their likelihood of successfully fielding a
-        # batted ball is above the average player (ratings near 1.3-1.5
-        # represent once-a-generation talents); first, we start with
-        # fly-ball fielding ability (which subsumes line drives and
-        # pop-ups)
-        primitive_fly_ball_fielding_ability = (
-            self.coordination + self.agility*0.5 +
-            self.ball_tracking_ability + self.focus
-        )
-        diff_from_avg = primitive_fly_ball_fielding_ability - 3.342
-        diff_from_avg /= 6.8
-        if diff_from_avg >= 0:
-            percentage_above_avg = abs(normal(0, diff_from_avg))
-            self.fly_ball_fielding = 1 + percentage_above_avg
-        else:
-            percentage_below_avg = abs(normal(0, abs(diff_from_avg)))
-            self.fly_ball_fielding = 1 - percentage_below_avg
-        # Ground-ball fielding ability
-        primitive_ground_ball_fielding_ability = (
-            self.coordination*0.5 + self.agility*1.5 +
-            self.ball_tracking_ability*0.25 + self.focus*0.75
-        )
-        diff_from_avg = primitive_ground_ball_fielding_ability - 2.756
-        diff_from_avg /= 6.8
-        if diff_from_avg >= 0:
-            percentage_above_avg = abs(normal(0, diff_from_avg))
-            self.ground_ball_fielding = 1 + percentage_above_avg
-        else:
-            percentage_below_avg = abs(normal(0, abs(diff_from_avg)))
-            self.ground_ball_fielding = 1 - percentage_below_avg
-        # Throwing velocity
-        primitive_throwing_velocity = (
-            self.coordination + (100-self.height)/100.
-        )
-        if primitive_throwing_velocity < 0.52:
-            primitive_throwing_velocity = 0.52
-        elif primitive_throwing_velocity > 0.72:
-            primitive_throwing_velocity = 0.72
-        self.throwing_velocity_mph = (
-            normal(primitive_throwing_velocity, primitive_throwing_velocity/10.) * 100
-        )
-        self.throwing_velocity = self.throwing_velocity_mph * 1.46667  # Ft/s is more convenient
-        # Throwing release time
-        primitive_throwing_release_time = self.coordination * 0.0964
-        diff_from_avg = primitive_throwing_release_time - 0.08
-        if diff_from_avg >= 0:
-            diff_from_avg /= 6
-            self.throwing_release_time = 0.08 - abs(normal(0.0, diff_from_avg))
-        elif diff_from_avg < 0:
-            diff_from_avg /= 4.5
-            self.throwing_release_time = 0.08 + abs(normal(0.0, diff_from_avg))
-        # Regular throwing accuracy (accuracy on normal release) --
-        # modeled as the typical error, in feet on both the x- and
-        # y-axes, per foot of throwing distance
-        primitive_throwing_accuracy = self.coordination + self.focus
-        diff_from_avg = primitive_throwing_accuracy - 1.91
-        self.throwing_error_per_foot = (
-            abs(normal(1.5-diff_from_avg, 0.5))/30
-        )
-        if self.throwing_error_per_foot < 0.008:
-            # Enforce that the best throwing accuracy can be about
-            # one foot of error for every 130 feet
-            self.throwing_error_per_foot = 0.008 - random.random()*0.001
-        # Sidearm throwing accuracy -- by default is quite worse, since
-        # this requires a lot of practice
-        self.sidearm_throwing_error_per_foot = (
-            normal(self.throwing_error_per_foot*2, self.throwing_error_per_foot/10.)
-        )
+    def _init_baseball_attributes(self):
+        """Set this player's inherent baseball attributes."""
+        self._init_baseball_intangibles()
+        self._init_baseball_fielding_attributes()
+        self._init_baseball_throwing_attributes()
 
         #           -- Pitching attributes --
 
@@ -449,7 +123,7 @@ class Person(object):
         # deviation from perfect swing timing (represented as 0);
         # swing timing is correlated to a player's coordination
         base_swing_timing = (
-            0.75*self.coordination + 1.5*self.focus + self.reflexes
+            0.75*self.person.body.coordination + 1.5*self.person.personality.focus + self.person.body.reflexes
         )
         self.swing_timing_error = base_swing_timing/40.0
         # Swing-contact error is a measure of a batter's standard
@@ -464,7 +138,7 @@ class Person(object):
         # batting_power attribute is for human readability and scouting and
         # is normalized so that 1.0 is average batting power and values above
         # it represent greater power
-        base_batting_power = self.weight * self.coordination
+        base_batting_power = self.person.body.weight * self.person.body.coordination
         self.batting_power_coefficient = -1.65 + base_batting_power/215.
         self.batting_power = 2.0 + self.batting_power_coefficient
         # Swing pull ability represents the percentage of the time
@@ -483,7 +157,7 @@ class Person(object):
         # catching a pitch is above the average player (ratings near 1.2
         # represent once-a-generation talents)
         primitive_pitch_receiving_ability = (
-            (self.coordination * 0.5) + self.reflexes + (self.ball_tracking_ability * 1.5)
+            (self.person.body.coordination * 0.5) + self.person.body.reflexes + (self.ball_tracking_ability * 1.5)
         )
         diff_from_avg = primitive_pitch_receiving_ability - 2.63
         diff_from_avg /= 7.4
@@ -497,7 +171,7 @@ class Person(object):
         # block pitches that are thrown in the dirt so that they don't
         # get past him, which would allow baserunners to advance
         primitive_pitch_blocking_ability = (
-            (self.coordination * 1.25) + self.reflexes + (self.ball_tracking_ability * 1.5)
+            (self.person.body.coordination * 1.25) + self.person.body.reflexes + (self.ball_tracking_ability * 1.5)
         )
         diff_from_avg = primitive_pitch_blocking_ability - 3.24
         diff_from_avg /= 15.2
@@ -514,7 +188,7 @@ class Person(object):
         # borderline strikes in such a way as to make them appear
         # to be balls
         primitive_pitch_framing_ability = (
-            self.coordination + (self.cleverness * 0.75)
+            self.person.body.coordination + (self.person.personality.cleverness * 0.75)
         )
         diff_from_avg = primitive_pitch_framing_ability - 1.18
         diff_from_avg /= 1.5
@@ -525,96 +199,158 @@ class Person(object):
         else:
             self.pitch_framing = -abs(normal(0, diff_from_avg))
 
-    def init_umpire_biases(self):
-        """Initialize umpire biases for a person.
+    def _init_baseball_intangibles(self):
+        """Set this player's inherent baseball intangibles."""
+        # Ball tracking ability is correlated to a player's focus rating and affects a
+        # player's ability to anticipate the trajectories of balls in movement -- most
+        # saliently, it affects the speed with which a fielder can move in getting in
+        # position to field a fly ball while still properly tracking that ball; values
+        # approaching 1.5 represent once-a-generation talents that would be capable of
+        # something like Willie Mays' famous catch
+        self.ball_tracking_ability = self.person.cosmos.config.set_ball_tracking_ability(
+            focus=self.person.personality.focus
+        )
 
-        These biases are enacted cumulatively, in call_pitch().
+    def _init_baseball_fielding_attributes(self):
+        """Set this player's inherent baseball fielding attributes.
 
-        Primary source: http://www.sloansportsconference.com/wp-content/
-        uploads/2014/02/2014_SSAC_What-Does-it-Take-to-Call-a-Strike.pdf
+        Every fielding chance has a specified difficulty, which (approximately) represents
+        the percentage likelihood that an average player would successfully field the ball
+        given the circumstances at hand. A player's fielding ratings then specify how increased
+        their likelihood of successfully fielding a batted ball is above the average player
+        (ratings near 1.3-1.5 represent once-a-generation talents).
         """
-        # Pitch-call inconsistency represents how consistent an
-        # umpire will be in attributing a certain call to a specific
-        # pitch location over multiple pitches; we represent this as
-        # a standard deviation in number of ball widths (the same units
-        # with which we represent the strike zone)
-        self.pitch_call_inconsistency = abs(normal(0, 0.15))
-        # Pitch-edge biases represent the umpire's mean deviation
-        # from a true edge of the strike zone in how he
-        # represents that edge inasmuch as the calls he makes
-        # (studies show that umpires show huge bias for the top edge,
-        # considerable bias for the left and bottom edges, and less bias
-        # for the right edge)
-        self.pitch_call_left_edge_bias = normal(-0.3, 0.15)
-        self.pitch_call_right_edge_bias = normal(-0.15, 0.05)
-        self.pitch_call_top_edge_bias = normal(-0.65, 0.35)
-        self.pitch_call_bottom_edge_bias = normal(1.25, 0.5)
-        # Count biases represent whether and how the umpire expands
-        # the strike zone when there is three balls and/or constricts
-        # the strike zone when there is two strikes -- this bias
-        # will affect the ump's representation of all four edges of
-        # the strike zone for this pitch, thus they have no sign
-        # [Note: these biases are not enacted on a full count]
-        self.pitch_call_two_strikes_bias = normal(1, 0.25)
-        self.pitch_call_three_balls_bias = normal(0.3, 0.1)
-        # Previous-call biases represent whether and how the umpire expands
-        # the strike zone after calling a ball and/or constricts the
-        # strike zone after calling a strike [Note: these biases ar not
-        # enacted on a full-count]
-        self.pitch_call_just_called_strike_bias = normal(1, 0.25)
-        self.pitch_call_just_called_ball_bias = normal(0.3, 0.1)
-        # Left-handedness bias represents how the umpire moves the
-        # vertical edges of the strike zone further left for
-        # left-handed hitters (Source: http://www.lookoutlanding.com/
-        # 2012/10/29/3561060/the-strike-zone)
-        self.pitch_call_lefty_bias = normal(-0.07, 0.03)
-        # Home-team pitch-call bias represents how the umpire expands
-        # the strike zone slightly for home-team pitchers -- this value
-        # will be used to expand all four edges of the strike zone, so
-        # it small
-        self.pitch_call_home_team_bias = abs(normal(0.0, 0.1))
-        # Tie-at-base policy represents whether the umpire's procedure
-        # for calls at a base is to enforce that the tag must precede
-        # the runner reaching the base ('tie goes to the runner', which
-        # is not an actual rule) or that the runner must beat the tag --
-        # the value represents the number of seconds that will be
-        # subtracted from the true time at which the runner reached base
-        if random.random() < 0.7:
-            # Tie given to runner
-            self.play_at_base_tie_policy = 0.01
+        # For speed, bring in the physical and mental components that we will
+        # reference multiple times
+        config = self.person.cosmos.config
+        body = self.person.body
+        coordination = body.coordination
+        agility = body.agility
+        focus = self.person.personality.focus
+        ball_tracking_ability = self.ball_tracking_ability
+        # Fly-ball fielding ability (subsumes line drives and pop-ups) is a function of
+        # coordination, agility, ball-tracking ability, and focus
+        primitive_fly_ball_fielding_ability = config.set_primitive_fly_ball_fielding_ability(
+            coordination=coordination, agility=agility,
+            ball_tracking_ability=ball_tracking_ability, focus=focus
+        )
+        diff_from_avg = primitive_fly_ball_fielding_ability - config.fly_ball_fielding_ability_avg
+        diff_from_avg /= config.fly_ball_fielding_ability_variance
+        if diff_from_avg >= 0:
+            percentage_above_avg = config.set_percentage_above_or_below_average(diff_from_avg=diff_from_avg)
+            self.fly_ball_fielding = 1 + percentage_above_avg
         else:
-            self.play_at_base_tie_policy = -0.01
-        # Prior-entry bias makes an umpire call a batter-runner out at
-        # first when he is truly safe, due to perceiving the auditory
-        # stimulus of the ball embedding in the glove as occurring
-        # slightly earlier than it actually does -- this represents
-        # the number of seconds that will be subtracted from the true
-        # time at which the runner reached base
-        self.play_at_first_prior_entry_bias = abs(normal(0.0, 0.015))
-        # Play-at-base inconsistency represents how consistent the
-        # umpire will be in how he calls plays at a base. The value
-        # represents a standard error in number of seconds, which
-        # will be either added to or subtracted from the true time
-        # at which the baserunner reached
-        self.play_at_base_inconsistency = abs(normal(0.0, 0.005))
-        # TODO race biases, reputation biases (e.g. all-star control
-        # pitcher gets expanded strike zone, etc.)
-        # TODO biases from gambling on the game
+            percentage_below_avg = config.set_percentage_above_or_below_average(diff_from_avg=diff_from_avg)
+            self.fly_ball_fielding = 1 - percentage_below_avg
+        # Ground-ball fielding ability is also a function of coordination, agility,
+        # ball-tracking ability, and focus
+        primitive_ground_ball_fielding_ability = config.set_primitive_ground_ball_fielding_ability(
+            coordination=coordination, agility=agility,
+            ball_tracking_ability=ball_tracking_ability, focus=focus
+        )
+        diff_from_avg = primitive_ground_ball_fielding_ability - config.ground_ball_fielding_ability_avg
+        diff_from_avg /= config.ground_ball_fielding_ability_variance
+        if diff_from_avg >= 0:
+            percentage_above_avg = config.set_percentage_above_or_below_average(diff_from_avg=diff_from_avg)
+            self.ground_ball_fielding = 1 + percentage_above_avg
+        else:
+            percentage_below_avg = config.set_percentage_above_or_below_average(diff_from_avg=diff_from_avg)
+            self.ground_ball_fielding = 1 - percentage_below_avg
+        # Max height, in feet, at which a ball in flight may be caught by a player; this
+        # is calculated as his vertical reach plus his vertical
+        vertical_in_feet = body.vertical / 12.0
+        self.fieldable_ball_max_height = body.vertical_reach + vertical_in_feet
 
-    def init_strike_zone(self):
-        height_in_baseballs = self.height/3.
+    def _init_baseball_throwing_attributes(self):
+        """Set this player's inherent baseball throwing attributes."""
+        # For speed, bring in the physical and mental components that we will
+        # reference multiple times
+        config = self.person.cosmos.config
+        body = self.person.body
+        coordination = body.coordination
+        focus = self.person.personality.focus
+        # Throwing velocity is a function of coordination and height
+        primitive_throwing_velocity = config.set_primitive_throwing_velocity(
+            coordination=coordination, height=body.height
+        )
+        primitive_throwing_velocity = config.clamp_primitive_throwing_velocity(
+            primitive_throwing_velocity=primitive_throwing_velocity
+        )
+        self.throwing_velocity_mph = config.set_throwing_velocity_mph(  # MPH is for human readability
+            primitive_throwing_velocity=primitive_throwing_velocity
+        )
+        self.throwing_velocity = self.throwing_velocity_mph * 1.46667  # Ft/s is for simulational convenience
+        # Throwing release time is a function of coordination and hustle; I believe it
+        # is measured in seconds
+        primitive_throwing_release_time = config.set_primitive_throwing_release_time(
+            coordination=coordination, hustle=body.hustle
+        )
+        diff_from_avg = primitive_throwing_release_time - config.throwing_release_time_avg
+        if diff_from_avg >= 0:
+            diff_from_avg /= config.throwing_release_time_variance_above_avg
+            self.throwing_release_time = config.set_throwing_release_time_above_avg(diff_from_avg=diff_from_avg)
+        elif diff_from_avg < 0:
+            diff_from_avg /= config.throwing_release_time_variance_below_avg
+            self.throwing_release_time = config.set_throwing_release_time_below_avg(diff_from_avg=diff_from_avg)
+        # Regular throwing accuracy (accuracy on normal release) is a function of coordination
+        # and focus; it's modeled as the typical error, in feet on both the x- and y-axes, per foot
+        # of throwing distance
+        primitive_throwing_accuracy = config.set_primitive_throwing_accuracy(coordination=coordination, focus=focus)
+        diff_from_avg = primitive_throwing_accuracy - config.throwing_accuracy_avg
+        throwing_error_per_foot = config.set_throwing_error_per_foot(diff_from_avg=diff_from_avg)
+        # Enforce that the best throwing accuracy can be about one foot of error for every 130 feet
+        self.throwing_error_per_foot = config.cap_throwing_error_per_foot(
+            throwing_error_per_foot=throwing_error_per_foot
+        )
+        # Sidearm throwing accuracy is by default is quite worse, since this requires a lot of practice
+        self.sidearm_throwing_error_per_foot = config.set_sidearm_throwing_error_per_foot(
+            throwing_error_per_foot=self.throwing_error_per_foot
+        )
+
+    def _determine_strike_zone(self):
+        """Determine this player's strike zone, given their height.
+
+        A player's strike zone is represented by its lower and upper bound, which
+        are both measured in number of baseballs.
+        """
+        height_in_baseballs = self.person.body.height/3.
         height_at_hollow_of_knee = height_in_baseballs * 0.25
         height_at_torso_midpoint = height_in_baseballs * 0.6
         height_of_strike_zone = height_at_torso_midpoint-height_at_hollow_of_knee
         return -height_of_strike_zone/2, height_of_strike_zone/2
 
     def __str__(self):
+        """Return string representation."""
+        if self.career.team:
+            return "{name}, {position}, {team_name}".format(
+                name=self.person.name,
+                position=self.primary_position,
+                team_name=self.career.team.name
+            )
+        else:
+            return "{name}, free agent, {city_name} ({state_name}) ".format(
+                name=self.person.name,
+                city_name=self.person.city.name,
+                state_name=self.person.city.state.name
+            )
 
-        rep = self.name + ' (' + self.hometown.name + ')'
-        return rep
+    # @property
+    # def composure(self):
+    #     """Return this player's current composure level."""
+    #     return self.person.mood.composure
+
+    @property
+    def righty(self):
+        """Return whether this player plays right-handed."""
+        return self.person.body.righty
+
+    @property
+    def lefty(self):
+        """Return whether this player plays left-handed."""
+        return self.person.body.lefty
 
     def increase_in_age(self):
-        self.age += 1
+        """Consider retirement."""
         if not self.retired:
             if self.team and self in self.team.players:
                 self.consider_retirement()
@@ -634,10 +370,8 @@ class Person(object):
 
     def get_in_position(self, at_bat):
         """Get into position prior to a pitch."""
-        if self.composure < 0.5:
-            self.composure = 0.5
-        elif self.composure > 1.5:
-            self.composure = 1.5
+        # Clamp composure
+        self.person.mood.clamp_composure()
         # Offensive players
         if self is at_bat.batter:
             self.location = [0, 0]
@@ -1106,330 +840,6 @@ class Person(object):
                       contact_y_coord=contact_y_coord)
         return swing
 
-    def call_pitch(self, pitch):
-        """Call a pitch that is not swung at either a strike or a ball."""
-        self.pitch_call_inconsistency = normal(0, 0.25)
-
-        # First, start with a perfect model of the true strike zone
-        left_edge, right_edge = -2.83, 2.83
-        bottom_edge, top_edge = pitch.batter.strike_zone
-        # Pollute this model with edge biases
-        left_edge += self.pitch_call_left_edge_bias
-        right_edge += self.pitch_call_right_edge_bias
-        top_edge += self.pitch_call_top_edge_bias
-        bottom_edge += self.pitch_call_bottom_edge_bias
-        # Further pollute the model with count biases and
-        # previous-call biases, as appropriate; first, consider whether
-        # a count bias should be enacted, given the pitch context; if it
-        # is not applicable, consider applying a previous-call bias
-        # (they'll never both be applied simultaneously)
-        if pitch.count == 02 or pitch.count == 12 or pitch.count == 22:
-            # Constrict the strike zone
-            left_edge += self.pitch_call_two_strikes_bias
-            right_edge -= self.pitch_call_two_strikes_bias
-            top_edge -= self.pitch_call_two_strikes_bias
-            bottom_edge += self.pitch_call_two_strikes_bias
-        elif (pitch.count != 00 and pitch.count != 32 and
-                pitch.at_bat.pitches[-1].call == "Strike"):
-            # Constrict the strike zone
-            left_edge += self.pitch_call_just_called_strike_bias
-            right_edge -= self.pitch_call_just_called_strike_bias
-            top_edge -= self.pitch_call_just_called_strike_bias
-            bottom_edge += self.pitch_call_just_called_strike_bias
-        if pitch.count == 30 or pitch.count == 31:
-            # Expand the strike zone
-            left_edge -= self.pitch_call_three_balls_bias
-            right_edge += self.pitch_call_three_balls_bias
-            top_edge += self.pitch_call_three_balls_bias
-            bottom_edge -= self.pitch_call_three_balls_bias
-        elif (pitch.count != 00 and pitch.count != 32 and
-                pitch.at_bat.pitches[-1].call == "Ball"):
-            # Expand the strike zone
-            left_edge -= self.pitch_call_just_called_ball_bias
-            right_edge += self.pitch_call_just_called_ball_bias
-            top_edge += self.pitch_call_just_called_ball_bias
-            bottom_edge -= self.pitch_call_just_called_ball_bias
-        # Further pollute the model with left-handed hitter bias,
-        # if appropriate
-        if pitch.batter_left_handed:
-            left_edge += self.pitch_call_lefty_bias
-            right_edge += self.pitch_call_lefty_bias
-        # Further pollute the model with home-team--pitcher bias, if
-        # appropriate, which expands the strike zone at all edges
-        if pitch.pitcher.team is pitch.at_bat.game.home_team:
-            left_edge -= self.pitch_call_home_team_bias
-            right_edge += self.pitch_call_home_team_bias
-            top_edge += self.pitch_call_home_team_bias
-            bottom_edge -= self.pitch_call_home_team_bias
-        # Crucially, account for the effects of pitch framing by altering
-        # a heretofore perfect representation pitch's location at the
-        # point that it crossed the plane over the front of home plate
-        # (good pitch framers bring the ball toward the center of the
-        # strike zone, while bad pitch framers pull it away from it); this
-        # is only enacted in borderline pitches
-        if -4 < pitch.actual_x < -2:
-            # Pull up toward [0, 0]
-            framed_x = pitch.actual_x + pitch.catcher.pitch_framing
-        elif 2 < pitch.actual_x < 4:
-            # Pull down toward [0, 0]
-            framed_x = pitch.actual_x - pitch.catcher.pitch_framing
-        else:
-            framed_x = pitch.actual_x
-        if -5 < pitch.actual_y < -3:
-            framed_y = pitch.actual_y + pitch.catcher.pitch_framing
-        elif 3 < pitch.actual_x < 5:
-            framed_y = pitch.actual_y - pitch.catcher.pitch_framing
-        else:
-            framed_y = pitch.actual_y
-        # Finally, *to simulate umpire inconsistency*, pollute the
-        # framed position of the pitch using the umpire's rating
-        # for pitch call consistency as a standard deviation
-        pitch_location = (
-            normal(framed_x, self.pitch_call_inconsistency),
-            normal(framed_y, self.pitch_call_inconsistency)
-        )
-        # Now, make the call if consideration of the polluted pitch
-        # location (which is only offset as a trick to represent umpire
-        # inconsistency) relative to the umpire's biased model of the
-        # trick zone
-        if (left_edge < pitch_location[0] < right_edge and
-                bottom_edge < pitch_location[1] < top_edge):
-            return "Strike"
-        else:
-            return "Ball"
-
-    def call_play_at_base(self, playing_action, baserunner, base, throw=None, fielder_afoot=None):
-        """Call a baserunner either safe or out."""
-        # This is some housekeeping that can probably be deleted if the specified errors never pop up
-        if base == "1B":
-            assert baserunner is playing_action.running_to_first or baserunner is playing_action.retreating_to_first, "" \
-                "Umpire was tasked with calling out {} at first, but that runner " \
-                "is not attempting to take that base.".format(baserunner.last_name)
-        elif base == "2B":
-            assert baserunner is playing_action.running_to_second or baserunner is playing_action.retreating_to_second, "" \
-                "Umpire was tasked with calling out {} at second, but that runner " \
-                "is not attempting to take that base.".format(baserunner.last_name)
-        elif base == "3B":
-            assert baserunner is playing_action.running_to_third or baserunner is playing_action.retreating_to_third, "" \
-                "Umpire was tasked with calling out {} at third, but that runner " \
-                "is not attempting to take that base.".format(baserunner.last_name)
-        elif base == "H":
-            assert baserunner is playing_action.running_to_home or baserunner.safely_on_base, "" \
-                "Umpire was tasked with calling out {} at home, but that runner " \
-                "is not attempting to take that base.".format(baserunner.last_name)
-        # If the baserunner hasn't reached base yet, we need to calculate at what timestep
-        # they *will/would have* reached base
-        if not baserunner.timestep_reached_base:
-            dist_from_baserunner_to_base = 90 - (baserunner.percent_to_base*90)
-            time_until_baserunner_reaches_base = dist_from_baserunner_to_base * baserunner.full_speed_sec_per_foot
-            baserunner.timestep_reached_base = (
-                playing_action.batted_ball.time_since_contact + time_until_baserunner_reaches_base
-            )
-        # If the ball has reached the base via throw, we know the timestep it reached base;
-        # if it reached base via a fielder's on-foot approach, we need to calculate it
-        if throw:
-            timestep_ball_reached_base = throw.timestep_reached_target
-        elif fielder_afoot:
-            dist_from_fielder_to_base = math.hypot(
-                fielder_afoot.immediate_goal[0]-fielder_afoot.location[0],
-                fielder_afoot.immediate_goal[1]-fielder_afoot.location[1]
-            )
-            time_until_fielder_reaches_base = dist_from_fielder_to_base * fielder_afoot.full_speed_sec_per_foot
-            timestep_ball_reached_base = (
-                playing_action.batted_ball.time_since_contact + time_until_fielder_reaches_base
-            )
-        # Get the difference in time between the baserunner reaching base
-        # and the throw reached the first baseman's glove -- this will be
-        # negative if the runner beat the throw
-        baserunner_diff_from_throw = true_difference = (
-            baserunner.timestep_reached_base - timestep_ball_reached_base
-        )
-        # Make note of the true call for this play -- we'll say that ties go to the runner,
-        # though the chance of one is extremely unlikely
-        if baserunner_diff_from_throw <= 0:
-            true_call = "Safe"
-        else:
-            true_call = "Out"
-        # Pollute this perfectly accurate difference for whether the
-        # umpire believes the throw must beat the runner ('tie goes to
-        # the runner') or vice versa
-        baserunner_diff_from_throw -= self.play_at_base_tie_policy
-        # If play is at first, further pollute the difference for how susceptible the umpire
-        # is to a prior-entry bias, explained in init_umpire_biases()
-        if base == "1B":
-            baserunner_diff_from_throw += self.play_at_first_prior_entry_bias
-        # Finally, *to simulate umpire inconsistency*, further pollute the
-        # difference by regenerating it from a normal distribution around
-        # itself with the umpire's inconsistency standard error as the
-        # standard deviation
-        baserunner_diff_from_throw = (
-            normal(baserunner_diff_from_throw, self.play_at_base_inconsistency)
-        )
-        if baserunner_diff_from_throw <= 0:
-            PlayAtBaseCall(at_bat=playing_action.at_bat, umpire=self, call="Safe", true_call=true_call,
-                           true_difference=true_difference, baserunner=baserunner, base=base, throw=throw,
-                           fielder_afoot=fielder_afoot)
-        else:
-            PlayAtBaseCall(at_bat=playing_action.at_bat, umpire=self, call="Out", true_call=true_call,
-                           true_difference=true_difference, baserunner=baserunner, base=base, throw=throw,
-                           fielder_afoot=fielder_afoot)
-
-    def call_fly_out_or_trap(self, batted_ball):
-        """Call a fielding act either a fly out or a trap."""
-        # First, determine the crucial timestep, which is the timestep in which the
-        # ball truly landed such that no fly out should be scored -- this will depend on
-        # the rules and whether they allow for bounding fly outs
-        if batted_ball.in_foul_territory:
-            if batted_ball.at_bat.game.rules.foul_ball_on_first_bounce_is_out:
-                if batted_ball.second_landing_timestep:
-                    crucial_timestep = batted_ball.second_landing_timestep
-                else:
-                    # Ball just plopped down on its first timestep, so there's no chance for
-                    # a bounding catch -- as such, give arbitrary high number for crucial timestep,
-                    # which will never allow for a FlyOut call
-                    crucial_timestep = 999
-            else:
-                crucial_timestep = batted_ball.landing_timestep
-        elif not batted_ball.in_foul_territory:
-            if batted_ball.at_bat.game.rules.fair_ball_on_first_bounce_is_out:
-                if batted_ball.second_landing_timestep:
-                    crucial_timestep = batted_ball.second_landing_timestep
-                else:
-                    crucial_timestep = 999
-            else:
-                crucial_timestep = batted_ball.landing_timestep
-        # Next, determine the true difference, in seconds, between the current timestep,
-        # which is when the fielding act in question has occurred, and the crucial timestep
-        # in which the ball bounced to preclude any true fly out -- negative values represent
-        # the ball landing first, and thus cases where the true call is a trap
-        true_difference_between_ball_landing_and_fielding_act = crucial_timestep - batted_ball.time_since_contact
-        if true_difference_between_ball_landing_and_fielding_act < -0.1:
-            # If the ball landed two or more timesteps ago, it's not even a trap, so
-            # don't bother making a call
-            pass
-        else:
-            if true_difference_between_ball_landing_and_fielding_act > 0:
-                true_call = "Out"
-            else:
-                true_call = "Trap"
-            # To simulate umpire imperfection and inconsistency, pollute the perfect (though
-            # coarse-grained) representation of the difference in time
-            umpire_perceived_difference = normal(true_difference_between_ball_landing_and_fielding_act, 0.04)
-            if umpire_perceived_difference > 0:
-                FlyOutCall(umpire=self, call="Out", true_call=true_call,
-                           true_difference=true_difference_between_ball_landing_and_fielding_act,
-                           batted_ball=batted_ball)
-            else:
-                FlyOutCall(umpire=self, call="Trap", true_call=true_call,
-                           true_difference=true_difference_between_ball_landing_and_fielding_act,
-                           batted_ball=batted_ball)
-
-    def officiate(self, playing_action):
-        """Officiate as necessary, including making (pseudo) dead-ball determination."""
-        # TODO umpire biases
-        batted_ball = playing_action.batted_ball
-        if batted_ball.ground_rule_incurred:
-            GroundRuleDouble(batted_ball=batted_ball)
-            playing_action.resolved = True
-        elif batted_ball.contacted_foul_pole:
-            if batted_ball.at_bat.frame.bases_loaded:
-                GrandSlam(batted_ball=batted_ball)
-            else:
-                HomeRun(batted_ball=batted_ball)
-            playing_action.resolved = True
-        elif batted_ball.contacted_foul_fence:
-            FoulBall(batted_ball=batted_ball)
-            playing_action.resolved = True
-        elif batted_ball.fielded_by and not batted_ball.fly_out_call_given:
-            # If a fly out was potentially made, make the call as to whether it was
-            # indeed a fly out or else a trap; don't even bother if the ball has
-            # clearly bounced one or more times too many or if it has bounced off the
-            # outfield wall
-            if not batted_ball.contacted_outfield_wall:
-                if (batted_ball.at_bat.game.rules.foul_ball_on_first_bounce_is_out or
-                        batted_ball.at_bat.game.rules.fair_ball_on_first_bounce_is_out):
-                    if batted_ball.n_bounces < 3:
-                        self.call_fly_out_or_trap(batted_ball=batted_ball)
-                else:
-                    if batted_ball.n_bounces < 2:
-                        self.call_fly_out_or_trap(batted_ball=batted_ball)
-        elif batted_ball.left_playing_field:
-            if batted_ball.crossed_plane_foul:
-                FoulBall(batted_ball=batted_ball)
-                playing_action.resolved = True
-            elif batted_ball.crossed_plane_fair:
-                # Could potentially be a home run, ground-rule double, or foul
-                # ball, depending on the rules agreed upon for the game
-                if batted_ball.n_bounces:
-                    # A ball that bounds over the outfield fence will be either
-                    # a home run or automatic double, depending on the following
-                    # rule
-                    if batted_ball.at_bat.game.rules.bound_that_leaves_park_is_home_run:
-                        if batted_ball.at_bat.frame.bases_loaded:
-                            GrandSlam(batted_ball=batted_ball)
-                        else:
-                            HomeRun(batted_ball=batted_ball)
-                        playing_action.resolved = True
-                    else:
-                        AutomaticDouble(batted_ball=batted_ball)
-                        playing_action.resolved = True
-                elif not batted_ball.n_bounces and batted_ball.at_bat.game.rules.home_run_must_land_fair:
-                    # A ball that crosses the plane of the outfield fence in flight
-                    # will be either a foul ball or home run, depending on whether
-                    # this rule is in effect -- if it is, the ball must also land fair
-                    # to be a home run
-                    if batted_ball.landed:
-                        if batted_ball.in_foul_territory:
-                            FoulBall(batted_ball=batted_ball, anachronic_home_run=True)
-                            playing_action.resolved = True
-                        elif not batted_ball.in_foul_territory:
-                            # Batted ball crosses plane of the outfield fence fair
-                            # and lands fair -- a home run in any era
-                            if batted_ball.at_bat.frame.bases_loaded:
-                                GrandSlam(batted_ball=batted_ball)
-                            else:
-                                HomeRun(batted_ball=batted_ball)
-                            playing_action.resolved = True
-                else:
-                    # Batted ball crossed the plane of the outfield fence, which is
-                    # good enough for a home run if the above rule is not in effect
-                    if batted_ball.at_bat.frame.bases_loaded:
-                        GrandSlam(batted_ball=batted_ball)
-                    else:
-                        HomeRun(batted_ball=batted_ball)
-                    playing_action.resolved = True
-        elif batted_ball.landed_foul:
-            # Generally, a batted ball that lands foul incur a foul ball -- the exception
-            # is if the rule allowing a bounding foul to be caught for a FlyOut is in effect;
-            # in that case, we don't score the foul ball until a timestep after the batted ball's
-            # second bounce -- this allows a fielder to potentially make the catch (if the ball
-            # doesn't have a second bounce in its trajectory, we just score the foul right away)
-            if not batted_ball.at_bat.game.rules.foul_ball_on_first_bounce_is_out:
-                FoulBall(batted_ball=batted_ball)
-                playing_action.resolved = True
-            else:
-                if (not batted_ball.second_landing_timestep or
-                        batted_ball.time_since_contact > batted_ball.second_landing_timestep+0.1):
-                    FoulBall(batted_ball=batted_ball)
-                    playing_action.resolved = True
-        elif batted_ball.landed and batted_ball.in_foul_territory:
-            if batted_ball.passed_first_or_third_base or batted_ball.stopped or batted_ball.touched_by_fielder:
-                FoulBall(batted_ball=batted_ball)
-                playing_action.resolved = True
-        # Determine whether the current playing action has ended
-        if batted_ball.at_bat.frame.outs == 3:
-            if batted_ball.at_bat.game.trace:
-                print "-- Since there are three outs, the playing action is over [{}]".format(
-                    batted_ball.time_since_contact
-                )
-            playing_action.resolved = True
-        # elif all(b.safely_on_base or b.out for b in batted_ball.at_bat.frame.baserunners + [batted_ball.at_bat.batter]):
-        #     if batted_ball.landed and (not batted_ball.at_bat.throw or batted_ball.at_bat.throw.reached_target):
-        #         print "-- Since all baserunners are either out or safe, the playing action is over [{}]".format(
-        #             batted_ball.time_since_contact
-        #         )
-        #         playing_action.resolved = True
-
     def receive_pitch(self, pitch):
         """Receive a pitch that is not swung at."""
         distance_from_strike_zone_center = (
@@ -1496,7 +906,7 @@ class Person(object):
                 self.immediate_goal = [63.5, 63.5]
                 # Get there ASAP, i.e., act at full speed
                 self.dist_per_timestep = (
-                    0.1/self.full_speed_sec_per_foot
+                    0.1/self.person.body.full_speed_seconds_per_foot
                 )
                 playing_action.covering_first = self
             elif self.position == "2B":
@@ -1508,7 +918,7 @@ class Person(object):
                     self.immediate_goal = [0, 127]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.covering_second = self
                 elif not playing_action.covering_first:
@@ -1516,7 +926,7 @@ class Person(object):
                     self.immediate_goal = [63.5, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.covering_first = self
                 elif batted_ball.hit_to_outfield and batted_ball.horizontal_launch_angle >= 0.0:
@@ -1531,7 +941,7 @@ class Person(object):
                     self.immediate_goal = [72, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_first = self
             elif self.position == "3B":
@@ -1539,7 +949,7 @@ class Person(object):
                 self.immediate_goal = [-63.5, 63.5]
                 # Get there ASAP, i.e., act at full speed
                 self.dist_per_timestep = (
-                    0.1/self.full_speed_sec_per_foot
+                    0.1/self.person.body.full_speed_seconds_per_foot
                 )
                 playing_action.covering_third = self
             elif self.position == "SS":
@@ -1550,7 +960,7 @@ class Person(object):
                     self.immediate_goal = [-63.5, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.covering_third = self
                 elif not playing_action.covering_second:
@@ -1558,7 +968,7 @@ class Person(object):
                     self.immediate_goal = [0, 127]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.covering_second = self
                 elif batted_ball.hit_to_outfield and batted_ball.horizontal_launch_angle < 0.0:
@@ -1574,7 +984,7 @@ class Person(object):
                         self.immediate_goal = [0, 135]
                         # Get there ASAP, i.e., act at full speed
                         self.dist_per_timestep = (
-                            0.1/self.full_speed_sec_per_foot
+                            0.1/self.person.body.full_speed_seconds_per_foot
                         )
                         playing_action.backing_up_second = self
                     else:
@@ -1582,7 +992,7 @@ class Person(object):
                         self.immediate_goal = [-72, 63.5]
                         # Get there ASAP, i.e., act at full speed
                         self.dist_per_timestep = (
-                            0.1/self.full_speed_sec_per_foot
+                            0.1/self.person.body.full_speed_seconds_per_foot
                         )
                         playing_action.backing_up_third = self
             elif self.position == "LF":
@@ -1615,7 +1025,7 @@ class Person(object):
                             self.immediate_goal = batted_ball.final_location
                         if playing_action.at_bat.game.trace:
                             print "-- {} ({}) will back up the catch by moving to [{}, {}] [{}]".format(
-                                self.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
+                                self.person.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
                                 batted_ball.time_since_contact
                             )
                         self.backing_up_the_catch = True
@@ -1624,7 +1034,7 @@ class Person(object):
                     self.immediate_goal = [-72, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_third = self
             elif self.position == "RF":
@@ -1657,7 +1067,7 @@ class Person(object):
                             self.immediate_goal = batted_ball.final_location
                         if playing_action.at_bat.game.trace:
                             print "-- {} ({}) will back up the catch by moving to [{}, {}] [{}]".format(
-                                self.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
+                                self.person.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
                                 batted_ball.time_since_contact
                             )
                         self.backing_up_the_catch = True
@@ -1666,7 +1076,7 @@ class Person(object):
                     self.immediate_goal = [72, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_first = self
             elif self.position == "CF":
@@ -1709,7 +1119,7 @@ class Person(object):
                             self.immediate_goal = batted_ball.final_location
                         if playing_action.at_bat.game.trace:
                             print "-- {} ({}) will back up the catch by moving toward [{}, {}] [{}]".format(
-                                self.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
+                                self.person.last_name, self.position, int(self.immediate_goal[0]), int(self.immediate_goal[1]),
                                 batted_ball.time_since_contact
                             )
                         self.backing_up_the_catch = True
@@ -1718,7 +1128,7 @@ class Person(object):
                         self.immediate_goal = [0, 135]
                         # Get there ASAP, i.e., act at full speed
                         self.dist_per_timestep = (
-                            0.1/self.full_speed_sec_per_foot
+                            0.1/self.person.body.full_speed_seconds_per_foot
                         )
                         playing_action.backing_up_second = self
             elif self.position == "C":
@@ -1735,7 +1145,7 @@ class Person(object):
                     self.immediate_goal = [0, -8]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_home = self
                 elif not playing_action.backing_up_first:
@@ -1743,7 +1153,7 @@ class Person(object):
                     self.immediate_goal = [72, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_first = self
                 elif playing_action.running_to_second and not playing_action.backing_up_second:
@@ -1756,7 +1166,7 @@ class Person(object):
                         self.immediate_goal = [0, 135]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_second = self
                 else:
@@ -1764,7 +1174,7 @@ class Person(object):
                     self.immediate_goal = [-72, 63.5]
                     # Get there ASAP, i.e., act at full speed
                     self.dist_per_timestep = (
-                        0.1/self.full_speed_sec_per_foot
+                        0.1/self.person.body.full_speed_seconds_per_foot
                     )
                     playing_action.backing_up_third = self
         # Determine the slope of a straight line between fielder's
@@ -1812,7 +1222,7 @@ class Person(object):
                             teammate.playing_the_ball = False
                             if batted_ball.at_bat.game.trace:
                                 print "-- {} ({}) called off {} ({}) [{}]".format(
-                                    self.last_name, self.position, teammate.last_name, teammate.position,
+                                    self.person.last_name, self.position, teammate.person.last_name, teammate.position,
                                     batted_ball.time_since_contact
                                 )
                         # If he is, he actually will call you off here (and any other
@@ -1822,14 +1232,15 @@ class Person(object):
                             self.playing_the_ball = False
                             if batted_ball.at_bat.game.trace:
                                 print "-- {} ({}) called off {} ({}) [{}]".format(
-                                    teammate.last_name, teammate.position, self.last_name, self.position,
+                                    teammate.person.last_name, teammate.position, self.person.last_name, self.position,
                                     batted_ball.time_since_contact
                                 )
                             for other_teammate in other_fielders_playing_the_ball:
                                 if other_teammate is not teammate:
                                     if batted_ball.at_bat.game.trace:
                                         print "-- {} ({}) called off {} ({}) [{}]".format(
-                                            teammate.last_name, teammate.position, other_teammate.last_name,
+                                            teammate.person.last_name, teammate.position,
+                                            other_teammate.person.last_name,
                                             other_teammate.position, batted_ball.time_since_contact
                                         )
                                     other_teammate.called_off_by = teammate
@@ -1887,7 +1298,7 @@ class Person(object):
                     )
                     if dist_from_fielder_to_bb > 1:
                         print "-- {} is a 'fielder with chance' but is {} ft from the batted ball [{}]".format(
-                            self.last_name, round(dist_from_fielder_to_bb, 1), batted_ball.time_since_contact
+                            self.person.last_name, round(dist_from_fielder_to_bb, 1), batted_ball.time_since_contact
                         )
                         raw_input("")
 
@@ -1900,7 +1311,7 @@ class Person(object):
             self.retreating = False
             if playing_action.at_bat.game.trace:
                 print "-- {} is running full speed for the next base [{}]".format(
-                    self.last_name, batted_ball.time_since_contact
+                    self.person.last_name, batted_ball.time_since_contact
                 )
             if self is playing_action.running_to_first:
                 # Otherwise they won't make progress on the first timestep
@@ -1917,7 +1328,7 @@ class Person(object):
                     batted_ball.time_since_contact/self.speed_home_to_first
                 )
             else:
-                self.percent_to_base += (0.1/self.full_speed_sec_per_foot) / 90
+                self.percent_to_base += (0.1/self.person.body.full_speed_seconds_per_foot) / 90
             # If you've safely reached base, either stay there and make it known that
             # you've reached the base safely, or round it and decide whether to actually
             # advance to the next base
@@ -1936,13 +1347,13 @@ class Person(object):
                         self.base_reached_on_hit = "H"
                 if not self.will_round_base and not self.safely_on_base:
                     if playing_action.at_bat.game.trace:
-                        print "-- {} has safely reached base [{}]".format(self.last_name, batted_ball.time_since_contact)
+                        print "-- {} has safely reached base [{}]".format(self.person.last_name, batted_ball.time_since_contact)
                     self.safely_on_base = True
                     # Record the precise time the runner reached base, for potential use by umpire.call_play_at_base()
                     if not self.timestep_reached_base:
                         surplus_percentage_to_base = self.percent_to_base-1
                         surplus_distance = surplus_percentage_to_base*90
-                        surplus_time = surplus_distance * self.full_speed_sec_per_foot
+                        surplus_time = surplus_distance * self.person.body.full_speed_seconds_per_foot
                         self.timestep_reached_base = batted_ball.time_since_contact - surplus_time
                     self.percent_to_base = 1.0
                     if playing_action.running_to_home is self:
@@ -1969,7 +1380,7 @@ class Person(object):
                         if playing_action.at_bat.game.trace:
                             print ("-- {} is waiting for the preceding runner to round the base "
                                    "to technically round the base [{}]").format(
-                                self.last_name, batted_ball.time_since_contact
+                                self.person.last_name, batted_ball.time_since_contact
                             )
                     if next_basepath_is_clear:
                         # Round the base, retaining the remainder of last timestep's baserunning progress
@@ -1978,17 +1389,17 @@ class Person(object):
                         self._decided_finish = False
                         if self is playing_action.running_to_first:
                             if playing_action.at_bat.game.trace:
-                                print "-- {} has rounded first [{}]".format(self.last_name, batted_ball.time_since_contact)
+                                print "-- {} has rounded first [{}]".format(self.person.last_name, batted_ball.time_since_contact)
                             playing_action.running_to_first = None
                             playing_action.running_to_second = self
                         elif self is playing_action.running_to_second:
                             if playing_action.at_bat.game.trace:
-                                print "-- {} has rounded second [{}]".format(self.last_name, batted_ball.time_since_contact)
+                                print "-- {} has rounded second [{}]".format(self.person.last_name, batted_ball.time_since_contact)
                             playing_action.running_to_second = None
                             playing_action.running_to_third = self
                         elif self is playing_action.running_to_third:
                             if playing_action.at_bat.game.trace:
-                                print "-- {} has rounded third [{}]".format(self.last_name, batted_ball.time_since_contact)
+                                print "-- {} has rounded third [{}]".format(self.person.last_name, batted_ball.time_since_contact)
                             playing_action.running_to_third = None
                             playing_action.running_to_home = self
                         self.estimate_whether_you_can_beat_throw(playing_action=playing_action)
@@ -1996,7 +1407,7 @@ class Person(object):
                             self.taking_next_base = True
                             if playing_action.at_bat.game.trace:
                                 print "-- {} is taking the next base because he believes he can beat the throw [{}]".format(
-                                    self.last_name, batted_ball.time_since_contact
+                                    self.person.last_name, batted_ball.time_since_contact
                                 )
                         elif not batted_ball.fielded_by:
                             # Don't retreat immediately -- tentatively advance as far as you can and
@@ -2044,12 +1455,12 @@ class Person(object):
                                 base = "third"
                             elif self is playing_action.running_to_second:
                                 base = "second"
-                            elif self is playing_action.running_to_first:
+                            else:  # elif self is playing_action.running_to_first:
                                 base = "first"
                             if playing_action.at_bat.game.trace:
                                 print ("-- {} will round {} because ball is hit to outfield "
                                        "and hasn't been fielded yet [{}]").format(
-                                    self.last_name, base, batted_ball.time_since_contact
+                                    self.person.last_name, base, batted_ball.time_since_contact
                                 )
                         else:
                             self.will_round_base = False
@@ -2058,16 +1469,16 @@ class Person(object):
                                 base = "third"
                             elif self is playing_action.running_to_second:
                                 base = "second"
-                            elif self is playing_action.running_to_first:
+                            else:  # elif self is playing_action.running_to_first:
                                 base = "first"
                             if playing_action.at_bat.game.trace:
                                 if batted_ball.hit_to_infield:
                                     print "-- {} will not round {} because the ball was hit to infield [{}]".format(
-                                        self.last_name, base, batted_ball.time_since_contact)
+                                        self.person.last_name, base, batted_ball.time_since_contact)
                                 elif batted_ball.fielded_by:
                                     print ("-- {} will not round {} because, even though it was hit "
                                            "to outfield, the ball has been fielded already [{}]").format(
-                                        self.last_name, base, batted_ball.time_since_contact)
+                                        self.person.last_name, base, batted_ball.time_since_contact)
                     elif not next_basepath_is_clear and self.percent_to_base >= 0.85:
                         # At this point, it looks like the preceding runner won't be rounding
                         # his base, so you'll be forced to stand pat at the immediately coming
@@ -2078,12 +1489,13 @@ class Person(object):
                             base = "third"
                         elif self is playing_action.running_to_second:
                             base = "second"
-                        elif self is playing_action.running_to_first:
+                        else:  # elif self is playing_action.running_to_first:
                             base = "first"
                         if playing_action.at_bat.game.trace:
                             print ("-- {} will not round {} because the preceding runner {} "
                                    "is not rounding his base [{}]").format(
-                                self.last_name, base, preceding_runner.last_name, batted_ball.time_since_contact
+                                self.person.last_name, base, preceding_runner.person.last_name,
+                                batted_ball.time_since_contact
                             )
 
         ## TODO ADD DIFFICULTY TO FIELD BALL AND CHANCE OF ERROR FOR THROW IF
@@ -2105,7 +1517,7 @@ class Person(object):
             self.retreating = False
             if playing_action.at_bat.game.trace:
                 print "-- {} is tentatively advancing toward the next base [{}]".format(
-                    self.last_name, batted_ball.time_since_contact
+                    self.person.last_name, batted_ball.time_since_contact
                 )
         else:  # Already decided to tentatively baserun
             if not self._done_tentatively_advancing:
@@ -2113,13 +1525,13 @@ class Person(object):
                 # advance further on this timestep at 65% full speed -- this, when multiplied by 90,
                 # conveniently represents the distance required to retreat would be from that position
                 percent_to_base_upon_advancement = (
-                    self.percent_to_base + (0.1/(self.full_speed_sec_per_foot*1.53)) / 90
+                    self.percent_to_base + (0.1/(self.person.body.full_speed_seconds_per_foot*1.53)) / 90
                 )
                 if percent_to_base_upon_advancement < 1.0:  # Don't advance onto the next base path -- too weird
                     # Estimate how long it would take to retreat if the fly-ball were caught, given
                     # your positioning on the base paths if you *were* to advance on this timestep
                     time_expected_for_me_to_retreat = (
-                        (percent_to_base_upon_advancement * 90) * self.full_speed_sec_per_foot
+                        (percent_to_base_upon_advancement * 90) * self.person.body.full_speed_seconds_per_foot
                     )
                     # Estimate how long the potential throw to the preceding base you would be
                     # retreating to would take -- assume typical throwing velocity and release time
@@ -2152,7 +1564,7 @@ class Person(object):
                         self._done_tentatively_advancing = True
                         if playing_action.at_bat.game.trace:
                             print "-- {} is waiting at {} of the way until the fielding chance is resolved [{}]".format(
-                                self.last_name, round(self.percent_to_base, 2), batted_ball.time_since_contact
+                                self.person.last_name, round(self.percent_to_base, 2), batted_ball.time_since_contact
                             )
 
     def retreat(self, playing_action):
@@ -2170,11 +1582,11 @@ class Person(object):
                     if not self.forced_to_retreat:
                         print ("-- {} is retreating to first because the ball was fielded or because he does "
                                "not believe he can beat the throw [{}]").format(
-                            self.last_name, batted_ball.time_since_contact
+                            self.person.last_name, batted_ball.time_since_contact
                         )
                     elif self.forced_to_retreat:
                         print "-- {} is retreating to first to tag up [{}]".format(
-                            self.last_name, batted_ball.time_since_contact
+                            self.person.last_name, batted_ball.time_since_contact
                         )
             elif self is playing_action.running_to_third:
                 playing_action.running_to_third = None
@@ -2183,11 +1595,11 @@ class Person(object):
                     if not self.forced_to_retreat:
                         print ("-- {} is retreating to second because the ball was fielded or because he does "
                                "not believe he can beat the throw [{}]").format(
-                            self.last_name, batted_ball.time_since_contact
+                            self.person.last_name, batted_ball.time_since_contact
                         )
                     elif self.forced_to_retreat:
                         print "-- {} is retreating to second to tag up [{}]".format(
-                            self.last_name, batted_ball.time_since_contact
+                            self.person.last_name, batted_ball.time_since_contact
                         )
             elif self is playing_action.running_to_home:
                 playing_action.running_to_home = None
@@ -2196,21 +1608,21 @@ class Person(object):
                     if not self.forced_to_retreat:
                         print ("-- {} is retreating to third because the ball was fielded or because he does "
                                "not believe he can beat the throw [{}]").format(
-                            self.last_name, batted_ball.time_since_contact
+                            self.person.last_name, batted_ball.time_since_contact
                         )
                     elif self.forced_to_retreat:
                         print "-- {} is retreating to third to tag up [{}]".format(
-                            self.last_name, batted_ball.time_since_contact
+                            self.person.last_name, batted_ball.time_since_contact
                         )
         elif self.retreating:  # Already started retreating
-            self.percent_to_base += (0.1/self.full_speed_sec_per_foot) / 90
+            self.percent_to_base += (0.1/self.person.body.full_speed_seconds_per_foot) / 90
             if self.percent_to_base >= 1.0:
                 self.safely_on_base = True
                 # Determine the exact timestep that you reached base
                 if not self.timestep_reached_base:
                     surplus_percentage_to_base = self.percent_to_base-1
                     surplus_distance = surplus_percentage_to_base*90
-                    surplus_time = surplus_distance * self.full_speed_sec_per_foot
+                    surplus_time = surplus_distance * self.person.body.full_speed_seconds_per_foot
                     self.timestep_reached_base = batted_ball.time_since_contact - surplus_time
                 self.percent_to_base = 1.0
                 # Decide whether to quickly tag-up and attempt to advance to the next base --
@@ -2234,21 +1646,21 @@ class Person(object):
                             if playing_action.at_bat.game.trace:
                                 print ("-- {} tagged up at first and will now attempt to take second "
                                        "because he believes he can beat any throw there [{}]").format(
-                                    self.last_name, batted_ball.time_since_contact)
+                                    self.person.last_name, batted_ball.time_since_contact)
                             playing_action.retreating_to_first = None
                             playing_action.running_to_second = self
                         elif self is playing_action.retreating_to_second:
                             if playing_action.at_bat.game.trace:
                                 print ("-- {} tagged up at second and will now attempt to take third "
                                        "because he believes he can beat any throw there [{}]").format(
-                                    self.last_name, batted_ball.time_since_contact)
+                                    self.person.last_name, batted_ball.time_since_contact)
                             playing_action.retreating_to_second = None
                             playing_action.running_to_third = self
                         elif self is playing_action.retreating_to_third:
                             if playing_action.at_bat.game.trace:
                                 print ("-- {} tagged up at third and will now attempt to run home "
                                        "because he believes he can beat any throw there [{}]").format(
-                                    self.last_name, batted_ball.time_since_contact)
+                                    self.person.last_name, batted_ball.time_since_contact)
                             playing_action.retreating_to_third = None
                             playing_action.running_to_home = self
                         self.forced_to_retreat = False
@@ -2261,17 +1673,17 @@ class Person(object):
                         if self is playing_action.retreating_to_first:
                             if playing_action.at_bat.game.trace:
                                 print "-- {} tagged up at first and will remain there [{}]".format(
-                                    self.last_name, batted_ball.time_since_contact
+                                    self.person.last_name, batted_ball.time_since_contact
                                 )
                         elif self is playing_action.retreating_to_second:
                             if playing_action.at_bat.game.trace:
                                 print "-- {} tagged up at second and will remain there [{}]".format(
-                                    self.last_name, batted_ball.time_since_contact
+                                    self.person.last_name, batted_ball.time_since_contact
                                 )
                         elif self is playing_action.retreating_to_third:
                             if playing_action.at_bat.game.trace:
                                 print "-- {} tagged up at third and will remain there [{}]".format(
-                                    self.last_name, batted_ball.time_since_contact
+                                    self.person.last_name, batted_ball.time_since_contact
                                 )
 
     def estimate_whether_you_can_beat_throw(self, playing_action):
@@ -2290,7 +1702,7 @@ class Person(object):
         # Estimate how long it would take you to reach your next base
         dist_from_me_to_next_base = 90 - (self.percent_to_base*90)
         time_expected_for_me_to_reach_next_base = (
-            dist_from_me_to_next_base * self.full_speed_sec_per_foot
+            dist_from_me_to_next_base * self.person.body.full_speed_seconds_per_foot
         )
         # If there is no throw yet, form a preliminary model of it and estimate how
         # long it would take to reach the base you are considering advancing to; do
@@ -2392,7 +1804,7 @@ class Person(object):
                 if playing_action.at_bat.game.trace:
                     print ("-- Due to confidence and/or audacity, {} will riskily attempt to take the next base "
                            "[realistic estimate was {}, his was {}, risk_buffer was {}] [{}]").format(
-                        self.last_name, realistic_estimate_of_difference, my_estimate_of_difference, risk_buffer,
+                        self.person.last_name, realistic_estimate_of_difference, my_estimate_of_difference, risk_buffer,
                         batted_ball.time_since_contact
                     )
         else:
@@ -2401,14 +1813,14 @@ class Person(object):
                 if playing_action.at_bat.game.trace:
                     print ("-- Due to timidness or lack of confidence, {} will (perhaps overcautiously) not take "
                            "the next base [realistic estimate was {}, his was {}, risk_buffer was {}] [{}]").format(
-                        self.last_name, realistic_estimate_of_difference, my_estimate_of_difference, risk_buffer,
+                        self.person.last_name, realistic_estimate_of_difference, my_estimate_of_difference, risk_buffer,
                         batted_ball.time_since_contact)
 
     def field_ball(self, batted_ball):
         """Attempt to field a batted ball.."""
         assert self.reorienting_after_fielding_miss <= 0, \
             "{} is attempting to field a ball while his reorientation time is still {}".format(
-                self.last_name, self.reorienting_after_fielding_miss
+                self.person.last_name, self.reorienting_after_fielding_miss
             )
         batted_ball.bobbled = False
         line_drive_at_pitcher = False
@@ -2770,7 +2182,7 @@ class Person(object):
 
     def set_on_foot_advance_target(self, playing_action, base):
         self.will_throw = False
-        self.dist_per_timestep = 0.1/self.full_speed_sec_per_foot
+        self.dist_per_timestep = 0.1/self.person.body.full_speed_seconds_per_foot
         if base == "1B":
             self.immediate_goal = [63.5, 63.5]
             runner_to_putout = (playing_action.running_to_first or playing_action.retreating_to_first)
@@ -2820,7 +2232,7 @@ class Person(object):
         if chance_for_out_at_first and best_bet_throw_or_on_foot_approach == diff_for_throw_to_first:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to first from [{}, {}] in pursuit of third out [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="1B")
@@ -2828,14 +2240,14 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to first from [{}, {}] in pursuit of third out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="1B")
         elif chance_for_out_at_second and best_bet_throw_or_on_foot_approach == diff_for_throw_to_second:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to second from [{}, {}] in pursuit of third out [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="2B")
@@ -2843,14 +2255,14 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to second from [{}, {}] in pursuit of third out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="2B")
         elif chance_for_out_at_third and best_bet_throw_or_on_foot_approach == diff_for_throw_to_third:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to third from [{}, {}] in pursuit of third out [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="3B")
@@ -2858,14 +2270,14 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to third from [{}, {}] in pursuit of third out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="3B")
         elif chance_for_out_at_home and best_bet_throw_or_on_foot_approach == diff_for_throw_to_home:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to home from [{}, {}] in pursuit of third out [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="H")
@@ -2873,12 +2285,12 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to home plate from [{}, {}] in pursuit of third out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="H")
         else:
-            print "Something went wrong -- person.py error code 09302014"
+            print "Something went wrong -- player.py error code 09302014"
             raw_input("")
 
     def make_throw_or_on_foot_approach_of_highest_utility(self, playing_action, all_chances_for_outs,
@@ -2896,7 +2308,7 @@ class Person(object):
         if chance_for_out_at_home and diff_for_throw_to_home <= 0:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to home from [{}, {}] [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="H")
@@ -2904,14 +2316,14 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to home plate from [{}, {}] in pursuit of an out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="H")
         elif chance_for_out_at_third and diff_for_throw_to_third <= 0:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to third from [{}, {}] [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="3B")
@@ -2919,14 +2331,14 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to third from [{}, {}] in pursuit of an out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="3B")
         elif chance_for_out_at_second and diff_for_throw_to_second <= 0:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to second from [{}, {}] [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="2B")
@@ -2934,7 +2346,7 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to second from [{}, {}] in pursuit of an out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="2B")
@@ -2943,7 +2355,7 @@ class Person(object):
             # just throw there anyway for due diligence
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to first from [{}, {}] [{}]".format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="1B")
@@ -2951,7 +2363,7 @@ class Person(object):
             if playing_action.at_bat.game.trace:
                 print ("-- {} ({}) will run to first from [{}, {}] in pursuit of an out because"
                        " he believes the ball will get there faster that way [{}]").format(
-                    self.last_name, self.position, int(self.location[0]), int(self.location[1]),
+                    self.person.last_name, self.position, int(self.location[0]), int(self.location[1]),
                     batted_ball.time_since_contact
                 )
             self.set_on_foot_advance_target(playing_action=playing_action, base="1B")
@@ -2960,39 +2372,39 @@ class Person(object):
         elif self.outfielder and playing_action.cut_off_man:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will make a cut-off throw to {} ({}) [{}]".format(
-                        self.last_name, self.position, playing_action.cut_off_man.last_name,
+                        self.person.last_name, self.position, playing_action.cut_off_man.person.last_name,
                         playing_action.cut_off_man.position, batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base=None, relay=True)
         elif runner_threatening_home:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to home preemptively [{}]".format(
-                    self.last_name, self.position, batted_ball.time_since_contact
+                    self.person.last_name, self.position, batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="H")
         elif runner_threatening_third:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to third preemptively [{}]".format(
-                    self.last_name, self.position, batted_ball.time_since_contact
+                    self.person.last_name, self.position, batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="3B")
         elif runner_threatening_second:
             if playing_action.at_bat.game.trace:
                 print "-- {} ({}) will throw to second preemptively [{}]".format(
-                    self.last_name, self.position, batted_ball.time_since_contact
+                    self.person.last_name, self.position, batted_ball.time_since_contact
                 )
             self.set_throw_target(playing_action=playing_action, base="2B")
         else:
             if not self.position == "P":
                 if playing_action.at_bat.game.trace:
                     print "-- {} ({}) will just throw to pitcher [{}]".format(
-                        self.last_name, self.position, batted_ball.time_since_contact
+                        self.person.last_name, self.position, batted_ball.time_since_contact
                     )
                 self.set_throw_target(playing_action=playing_action, base=None, back_to_pitcher=True)
             else:
                 if playing_action.at_bat.game.trace:
                     print "-- {} ({}) will just walk back to mound [{}]".format(
-                        self.last_name, self.position, batted_ball.time_since_contact
+                        self.person.last_name, self.position, batted_ball.time_since_contact
                     )
                 playing_action.resolved = True
 
@@ -3085,7 +2497,7 @@ class Person(object):
         elif base == "2B":
             throw_target = playing_action.covering_second
             base_coords = [0, 127]
-        elif base == "1B":
+        else:  # elif base == "1B":
             throw_target = playing_action.covering_first
             base_coords = [63.5, 63.5]
         if throw_target is self:
@@ -3104,7 +2516,7 @@ class Person(object):
                     throw_target.location[0]-base_coords[0], throw_target.location[1]-base_coords[1])
                 if dist_from_target_to_base > 5:
                     time_expected_for_target_to_be_ready_for_throw = (
-                        dist_from_target_to_base * throw_target.full_speed_sec_per_foot
+                        dist_from_target_to_base * throw_target.full_speed_seconds_per_foot
                     )
                 else:
                     time_expected_for_target_to_be_ready_for_throw = 0.0
@@ -3137,7 +2549,7 @@ class Person(object):
             diff_for_on_foot_approach_to_base = 999
         else:
             time_expected_for_on_foot_approach_to_base = (
-                dist_from_me_to_base * self.full_speed_sec_per_foot
+                dist_from_me_to_base * self.person.body.full_speed_seconds_per_foot
             )
             diff_for_on_foot_approach_to_base = (
                 time_expected_for_on_foot_approach_to_base - time_expected_for_runner_to_reach_base
@@ -3239,134 +2651,6 @@ class Person(object):
     def tag(self, baserunner):
         pass
         # TODO NEXT!
-
-    def call_pregame(self, game):
-        """Introduce the game about to be played as part of a radio broadcast."""
-        os.system("say We are here in {}, where the hometown {} will host the visiting {}".format(
-            game.home_team.city.name, game.home_team.nickname, game.away_team.name
-        ))
-        time.sleep(0.7)
-
-    def call_new_frame(self, frame):
-        """Introduce the next frame about to be played as part of a radio broadcast."""
-        os.system("say {}".format(str(frame)))
-
-    def call_at_bat(self, at_bat):
-        """Call an at bat as part of a radio broadcast."""
-        positions = {
-            "P": "pitcher", "C": "catcher", "1B": "first baseman", "2B": "second baseman",
-            "3B": "third baseman", "SS": "shortstop", "LF": "left fielder",
-            "CF": "center fielder", "RF": "right fielder"
-        }
-        score_before = [at_bat.game.away_team.runs, at_bat.game.home_team.runs]
-        if at_bat.batter.plate_appearances:
-            if at_bat.batter.batting_walks:
-                walks_str = " with {} walks ".format(len(at_bat.batter.batting_walks))
-            else:
-                walks_str = ""
-            ab_str = "who is {} for {} {} so far".format(
-                len(at_bat.batter.hits), len(at_bat.batter.at_bats), walks_str
-            )
-        else:
-            ab_str = "in his first at bat"
-        os.system('say Up to bat for {} is {}, a {} from {} {} today'.format(
-            at_bat.batter.team.city.name, at_bat.batter.name, positions[at_bat.batter.position],
-            at_bat.batter.hometown.name, ab_str
-        ))
-        time.sleep(0.5)
-        if at_bat.batter.home_runs:
-            if len(at_bat.batter.home_runs) > 1:
-                os.system('say {} is out of his mind today, he has hit {} home runs'.format(
-                    at_bat.batter.last_name, len(at_bat.batter.home_runs)
-                ))
-            else:
-                os.system('say {} hit a home run in the {}'.format(
-                    at_bat.batter.last_name, str(at_bat.batter.home_runs[-1].at_bat.frame).split(' inning')[0]
-                ))
-            time.sleep(0.5)
-        elif at_bat.batter.doubles:
-            os.system('say {} had a double in the {}'.format(
-                at_bat.batter.last_name, str(at_bat.batter.home_runs[-1].at_bat.frame).split(' inning')[0]
-            ))
-            time.sleep(0.5)
-        if at_bat.batter.plate_appearances:
-            if type(at_bat.batter.plate_appearances[-1].result) is Strikeout:
-                os.system('say {} struck out in his last at bat'.format(at_bat.batter.last_name))
-                time.sleep(0.2)
-                if at_bat.batter.composure < 0.7:
-                    nervous_str = random.choice(["he looks visibly rattled out there",
-                                                 "he appears very nervous at the plate",
-                                                 "he is visibly shaking right now",
-                                                 "he seems quite nervous"])
-                    os.system('say {}'.format(nervous_str))
-                time.sleep(0.5)
-            elif type(at_bat.batter.plate_appearances[-1].result) is BaseOnBalls:
-                os.system('say {} was walked in his last at bat'.format(at_bat.batter.last_name))
-                time.sleep(0.5)
-        elif at_bat.batter.composure > 1.3:
-            conf_str = random.choice(["he looks very composed out there",
-                                      "he looks very confident at the plate",
-                                      "he is looking cool as can be right now",
-                                      "he is appearing to be unflappable today"])
-            os.system('say {}'.format(conf_str))
-        outs_str = random.choice(['the scoreboard shows {} outs'.format(at_bat.frame.outs),
-                                  '{} outs for the {}'.format(at_bat.frame.outs, at_bat.batter.team),
-                                  'we are at {} outs'.format(at_bat.frame.outs),
-                                  '{} outs on the board'.format(at_bat.frame.outs)])
-        os.system('say {}'.format(outs_str))
-        if not at_bat.frame.baserunners and random.random() < 0.2:
-            os.system('say There are no runners on.')
-        elif at_bat.frame.bases_loaded:
-            os.system('say Bases are loaded!')
-        else:
-            if at_bat.frame.on_first and at_bat.frame.on_second:
-                os.system('say runners on first and second')
-            elif at_bat.frame.on_first and at_bat.frame.on_third:
-                os.system('say runners on first and third')
-            elif at_bat.frame.on_second and at_bat.frame.on_third:
-                os.system('say runners on second and third')
-            elif at_bat.frame.on_first:
-                os.system('say theres a runner on first')
-            elif at_bat.frame.on_second:
-                os.system('say theres a runner on second')
-            elif at_bat.frame.on_third:
-                os.system('say theres a runner on third')
-        at_bat.enact()
-        # Announcer will call the batted ball at this point, at playing_action.enact()'s behest,
-        # if there is one
-        time.sleep(1.5)
-        result = re.sub("\(", '', str(at_bat.result))
-        result = re.sub("\)", '', result)
-        result = re.sub("'", '', result)
-        for position in positions:
-            result = re.sub(' {} '.format(position), ' {} '.format(positions[position]), result)
-        os.system('say {}'.format(result))
-        score_after = [at_bat.game.away_team.runs, at_bat.game.home_team.runs]
-        if score_before != score_after or random.random() < 0.15:
-            os.system('say the score is {}, {}, {}, {}'.format(
-                at_bat.game.away_team.city.name, at_bat.game.away_team.runs,
-                at_bat.game.home_team.city.name, at_bat.game.home_team.runs))
-        time.sleep(0.5)
-
-    def call_batted_ball(self, batted_ball):
-        """Call a batted ball as it comes off the bat as part of a radio broadcast."""
-        positions = {
-            "P": "pitcher", "C": "catcher", "1B": "first baseman", "2B": "second baseman",
-            "3B": "third baseman", "SS": "shortstop", "LF": "left fielder",
-            "CF": "center fielder", "RF": "right fielder"
-        }
-        bb_description = str(batted_ball)
-        re.sub("\(", "", bb_description)
-        for position in positions:
-            bb_description = re.sub(" {}\)".format(position), ", {}, ".format(positions[position]),
-                                    bb_description)
-        os.system('say {}'.format(bb_description))
-        time.sleep(0.5)
-        if batted_ball.true_distance > 315:
-            hit_deep_str = random.choice(["its hit way back!", "its hit very deep!",
-                                          "its going, its going, its...",
-                                          "this may be a home run!"])
-            os.system('say {}'.format(hit_deep_str))
 
     @property
     def bat_speed(self):
