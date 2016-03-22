@@ -166,6 +166,9 @@ class Cosmos(object):
                 # Happy New Year
                 self.true_year = new_date_tuple.year
                 self.year = new_date_tuple.year
+                print "Updating each city's nearest cities..."
+                for city in self.cities:
+                    city.set_nearest_cities()
             self.month = new_date_tuple.month
             self.day = new_date_tuple.day
             self.date = self.get_date()
@@ -196,8 +199,6 @@ class Cosmos(object):
         if self.ordinal_date in self.city_data.ordinal_dates_of_city_establishment:
             for city_specification in self.city_data.ordinal_dates_of_city_establishment.get(self.ordinal_date, set()):
                 City(cosmos=self, specification=city_specification)
-            for city in self.cities:
-                city.set_nearest_cities()
 
     def _simulate_a_timestep_in_a_city(self, city):
         """Simulate a timestep in the given city."""
