@@ -268,7 +268,7 @@ class City(object):
         return free_agents
 
     def distance_to(self, city):
-        """Return Pythagorean distance between another city and this one."""
+        """Return Euclidean distance between another city and this one."""
         lat_dist = self.latitude-city.latitude
         long_dist = self.longitude-city.longitude
         dist = math.sqrt((lat_dist**2) + (long_dist**2))
