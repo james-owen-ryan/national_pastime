@@ -42,10 +42,18 @@ class City(object):
         # Prepare baseball-related attributes
         self.teams = []
         # Generate a city plan
-        city_plan = CityPlan(city=self)
+        city_plan = None
+        while not city_plan:
+            try:
+                city_plan = CityPlan(city=self)
+            except KeyError:  # Very rare error encountered in _determine_travel_distances_between_parcels()
+                pass
         while len(city_plan.tracts) < 2:
             print "Re-rolling on a city plan for {} (not enough tracts)".format(self.full_name)
-            city_plan = CityPlan(city=self)
+            try:
+                city_plan = CityPlan(city=self)
+            except KeyError:  # Very rare error encountered in _determine_travel_distances_between_parcels()
+                pass
         self.streets = city_plan.streets
         self.parcels = city_plan.parcels
         self.lots = city_plan.lots
