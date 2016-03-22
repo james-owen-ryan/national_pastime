@@ -11,6 +11,9 @@ from play import Pitch, Swing, Bunt, FieldingAct, Throw
 from career import PlayerCareer
 
 
+# TODO PAIRWISE SYNERGY BETWEEN PLAYERS -- MAYBE A BASEBALL-CENTRIC CLASS RESEMBLING RELATIONSHIP()
+
+
 # TODO  progress skills according to age, practice, and also according to era somehow (maybe
 # TODO  have the averages, used often in diff_from_avg snippets, change over time?)
 
