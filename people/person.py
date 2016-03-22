@@ -17,6 +17,7 @@ from evidence import Reflection, Observation, Lie, Statement
 from belief import *
 import face
 from baseball.player import Player
+from baseball.fan import Fan
 
 
 class Person(object):
@@ -71,9 +72,7 @@ class Person(object):
         self.home = None  # Must come before setting routine
         # Set biological characteristics
         self.infertile = self._init_fertility(male=self.male, config=self.cosmos.config)
-        self.attracted_to_men, self.attracted_to_women = (
-            self._init_sexuality()
-        )
+        self.attracted_to_men, self.attracted_to_women = self._init_sexuality()
         # Set face
         self.face = Face(person=self)
         # Set body
@@ -89,8 +88,9 @@ class Person(object):
         # Prepare Whereabouts object, which tracks a person's whereabouts at every
         # timestep of their life
         self.whereabouts = Whereabouts(person=self)
-        # Set baseball-player layer
+        # Set baseball layers
         self.player = Player(person=self) if self.male else None
+        self.fan = Fan(person=self)
         # Prepare name attributes that get set by event.Birth._name_baby() (or PersonExNihilo._init_name())
         self.first_name = None
         self.middle_name = None
