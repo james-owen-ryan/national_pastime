@@ -17,7 +17,6 @@ class City(object):
         self.cosmos = cosmos
         self.name = specification.city_name
         self.country = next(c for c in cosmos.countries if c.name == specification.country_name)
-        print specification.state_name
         self.state = next(s for s in self.country.states+[self.country.capital] if s.name == specification.state_name)
         self.full_name = '{}, {}'.format(self.name, self.state.name)
         print "Establishing {}".format(self.full_name)
