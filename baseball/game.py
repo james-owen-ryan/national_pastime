@@ -16,9 +16,11 @@ from playing_action import PitchInterim, PlayingAction
 
 
 class Game(Event):
+    """A baseball game in a baseball cosmos."""
 
     def __init__(self, home_team, away_team, ballpark=None, league=None, rules=None,
                  radio=False, trace=False, debug=False):
+        """Initialize a Game object."""
         self.cosmos = home_team.city.cosmos
         super(Game, self).__init__(cosmos=self.cosmos)  # This will collect metadata about the date, etc.
         self.home_team = home_team
