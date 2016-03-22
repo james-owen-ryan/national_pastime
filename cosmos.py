@@ -1,9 +1,13 @@
 import random
 import datetime
 from utils.config import Config
+from data import CityData
+from geography.city import City
 from geography.country import Country
 from people.business import *
 from people.productionist import Productionist
+
+CHANCE_OF_A_DAY_BEING_SIMULATED = 0.005
 
 
 class Cosmos(object):
@@ -16,6 +20,9 @@ class Cosmos(object):
         print "Preparing {self}...".format(self=self)
         # Load the config parameters
         self.config = Config()
+        # Load the city data (specifies data about all cities that will eventually
+        # be established in this simulation)
+        self.city_data = CityData()
         # Load the NLG module for this game instance, etc.
         self.productionist = Productionist(game=self)
         self.errors = []
@@ -54,8 +61,12 @@ class Cosmos(object):
         # self.establish_setting()
         # self._sim_and_save_a_week_of_timesteps()
         self.weather = None
-        # This causes the whole game world to be generated
-        self.countries = [Country(name='United States of America', cosmos=self)]
+        # Prepare geographic listings
+        self.countries = []
+        self.states = []
+        self.cities = []
+        # Instantiate a first country
+        Country(name='United States of America', cosmos=self)
 
         self.leagues = []
 
@@ -67,15 +78,6 @@ class Cosmos(object):
     def __str__(self):
         """Return string representation."""
         return "Baseball Cosmos {cosmos_id}".format(cosmos_id=self.id)
-
-    @property
-    def cities(self):
-        """Return a list of all the cities in this baseball cosmos."""
-        cities = []
-        for country in self.countries:
-            for city in country.cities:
-                cities.append(city)
-        return cities
 
     @property
     def people(self):
@@ -148,48 +150,10 @@ class Cosmos(object):
             self._advance_time()
             for country in self.countries:
                 for city in country.cities:
-                    city.manipulate_population()  # If too slow, only do this in lo-fi sim
-                    chance_of_a_day_being_simulated = 0.005
-                    if random.random() < chance_of_a_day_being_simulated:
-                        print "Simulating a day in {}...".format(city.full_name)
-                        for person in list(city.residents):
-                            if person.pregnant:
-                                if self.ordinal_date >= person.due_date:
-                                    person.give_birth()
-                            if person.marriage and person.spouse.home is person.home:
-                                chance_they_are_trying_to_conceive_this_year = (
-                                    self.config.function_to_determine_chance_married_couple_are_trying_to_conceive(
-                                        n_kids=len(person.marriage.children_produced)
-                                    )
-                                )
-                                chance_they_are_trying_to_conceive_this_year /= chance_of_a_day_being_simulated*365
-                                if random.random() < chance_they_are_trying_to_conceive_this_year:
-                                    person.have_sex(partner=person.spouse, protection=False)
-                            if person.age > max(65, random.random() * 100):
-                                person.die(cause_of_death="Natural causes")
-                            elif person.occupation and person.age > max(65, random.random() * 100):
-                                person.retire()
-                            elif person.adult and not person.occupation:
-                                if person.age > 22:
-                                    person.college_graduate = True
-                            elif person.age > 18 and person not in person.home.owners:
-                                person.move_out_of_parents_home()
-                        days_since_last_simulated_day = self.ordinal_date-city.last_simulated_day
-                        # Reset all Relationship interacted_this_timestep attributes
-                        for person in list(city.residents):
-                            for other_person in person.relationships:
-                                person.relationships[other_person].interacted_this_timestep = False
-                        # Have people go to the location they will be at this timestep
-                        for person in list(city.residents):
-                            person.routine.enact()
-                        # Have people observe their surroundings, which will cause knowledge to
-                        # build up, and have them socialize with other people also at that location --
-                        # this will cause relationships to form/progress and knowledge to propagate
-                        for person in list(city.residents):
-                            if person.age > 3:
-                                # person.observe()
-                                person.socialize(missing_timesteps_to_account_for=days_since_last_simulated_day*2)
-                        city.last_simulated_day = self.ordinal_date
+                    if random.random() < 0.03:
+                        city.manipulate_population()
+                    if random.random() < CHANCE_OF_A_DAY_BEING_SIMULATED:
+                        self._simulate_a_timestep_in_a_city(city)
 
     def _advance_time(self):
         """Advance time of day and date, if it's a new day."""
@@ -202,28 +166,80 @@ class Cosmos(object):
                 # Happy New Year
                 self.true_year = new_date_tuple.year
                 self.year = new_date_tuple.year
-                for country in self.countries:
-                    country.establish_cities()
             self.month = new_date_tuple.month
             self.day = new_date_tuple.day
             self.date = self.get_date()
             print self.date
-            # Age any present (not dead, not departed) character whose birthday is today
-            if (self.month, self.day) not in self.birthdays:
-                self.birthdays[(self.month, self.day)] = set()
-            else:
-                for person in self.birthdays[(self.month, self.day)]:
-                    if person.alive:
-                        person.grow_older()
-                # Don't forget leap-year babies
-                if (self.month, self.day) == (3, 1):
-                    for person in self.birthdays[(2, 29)]:
-                        if person.present:
-                            person.grow_older()
-        else:
+            self._handle_any_birthdays_today()
+            self._handle_any_city_establishments_today()
+        else:  # Nighttime
             self.date = self.get_date()
         # Lastly, set a new random number for this timestep
         self.random_number_this_timestep = random.random()
+
+    def _handle_any_birthdays_today(self):
+        """Age any living character whose birthday is today."""
+        if (self.month, self.day) not in self.birthdays:
+            self.birthdays[(self.month, self.day)] = set()
+        else:
+            for person in self.birthdays[(self.month, self.day)]:
+                if person.alive:
+                    person.grow_older()
+            # Don't forget leap-year babies
+            if (self.month, self.day) == (3, 1):
+                for person in self.birthdays[(2, 29)]:
+                    if person.present:
+                        person.grow_older()
+
+    def _handle_any_city_establishments_today(self):
+        """Establish any cities that have been prescribed to be established today."""
+        if self.ordinal_date in self.city_data.ordinal_dates_of_city_establishment:
+            for city_specification in self.city_data.ordinal_dates_of_city_establishment.get(self.ordinal_date, set()):
+                City(cosmos=self, specification=city_specification)
+            for city in self.cities:
+                city.set_nearest_cities()
+
+    def _simulate_a_timestep_in_a_city(self, city):
+        """Simulate a timestep in the given city."""
+        print "Simulating a {} in {}...".format(self.time_of_day, city.full_name)
+        for person in list(city.residents):
+            if person.pregnant:
+                if self.ordinal_date >= person.due_date:
+                    person.give_birth()
+            if person.marriage and person.spouse.home is person.home:
+                chance_they_are_trying_to_conceive_this_year = (
+                    self.config.function_to_determine_chance_married_couple_are_trying_to_conceive(
+                        n_kids=len(person.marriage.children_produced)
+                    )
+                )
+                chance_they_are_trying_to_conceive_this_year /= CHANCE_OF_A_DAY_BEING_SIMULATED*365
+                if random.random() < chance_they_are_trying_to_conceive_this_year:
+                    person.have_sex(partner=person.spouse, protection=False)
+            if person.age > max(65, random.random() * 100):
+                person.die(cause_of_death="Natural causes")
+            elif person.occupation and person.age > max(65, random.random() * 100):
+                person.retire()
+            elif person.adult and not person.occupation:
+                if person.age > 22:
+                    person.college_graduate = True
+            elif person.age > 18 and person not in person.home.owners:
+                person.move_out_of_parents_home()
+        days_since_last_simulated_day = self.ordinal_date-city.last_simulated_day
+        # Reset all Relationship interacted_this_timestep attributes
+        for person in list(city.residents):
+            for other_person in person.relationships:
+                person.relationships[other_person].interacted_this_timestep = False
+        # Have people go to the location they will be at this timestep
+        for person in list(city.residents):
+            person.routine.enact()
+        # Have people observe their surroundings, which will cause knowledge to
+        # build up, and have them socialize with other people also at that location --
+        # this will cause relationships to form/progress and knowledge to propagate
+        for person in list(city.residents):
+            if person.age > 3:
+                # person.observe()
+                person.socialize(missing_timesteps_to_account_for=days_since_last_simulated_day*2)
+        city.last_simulated_day = self.ordinal_date
 
     def find_by_hex(self, hex_value):
         """Return person whose ID in memory has the given hex value."""

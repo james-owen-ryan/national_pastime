@@ -10,22 +10,27 @@ from baseball.ballpark import Ballpark
 
 
 class City(object):
-    """A city in which a gameplay instance takes place."""
+    """A city in a baseball cosmos."""
 
-    def __init__(self, state, name):
+    def __init__(self, cosmos, specification):
         """Initialize a City object."""
-        print "Establishing {}, {}".format(name, state.name)
-        self.cosmos = state.country.cosmos
-        self.country = state.country
-        self.state = state
-        self.name = name
-        self.full_name = '{}, {}'.format(name, state.name)
+        self.cosmos = cosmos
+        self.name = specification.city_name
+        self.country = next(c for c in cosmos.countries if c.name == specification.country_name)
+        print specification.state_name
+        self.state = next(s for s in self.country.states+[self.country.capital] if s.name == specification.state_name)
+        self.full_name = '{}, {}'.format(self.name, self.state.name)
+        print "Establishing {}".format(self.full_name)
         self.founded = self.cosmos.year
         # Set various data
-        self.latitude, self.longitude = self.state.country.city_data.coordinates[self.full_name]
+        self.latitude = specification.latitude
+        self.longitude = -specification.longitude  # Convert to a positive float (makes distance calculation easier)
         self.coordinates = self.latitude, self.longitude
-        self.true_yearly_populations = self.state.country.city_data.yearly_populations[self.full_name]
-        self.true_population = self.true_yearly_populations[self.cosmos.year]
+        self.true_yearly_populations = specification.yearly_populations
+        # Update geographic listings
+        self.state.cities.append(self)
+        self.country.cities.append(self)
+        self.cosmos.cities.append(self)
         # Prepare various listings
         self.settlers = set()  # First people to live in this city
         self.residents = set()
@@ -74,7 +79,7 @@ class City(object):
         # Establish the city -- have people move in and start up businesses
         self._init_get_established()
 
-        # TODO MAKE THIS COOL
+        # TODO MAKE THIS COOL (PROB BY HAVING THE BALLPARK BE AT THE BASEBALL HQ, A BUSINESS OBJECT?)
         self.ballpark = Ballpark(city=self)
 
     def _init_determine_downtown_lot(self):
@@ -93,8 +98,10 @@ class City(object):
         # Have at least one farm be established, and make its owner the mayor
         farm = Farm(city=self)
         self.mayor = farm.owner.person  # TODO actual mayor stuff
-        while self.underpopulated:
-            self.manipulate_population()
+        # JOR 03-21-16: COMMENTING THIS OUT TO SEE IF CITIES WILL STILL REACH THEIR IDEAL POPS FAIRLY QUICKLY
+        # AND MORE NATURALLY -- CAN DELETE IT THIS SEEMS ACHIEVED
+        # while self.underpopulated:
+        #     self.manipulate_population()
         # Set the city's 'settlers' attribute
         self.settlers = set(self.residents)
 
@@ -238,9 +245,8 @@ class City(object):
         """Return unemployed (mostly young) people, excluding retirees."""
         unemployed_people = set()
         for resident in self.residents:
-            if not resident.occupation and not resident.retired:
-                if resident.age >= self.cosmos.config.age_people_start_working:
-                    unemployed_people.add(resident)
+            if resident.searching_for_work:
+                unemployed_people.add(resident)
         return unemployed_people
 
     @property
@@ -280,6 +286,30 @@ class City(object):
 
     def manipulate_population(self):
         """Attempt to manipulate the population of this city to reflect its true population this year."""
+        if self.true_yearly_populations[self.cosmos.year] == -99:  # Minor city
+            self._manipulate_population_as_a_minor_city()
+        else:  # Major city (at least at one time TODO REVERT CITIES TO MINOR)
+            self._manipulate_population_as_a_major_city()
+
+    def _manipulate_population_as_a_minor_city(self):
+        """Attempt to maintain a low population for this minor city."""
+        if not self.residents:
+            self._cause_population_growth()
+        elif len(self.residents) > self.cosmos.config.desired_maximum_number_of_npcs_in_minor_cities:
+            # Select a random adult in town
+            if self.unemployed:
+                resident_to_move = random.choice(list(self.unemployed))
+            else:
+                resident_to_move = random.choice([p for p in self.residents if p.adult])
+            # Attempt to have them move to an underpopulated city
+            underpopulated_city_to_move_to = resident_to_move.choose_new_city_to_move_to()
+            if underpopulated_city_to_move_to:
+                resident_to_move.move_to_new_city(
+                    city=underpopulated_city_to_move_to, reason=Fate(cosmos=self.cosmos)
+                )
+
+    def _manipulate_population_as_a_major_city(self):
+        """Attempt to manipulate the population of this major city to reflect its true population this year."""
         number_of_npcs_to_shoot_for = self._get_ideal_number_of_npcs_for_this_year()
         if number_of_npcs_to_shoot_for <= self.population:
             self.overpopulated = True
@@ -296,14 +326,15 @@ class City(object):
         """Return the ideal number of NPCs that should be living in this city this year."""
         config = self.cosmos.config
         true_population_this_year = self.true_yearly_populations[self.cosmos.year]
-        if true_population_this_year != -1:
+        if true_population_this_year > 0:
             number_of_npcs_to_shoot_for = (
                 config.function_to_get_desired_number_of_npcs_given_true_population_some_year(
                     true_pop=true_population_this_year
                 )
             )
-        else:
-            # Just stick with the last population on record
+        else:  # elif true_population_this_year == -1:
+            # This is a (one-time) major city, but we don't have data for the true population
+            # this year, so just attempt to maintain the last population count on record
             years_that_have_passed_already = xrange(config.year_worldgen_begins, self.cosmos.year)
             last_population_on_record = next(
                 y for y in years_that_have_passed_already if
@@ -315,17 +346,6 @@ class City(object):
                 )
             )
         return number_of_npcs_to_shoot_for
-
-    def _deal_with_unemployment(self):
-        """Cause more businesses to be established, if underpopulated, or unemployed to move away, if overpopulated."""
-        if not self.overpopulated:
-            self._have_a_new_business_start_up()
-        else:
-            for unemployed_person in list(self.unemployed):
-                if random.random() < 0.5:
-                    city_they_will_move_to = unemployed_person.choose_new_city_to_move_to()
-                    if city_they_will_move_to:
-                        unemployed_person.move_to_new_city(city=city_they_will_move_to, reason=None)
 
     def _cause_population_growth(self):
         """Do things that will cause the population of this city to grow."""

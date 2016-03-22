@@ -10,3 +10,7 @@
 3. Convert PersonExNihilo to Immigrant class, and then specify which country they're coming from.
     Can then give them appropriate surname for the country and move them to appropriate city
     given their nationality.
+
+4. Let people live in one town and work in a nearby town.
+
+5. Make routines take people into neighboring towns, if necessary.

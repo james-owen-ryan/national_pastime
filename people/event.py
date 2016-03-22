@@ -849,7 +849,9 @@ class Divorce(Event):
 
 
 class Fate(Event):
-    """A catch-all event that can serve as the reason for anything in the cosmos that was forced to happen."""
+    """A catch-all event that can serve as the reason for anything in the cosmos that was forced to happen
+    by top-down methods in the greater simulation (usually ones that are in service to population maintenance).
+    """
 
     def __init__(self, cosmos):
         """Initialize a Retirement object."""

@@ -34,13 +34,6 @@ class Config(object):
         self.chance_city_gets_named_for_founder = 0.3
         self.chance_avenue_gets_numbered_name = 0.0
         self.chance_street_gets_numbered_name = 0.8
-        # City founder
-        self.age_of_city_founder = 30
-        self.age_of_city_founders_spouse = 30
-        self.money_city_founder_starts_with = 100000
-        self.boost_to_the_founders_conception_chance = 0.2
-        # City establishment and early development
-        self.number_of_apartment_complexes_founder_builds_downtown = 3
 
                 #################
                 ##  BASEBALL   ##
@@ -100,6 +93,7 @@ class Config(object):
         self.function_to_get_desired_number_of_npcs_given_true_population_some_year = (
             lambda true_pop: max(45, true_pop**0.45)
         )
+        self.desired_maximum_number_of_npcs_in_minor_cities = 15
 
                 ############
                 ##  SIM   ##
@@ -346,6 +340,7 @@ class Config(object):
 
         # Misc
         self.age_people_start_working = lambda year: 14 if year < 1920 else 16 if year < 1960 else 18
+        self.year_before_which_married_women_would_not_be_considered_out_of_work = 1972
         self.amount_of_money_generated_people_from_outside_city_start_with = 5000
         # Housing
         self.number_of_apartment_units_in_new_complex_min = 4

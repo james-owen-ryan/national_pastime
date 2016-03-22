@@ -1,7 +1,4 @@
 import random
-from data import CityData
-from city import City
-from utils.errors import NoVacantTractsError
 
 
 class Country(object):
@@ -11,9 +8,10 @@ class Country(object):
         """Instantiate a country object."""
         self.name = name
         self.cosmos = cosmos
-        self.city_data = CityData()
         self.states, self.federal_district = self._init_states_and_federal_district()
         self.capital = self.federal_district
+        self.cities = []
+        cosmos.countries.append(self)
 
     def _init_states_and_federal_district(self):
         """Instantiate objects for all 50 states."""
@@ -43,21 +41,6 @@ class Country(object):
         else:
             city = None
         return city
-
-    def establish_cities(self):
-        """Instantiate objects for all cities in this state that get introduced into the simulation this year."""
-        for state in self.states + [self.federal_district]:
-            state.establish_cities()
-        for city in self.cities:
-            city.set_nearest_cities()
-
-    @property
-    def cities(self):
-        """Return all cities in this country."""
-        cities = []
-        for state in self.states + [self.federal_district]:
-            cities += state.cities
-        return cities
 
     @property
     def companies(self):
@@ -119,24 +102,6 @@ class State(object):
         self.cosmos = country.cosmos
         self.country = country
         self.cities = []  # Gets appended to by establish_cities, which gets called each year by Country
-
-    def establish_cities(self):
-        """Instantiate objects for all cities in this state that get introduced into the simulation this year."""
-        if self.cosmos.year in self.country.city_data.city_instantiation_years[self.name]:
-            cities_to_instantiate_this_year = (
-                self.country.city_data.city_instantiation_years[self.name][self.cosmos.year]
-            )
-            for city_name in cities_to_instantiate_this_year:
-                city = None
-                while not city:
-                    try:
-                        city = City(state=self, name=city_name)
-                    except NoVacantTractsError:
-                        # If a city got generated without any tracts (which means no
-                        # cemetery, park, or ballpark can be established), let the
-                        # loop run again so that a new city plat will be generated
-                        print "{} was generated with no tract... trying again".format(city_name)
-                self.cities.append(city)
 
     def __str__(self):
         return self.name

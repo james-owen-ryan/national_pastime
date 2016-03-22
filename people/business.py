@@ -22,7 +22,7 @@ class Business(object):
 
     def __init__(self, city):
         """Initialize a Business object."""
-        print "A new {} is being established in {}".format(self.__class__.__name__, city.name)
+        print "A new {} is being established in {}".format(self.__class__.__name__, city.full_name)
         self.id = city.cosmos.current_place_id
         city.cosmos.current_place_id += 1
         config = city.cosmos.config
@@ -789,6 +789,9 @@ class Business(object):
 
     def go_out_of_business(self, reason):
         """Cease operation of this business."""
+        print "A {} in {} is going out of business after {} years".format(
+            self.__class__.__name__, self.city.full_name, self.city.cosmos.year-self.founded
+        )
         BusinessClosure(business=self, reason=reason)
 
     def _get_bulldozed(self):

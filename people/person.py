@@ -55,7 +55,7 @@ class Person(object):
             self.father = None
             self.parents = set()
             self.birth_year = None  # Gets set by PersonExNihilo.__init__()
-            self.birthday = (None, None)  # Gets set by PersonExNihilo.get_random_day_of_year()
+            self.birthday = (None, None)  # Gets set by PersonExNihilo._get_random_ordinal_date_of_year()
             # Set attributes pertaining to age
             self.age = None  # Will get initialized by PersonExNihilo.__init__()
             self.adult = True if self.age >= 18 else False
@@ -527,6 +527,21 @@ class Person(object):
         """Return a single number representing the extent of this person's cumulative work experience."""
         experience = sum(job.experience*job.level for job in self.occupations)
         return experience
+
+    @property
+    def searching_for_work(self):
+        """Return whether this person is currently searching for work."""
+        config = self.cosmos.config
+        if self.occupation:
+            return False
+        elif not self.ready_to_work:
+            return False
+        elif self.retired:
+            return False
+        elif self.female and self.spouse:
+            if self.cosmos.year < config.year_before_which_married_women_would_not_be_considered_out_of_work:
+                return False
+        return True
 
     def present(self, city):
         """Return whether the person is alive and in the city."""

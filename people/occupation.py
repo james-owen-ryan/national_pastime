@@ -154,7 +154,7 @@ class Occupation(object):
                     except KeyError:
                         raise Exception(
                             "{} ({}) could not be removed from {} ({}?) coworkers".format(
-                                self.person.name, self.vocation, employee.person.name, employee.person.vocation
+                                self.person.name, self.vocation, employee.person.name, employee.vocation
                             )
                         )
             # Update the .former_coworkers attribute of everyone involved to reflect this change
