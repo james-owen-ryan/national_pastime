@@ -3,3 +3,12 @@
     of themself. E.g., a player with low confidence doesn't believe they are a power hitter, but
     you convince them that they are, thereby unlocking that potential (and of course it could also
     go wrongly in the obverse).
+
+
+1. Generate coats of arms procedurally; their specifications seem very operationalizable in
+    Tracery or Expressionist. E.g.:
+        Quarterly: 1st and 4th, or, on a fesse, dancettée, with plain cotises
+        between three billets, sa., each charged with a lion, rampant, of the
+        field, as many bezants; 2nd, gu., an eagle, displayed, barry of six,
+        erminois and az.; 3rd, or, a saltier, sa., in chief, a leopard's face,
+        of the second.
