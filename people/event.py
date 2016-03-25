@@ -1112,7 +1112,7 @@ class Marriage(Event):
             spouse_who_may_take_name = self.subjects[0]
         other_spouse = next(newlywed for newlywed in self.subjects if newlywed is not spouse_who_may_take_name)
         if spouse_who_may_take_name.last_name is not other_spouse.last_name:
-            if random.random() < config.chance_one_newlywed_takes_others_name:
+            if random.random() < config.chance_one_newlywed_takes_others_name(year=other_spouse.cosmos.year):
                 spouse_who_may_take_name.change_name(new_last_name=other_spouse.last_name, reason=self)
         if random.random() < config.chance_stepchildren_take_stepparent_name:
             for stepchild in spouse_who_may_take_name.kids:
