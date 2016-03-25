@@ -1,12 +1,13 @@
 import math
 import heapq
 import random
+from scipy import spatial
 from city_planning import CityPlan
 from people.business import *
 from people.person import PersonExNihilo
 from utils import utilities
 from people.event import Fate
-from baseball.ballpark import Ballpark
+from baseball.field import Field
 
 
 class City(object):
@@ -22,6 +23,7 @@ class City(object):
         print "Establishing {}".format(self.full_name)
         self.founded = self.cosmos.year
         # Set various data
+        specification.city = self
         self.latitude = specification.latitude
         self.longitude = -specification.longitude  # Convert to a positive float (makes distance calculation easier)
         self.coordinates = self.latitude, self.longitude
@@ -40,7 +42,9 @@ class City(object):
         self.dwelling_places = set()  # Both houses and apartment units (not complexes)
         self.former_dwelling_places = set()
         # Prepare baseball-related attributes
-        self.teams = []
+        self.teams = set()
+        self.former_teams = set()
+        self.leagues = []  # Leagues based here
         # Generate a city plan
         city_plan = None
         while not city_plan:
@@ -86,9 +90,6 @@ class City(object):
         # Establish the city -- have people move in and start up businesses
         self._init_get_established()
 
-        # TODO MAKE THIS COOL (PROB BY HAVING THE BALLPARK BE AT THE BASEBALL HQ, A BUSINESS OBJECT?)
-        self.ballpark = Ballpark(city=self)
-
     def _init_determine_downtown_lot(self):
         """Return the lot located among the greatest density of lots."""
         downtown = None
@@ -102,10 +103,11 @@ class City(object):
 
     def _init_get_established(self):
         """Establish the city in which this gameplay instance will take place."""
-        # Have at least one farm be established, and make its owner the mayor
-        farm = Farm(city=self)
-        self.mayor = farm.owner.person  # TODO actual mayor stuff
-        # JOR 03-21-16: COMMENTING THIS OUT TO SEE IF CITIES WILL STILL REACH THEIR IDEAL POPS FAIRLY QUICKLY
+        # Have a single business be established, and make its owner the mayor
+        type_of_business_that_will_be_established = self.cosmos.config.first_business_in_town(year=self.cosmos.year)
+        first_business_in_town = type_of_business_that_will_be_established(city=self)
+        self.mayor = first_business_in_town.owner.person  # TODO actual mayor stuff
+        # JOR 03-21-16: COMMENTING THIS OUT TO SEE IF MAJOR CITIES WILL STILL REACH THEIR IDEAL POPS FAIRLY QUICKLY
         # AND MORE NATURALLY -- CAN DELETE IT THIS SEEMS ACHIEVED
         # while self.underpopulated:
         #     self.manipulate_population()
@@ -203,7 +205,8 @@ class City(object):
     def set_nearest_cities(self):
         """Get the ten nearest cities to this one."""
         nearest_cities = heapq.nsmallest(
-            21, self.state.country.cities, key=lambda city: self.distance_to(city)
+            # 21, self.state.country.cities, key=lambda city: self.distance_to(city)
+            21, self.state.cities, key=lambda city: self.distance_to(city)
         )
         if self in nearest_cities:
             nearest_cities.remove(self)
@@ -258,9 +261,13 @@ class City(object):
 
     @property
     def free_agents(self):
-        all_players = [resident.player for resident in self.residents if resident.player]
-        free_agents = list(all_players)
-        for player in all_players:
+        """Return all the baseball players in this city that are not under contract."""
+        free_agents = {
+            resident.player for resident in self.residents if resident.player and
+            not resident.player.career.retired and
+            not resident.player.career.team
+        }
+        for player in free_agents:
             if player.career.retired:
                 free_agents.remove(player)
             elif player.career.team and player in player.career.team.players:
@@ -268,11 +275,11 @@ class City(object):
         return free_agents
 
     def distance_to(self, city):
-        """Return Euclidean distance between another city and this one."""
-        lat_dist = self.latitude-city.latitude
-        long_dist = self.longitude-city.longitude
-        dist = math.sqrt((lat_dist**2) + (long_dist**2))
-        return dist
+        """Return the (approximate) Euclidean distance between another city and this one, in miles."""
+        distance_in_euclidean_degrees = spatial.distance.euclidean(self.coordinates, city.coordinates)
+        number_of_miles_per_euclidean_degree = 68.7
+        distance_in_miles = distance_in_euclidean_degrees*number_of_miles_per_euclidean_degree
+        return distance_in_miles
 
     def workers_of_trade(self, occupation):
         """Return all population in the city who practice to given occupation.

@@ -2,6 +2,7 @@ import os
 import pickle
 import math
 import heapq
+from scipy import spatial
 
 
 def compute_nearest_cities_ranking_for_all_us_cities():
@@ -22,7 +23,6 @@ def compute_nearest_cities_ranking_for_all_us_cities():
     city_distance_rankings = {}
     # Compute and save the rankings
     n_cities = len(city_data)
-    already_computed_distances = {}
     for i in xrange(len(city_data)):
         if i % 100 == 0:
             print "{}/{}".format(i/100, n_cities/100)
@@ -31,6 +31,7 @@ def compute_nearest_cities_ranking_for_all_us_cities():
         city_name, city_state, city_latitude, city_longitude = city[0], city[1], city[3], city[4]
         city_latitude = float(city_latitude)
         city_longitude = -float(city_longitude)  # Easier to calculate with a positive longitude
+        city_coordinates = (city_latitude, city_longitude)
         all_other_cities_ranked_by_distance = []
         for other_city in city_data:
             if other_city != city:
@@ -40,18 +41,17 @@ def compute_nearest_cities_ranking_for_all_us_cities():
                 )
                 other_city_latitude = float(other_city_latitude)
                 other_city_longitude = -float(other_city_longitude)
-                # Calculate and record the distance
-                lat_dist = city_latitude-other_city_latitude
-                long_dist = city_longitude-other_city_longitude
-                distance = math.sqrt((lat_dist**2) + (long_dist**2))
-                heapq.heappush(all_other_cities_ranked_by_distance, (distance, (city_name, city_state)))
-                # Save this distance so that we don't have to compute it again
-                if (other_city_name, other_city_state) not in already_computed_distances:
-                    already_computed_distances[(other_city_name, other_city_state)] = {}
-                already_computed_distances[(other_city_name, other_city_state)][city_name, city_state] = distance
+                other_city_coordinates = (other_city_latitude, other_city_longitude)
+                # Calculate and record the distance (unless we already have)
+                distance = spatial.distance.euclidean(city_coordinates, other_city_coordinates)
+                all_other_cities_ranked_by_distance.append(
+                    (distance, (other_city_name, other_city_state))
+                )
+        # Sort the list into a ranking
+        all_other_cities_ranked_by_distance.sort(key=lambda entry: entry[0])
         # Save the ranking
         city_distance_rankings[(city_name, city_state)] = all_other_cities_ranked_by_distance
     # Pickle the rankings dictionary and save it to national_pastime/data
-    out_file = open(os.getcwd()+'/data/city_distance_rankings.dat', 'wb')
+    out_file = open(os.getcwd()+'/city_distance_rankings.dat', 'wb')
     pickle.dump(city_distance_rankings, out_file)
     out_file.close()

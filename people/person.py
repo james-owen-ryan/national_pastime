@@ -91,6 +91,11 @@ class Person(object):
         # Set baseball layers
         self.player = Player(person=self) if self.male else None
         self.fan = Fan(person=self)
+        self.manager = None  # No need to set some of these until needed
+        self.scout = None
+        self.commissioner = None
+        self.team_owner = None
+        self.umpire = None
         # Prepare name attributes that get set by event.Birth._name_baby() (or PersonExNihilo._init_name())
         self.first_name = None
         self.middle_name = None
@@ -429,6 +434,23 @@ class Person(object):
     def _init_money(self):
         """Determine how much money this person has to start with."""
         return 0
+
+    @property
+    def hometown(self):
+        """Return this person's hometown."""
+        time_spent_in_each_city = {
+            move.new_home.city: 0 for move in self.moves
+        }
+        for i in xrange(len(self.moves)):
+            move_at_hand = self.moves[i]
+            first_year_in_this_house = self.moves[i].year
+            try:
+                last_year_in_this_house = self.moves[i+1].year
+            except IndexError:
+                last_year_in_this_house = self.cosmos.year
+            time_in_this_house = last_year_in_this_house-first_year_in_this_house
+            time_spent_in_each_city[move_at_hand.new_home.city] += time_in_this_house
+        return max(time_spent_in_each_city, key=lambda city: time_spent_in_each_city[city])
 
     @property
     def subject_pronoun(self):
@@ -2404,6 +2426,9 @@ class PersonExNihilo(Person):
         if spouse_already_generated:
             self.male, self.female = self._override_sex(spouse=spouse_already_generated)
             self.attracted_to_men, self.attracted_to_women = self._override_sexuality(spouse=spouse_already_generated)
+            # Remove their player object, if they were temporarily male
+            if self.female:
+                self.player = False
         elif job_opportunity_impetus:
             # Make sure you have the appropriate sex for the job position you are coming
             # to town to accept; if you don't, swap your sex and

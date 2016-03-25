@@ -1,31 +1,6 @@
 from outcome import Run
 
 
-class AtBatInterim(object):
-    """A duration between at bats in which the ball is live."""
-
-    def __init__(self):
-        pass
-
-
-class PitchInterim(object):
-    """A duration between pitches in which the ball is live."""
-
-    def __init__(self, at_bat):
-        self.at_bat = at_bat
-        at_bat.pitch_interims.append(self)
-        # Update the count
-        counts = {(0, 0): 00, (1, 0): 10, (2, 0): 20, (3, 0): 30,
-                  (0, 1): 10, (1, 1): 11, (2, 1): 21, (3, 1): 31,
-                  (0, 2): 02, (1, 2): 12, (2, 2): 22, (3, 2): 32}
-        at_bat.count = counts[(at_bat.balls, at_bat.strikes)]
-        # Fielders and baserunners get in position
-        for player in at_bat.fielders + at_bat.frame.baserunners + [at_bat.batter]:
-            player.get_in_position(at_bat=at_bat)
-        # Pitcher prepares delivery
-        at_bat.pitcher.decide_pitch(at_bat=at_bat)
-
-
 class PlayingAction(object):
 
     def __init__(self, batted_ball):
@@ -66,7 +41,7 @@ class PlayingAction(object):
         self.backing_up_home = None
         self.cut_off_man = None  # Fielder positioned to act as relay on the throw
         # Simulate the playing action
-        # self.enact()
+        # self._transpire()
 
     def enact(self):
         batted_ball = self.batted_ball
@@ -312,3 +287,28 @@ class PlayingAction(object):
                                 queued=True)
                         else:
                             Run(frame=self.at_bat.frame, runner=baserunner, batted_in_by=self.batter)
+
+
+class AtBatInterim(object):
+    """A duration between at bats in which the ball is live."""
+
+    def __init__(self):
+        pass
+
+
+class PitchInterim(object):
+    """A duration between pitches in which the ball is live."""
+
+    def __init__(self, at_bat):
+        self.at_bat = at_bat
+        at_bat.pitch_interims.append(self)
+        # Update the count
+        counts = {(0, 0): 00, (1, 0): 10, (2, 0): 20, (3, 0): 30,
+                  (0, 1): 10, (1, 1): 11, (2, 1): 21, (3, 1): 31,
+                  (0, 2): 02, (1, 2): 12, (2, 2): 22, (3, 2): 32}
+        at_bat.count = counts[(at_bat.balls, at_bat.strikes)]
+        # Fielders and baserunners get in position
+        for player in at_bat.fielders + at_bat.frame.baserunners + [at_bat.batter]:
+            player.get_in_position(at_bat=at_bat)
+        # Pitcher prepares delivery
+        at_bat.pitcher.decide_pitch(at_bat=at_bat)

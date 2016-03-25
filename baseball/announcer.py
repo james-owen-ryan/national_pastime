@@ -114,8 +114,8 @@ class Announcer(object):
                 os.system('say theres a runner on second')
             elif at_bat.frame.on_third:
                 os.system('say theres a runner on third')
-        at_bat.enact()
-        # Announcer will call the batted ball at this point, at playing_action.enact()'s behest,
+        at_bat._transpire()
+        # Announcer will call the batted ball at this point, at playing_action._transpire()'s behest,
         # if there is one
         time.sleep(1.5)
         result = re.sub("\(", '', str(at_bat.result))

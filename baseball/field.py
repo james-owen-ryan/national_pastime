@@ -13,21 +13,26 @@
 # - dampness of grass
 
 
-class Ballpark(object):
-    """A baseball park in a city."""
+class Field(object):
+    """A baseball playing field in a baseball cosmos.
 
-    def __init__(self, city, tenants=None):
-        """Initialize a Ballpark object."""
-        self.country = city.country
-        self.city = city
-        self.intersection = None
-        self.tenants = [] if not tenants else tenants
+    Objects of this class represent only the playing field itself, i.e., not the
+    larger stadium, if there is one. Fields may even be located at places like
+    parks or schools.
+    """
 
-        self.name = "{} Municipal Field".format(self.city.name)  # TODO MAKE COOL
+    def __init__(self, site):
+        """Initialize a Field object.
 
-        # Trivia -- TODO simulate these concerns (e.g. have architect design it)
-        # self.broke_ground = self.city.country.date
-        # self.opened = self.broke_ground  # For testing only
+        @param site: The business object at which this field is located, e.g., a School, Park,
+                     or BaseballStadium.
+        """
+        self.site = site
+        self.city = site.city
+        self.country = site.city.country
+
+        # TODO maybe simulate these concerns (e.g. have architect design it)
+        self.opened = self.country.cosmos.date
         self.renovated = None
         self.expanded = None
         self.closed = None
@@ -37,6 +42,7 @@ class Ballpark(object):
         self.architect = None
         self.structural_engineer = None
         self.general_contractor = None
+
         # Get playing field boundaries, which represent the boundaries of
         # the entire playing field, including fieldable foul territory,
         # and thus can be used to determine whether a ball is fieldable

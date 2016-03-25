@@ -4,7 +4,7 @@ from baseball.game import Game
 from baseball.umpire import Umpire
 
 # from place import Country
-# from ballpark import Ballpark
+# from ballpark import Field
 # from game import Game, Inning, Frame, AtBat
 # from rules import Rules
 #
@@ -32,7 +32,7 @@ from baseball.umpire import Umpire
 # pitcher.position = "P"
 # l = us.leagues[0]
 # home_team = l.teams[0]
-# ballpark = Ballpark(city=l.teams[0].city, tenants=[home_team])
+# ballpark = Field(city=l.teams[0].city, tenants=[home_team])
 # if any(t for t in l.teams if t.city.name in ("Minneapolis", "St. Paul", "Duluth") and t is not home_team):
 #     away_team = next(t for t in l.teams if t.city.name in ("Minneapolis", "St. Paul", "Duluth") and
 #                      t is not home_team)
@@ -41,28 +41,34 @@ from baseball.umpire import Umpire
 #
 # game = Game(ballpark=ballpark, league=l, home_team=home_team,
 #             away_team=random.choice([t for t in l.teams if t is not home_team]),
-#             rules=Rules(), radio=False, trace=True); game.enact()
-# # inning = Inning(game=game, number=5); frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame); ab.enact(); print ab.result
+#             rules=Rules(), radio=False, trace=True); game._transpire()
+# # inning = Inning(game=game, number=5); frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame); ab._transpire(); print ab.result
 # # ab.draw_playing_field()
 # # frame = Frame(inning=inning, bottom=True); ab = AtBat(frame=frame);
 #
 # # for i in xrange(31):
 # #     l.conduct_season()
 # #     us.year += 1
-# #     l.conduct_offseason()
+# #     l.conduct_offseason_activity()
 # #     for player in us.players:
 # #         player.increase_in_age()
 
+from baseball.league import League
 c = Cosmos()
 usa = c.countries[0]
-while c.year < 1879:
-    c.advance_timechunk(n_timesteps=5)
-from baseball.league import League
-c.leagues = []
-l = League(country=usa)
-ump = random.choice([q for q in usa.residents if q.age > 50])
-ump.umpire = Umpire(person=ump)
-l.umpire = ump.umpire
-game = Game(home_team=l.teams[0], away_team=l.teams[1], trace=True)
-print game
-game.enact()
+c.progress(until=(1670, 2, 19))
+l = League(usa.cities[-1], c.baseball_classifications[0])
+while not l.season:
+    c.progress()
+
+# from baseball.league import League
+# c.leagues = []
+# l = League(country=usa)
+# ump = random.choice([q for q in usa.residents if q.male and q.age > 50])
+# ump.umpire = Umpire(person=ump)
+# l.umpire = ump.umpire
+# game = Game(home_team=list(l.teams)[0], away_team=list(l.teams)[1], trace=True)
+# print game
+# game._transpire()
+
+# c = Cosmos(); c._advance_timechunk(300); from baseball.league import League; League(max(c.cities, key=lambda c: c.pop))

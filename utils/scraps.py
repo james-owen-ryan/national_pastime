@@ -1,40 +1,5 @@
 ### CAN DELETE ASAP IF NOT NEEDED
 
-def rate_potential_lot(self, lot):
-        """Rate the desirability of living at the location of a lot.
-
-        By this method, a person appraises a vacant home or lot in the city for
-        how much they would like to move or build there, given considerations to the people
-        that live nearby it (this reasoning via self.score_potential_home_or_lot()). There is
-        a penalty that makes people less willing to build a home on a vacant lot than to move
-        into a vacant home.
-        """
-        config = self.cosmos.config
-        desire_to_live_near_family = self._determine_desire_to_move_near_family()
-        # Score home for its proximity to family (either positively or negatively, depending); only
-        # consider family members that are alive, in town, and not living with you already (i.e., kids)
-        relatives_in_town = {
-            f for f in self.extended_family if f.home and f.home.city is lot.city and f.home is not self.home
-        }
-        score = 0
-        for relative in relatives_in_town:
-            relation_to_me = self.relation_to_me(person=relative)
-            pull_toward_someone_of_that_relation = config.pull_to_live_near_family[relation_to_me]
-            dist = lot.city.distance_between(relative.home.lot, lot) + 1.0  # To avoid ZeroDivisionError
-            score += (desire_to_live_near_family * pull_toward_someone_of_that_relation) / dist
-        # Score for proximity to friends (only positively)
-        friends_in_town = {
-            f for f in self.friends if f.home and f.home.city is lot.city and f.home is not self.home
-        }
-        for friend in friends_in_town:
-            dist = lot.city.distance_between(friend.home.lot, lot) + 1.0
-            score += config.pull_to_live_near_a_friend / dist
-        # Score for proximity to workplace (only positively) -- will be only criterion for person
-        # who is new to the city (and thus knows no one there yet)
-        if self.occupation and self.occupation.company and self.occupation.company.city is lot.city:
-            dist = lot.city.distance_between(self.occupation.company.lot, lot) + 1.0
-            score += config.pull_to_live_near_workplace / dist
-        return score
 
 ###################
 ###################
@@ -59,6 +24,186 @@ def init_name(self):
         else:
             last_name = NAMES.any_surname
         return first_name, middle_name, last_name
+
+
+def draw_playing_field(self):
+        import turtle
+        self.turtle = turtle
+        turtle.setworldcoordinates(-450, -450, 450, 450)
+        turtle.ht()
+        turtle.tracer(10000)
+        turtle.penup()
+        turtle.goto(-226, 226)
+        turtle.pendown()
+        h, k = 226, 400  # Our vertex is the center-field wall
+        a = -0.0034
+        for x in xrange(0, 453):
+            y = (a * (x - h)**2) + k
+            turtle.goto(x-226, y)
+        turtle.goto(0, -60)
+        turtle.goto(-226, 226)
+        turtle.penup()
+        turtle.goto(0, 0)
+        turtle.pendown()
+        turtle.dot(3)
+        turtle.goto(63.5, 63.5)
+        turtle.dot(3)
+        turtle.goto(0, 127)
+        turtle.dot(3)
+        turtle.goto(-63.5, 63.5)
+        turtle.dot(3)
+        turtle.goto(0, 0)
+        turtle.goto(226, 226)
+        turtle.goto(0, 0)
+        turtle.goto(-226, 226)
+        turtle.penup()
+        for f in self.fielders:
+            f.get_in_position(at_bat=self)
+            turtle.goto(f.location)
+            turtle.pendown()
+            turtle.color("purple")
+            turtle.dot(2)
+            turtle.penup()
+        for b in self.frame.baserunners:
+            b.get_in_position(at_bat=self)
+            turtle.goto(b.location)
+            turtle.pendown()
+            turtle.color("blue")
+            turtle.dot(2)
+            turtle.penup()
+        turtle.update()
+
+    def new_test(self, pitch_coords=None, count=32, power=0.8, uf=None):
+        import time
+        self.turtle.clearscreen()
+        self.draw_playing_field()
+        p = self.pitcher
+        b = self.batter
+        c = self.catcher
+        if count is None:
+            count = random.choice((00, 01, 02,
+                               10, 11, 12,
+                               20, 21, 22,
+                               30, 31, 32))
+        if not self.pitches:
+            count = 00
+        self.count = count
+        contact = False
+        while not contact:
+            for fielder in self.fielders:
+                fielder.get_in_position(at_bat=self)
+            p.decide_pitch(at_bat=self)
+            if pitch_coords:
+                p.intended_x, p.intended_y = pitch_coords
+            pitch = p.pitch(at_bat=self)
+            b.decide_whether_to_swing(pitch)
+            if not b.will_swing:
+                pitch.call = pitch.would_be_call
+            elif b.will_swing:
+                b.decide_swing(pitch)
+                b.power = power
+                if uf:
+                    b.incline = uf
+                swing = b.swing(pitch)
+                contact = swing.contact
+                if contact:
+                    print "\n\tThe ball is hit!\n"
+                    bb = swing.result
+                    turtle = self.turtle
+                    turtle.penup()
+                    time_since_contact = 0.0
+                    for fielder in self.fielders:
+                        fielder.decide_immediate_goal(batted_ball=bb)
+                    for i in xrange(4):
+                        time_since_contact += 0.1
+                        bb.batter.baserun(bb)
+                        print "Time: {}".format(time_since_contact)
+                        bb.act(time_since_contact=time_since_contact)
+                        turtle.goto(bb.location)
+                        if bb.height < 8.5:
+                            turtle.color("green")
+                        else:
+                            turtle.color("red")
+                        turtle.dot(2)
+                        turtle.update()
+                        print '\n'
+                        if bb.height <= 0 and not bb.stopped:
+                            print "\t\tBOUNCE"
+                        time.sleep(0.03)
+                    fielding_chance_resolved = False
+                    while not fielding_chance_resolved:
+                        time_since_contact += 0.1
+                        bb.batter.baserun(bb)
+                        print "Time: {}".format(time_since_contact)
+                        bb.act(time_since_contact=time_since_contact)
+                        print "Height: {}".format(round(bb.height, 2))
+                        print "Vel: {}".format(round(bb.speed, 2))
+                        print "Baserunner %: {}".format(round(bb.batter.percent_to_base, 2))
+                        turtle.goto(bb.location)
+                        if bb.height < 8.5:
+                            turtle.color("green")
+                        else:
+                            turtle.color("red")
+                        if bb.height <= 0 and not bb.stopped:
+                            print "\t\tBOUNCE"
+                        turtle.dot(2)
+                        turtle.update()
+                        for f in self.fielders:
+                            f.act(batted_ball=bb)
+                            turtle.goto(f.location)
+                            if not f.at_goal:
+                                turtle.color("purple")
+                            else:
+                                turtle.color("orange")
+                            turtle.dot(2)
+                            turtle.update()
+                        print '\n'
+                        time.sleep(0.03)
+                        # Check if ball has left playing field
+                        if bb.left_playing_field:
+                            print "\nBall has left the playing field."
+                            fielding_chance_resolved = True
+                        # Check if ball has landed foul
+                        elif bb.landed_foul:
+                            print "\nFoul ball."
+                            fielding_chance_resolved = True
+                        # Check if ball rolled foul
+                        elif bb.landed and bb.in_foul_territory:
+                            if bb.passed_first_or_third_base or bb.touched_by_fielder:
+                                print "\nFoul ball."
+                                fielding_chance_resolved = True
+                        # Potentially simulate a fielding attempt
+                        elif (bb.obligated_fielder.at_goal and
+                                bb.location == bb.obligated_fielder.immediate_goal[:2]):
+                            bb.obligated_fielder.field_ball(batted_ball=bb)
+                            print "Difficulty: {}".format(round(bb.fielding_difficulty, 3))
+                            if bb.fielded_by:
+                                if not bb.landed:
+                                    print "\nOut! Caught in flight."
+                                    fielding_chance_resolved = True
+                                else:
+                                    print "\nGround ball cleanly fielded."
+                                    fielding_chance_resolved = True
+                                    bb.obligated_fielder.decide_throw_or_on_foot_approach_to_target(bb)
+                                    throw = bb.obligated_fielder.throw()
+                                    while not throw.reached_target and not bb.batter.safely_on_base:
+                                        time_since_contact += 0.1
+                                        bb.time_since_contact += 0.1
+                                        print "Time: {}".format(time_since_contact)
+                                        bb.batter.baserun(bb)
+                                        print "Baserunner %: {}".format(round(bb.batter.percent_to_base, 2))
+                                        throw.move()
+                                        print "Throw %: {}".format(round(throw.percent_to_target, 2))
+                                        if bb.batter.safely_on_base and throw.reached_target:
+                                            print "Tie goes to the runner - Safe!"
+                                        elif bb.batter.safely_on_base:
+                                            print "Safe!"
+                                        elif throw.reached_target:
+                                            print "Force out!"
+                            elif not bb.fielded:
+                                print "ERROR!"
+                                fielding_chance_resolved = True
+                    return bb
 
 
 
@@ -366,7 +511,7 @@ def enact(self):
         # Increment batting team's outs
         self.inning.outs += 1
         # Get batting team's next batter
-        self.batter.team.batter = self.game.get_next_batter(self.batter.team)
+        self.batter.team.batter = self.game.summon_to_the_plate(self.batter.team)
         return outcome
 
     def walk(self, beanball=False, hit_by_pitch=False, intentional=False):
@@ -417,7 +562,7 @@ def enact(self):
         if beanball:
             pass
         # Get batting team's next batter
-        self.batter.team.batter = self.game.get_next_batter(self.batter.team)
+        self.batter.team.batter = self.game.summon_to_the_plate(self.batter.team)
         return outcome
 
     def home_run(self):
@@ -440,7 +585,7 @@ def enact(self):
                 self.inning.first = None
             outcome = outcome[:-2] + "]"
         # Get batting team's next batter
-        self.batter.team.batter = self.game.get_next_batter(self.batter.team)
+        self.batter.team.batter = self.game.summon_to_the_plate(self.batter.team)
         return outcome
 
 

@@ -1,259 +1,253 @@
 import random
 import math
 from random import normalvariate as normal
-
+from people.business import BaseballLeagueOffices
+from people.occupation import BaseballCommissioner, BaseballUmpire
+from history import LeagueHistory
 from team import Team
-from season import Season
-from rules import Rules
+from season import LeagueSeason
+from commissioner import Commissioner
+from umpire import Umpire
+from game import Game
+
+# TODO  Make league activity bottom-up once the postal system is implemented -- I'm
+# TODO  thinking something like the commissioner sending a letter to city
+# TODO  hall in a prospective city and the mayor then forwards the letter
+# TODO  to magnates (or other esteemed individuals) in town (when asking to join
+# TODO  the league as charter member/expansion franchise)
 
 
 class League(object):
     """A baseball league in a baseball cosmos."""
     
-    def __init__(self, country):
+    def __init__(self, headquarters, league_classification):
         """Initialize a League object."""
-        self.country = country
-        self.cosmos = country.cosmos
-        self.name = self.init_name()
-        while self.name in {league.name for league in self.cosmos.leagues}:
-            self.name = self.init_name()
+        # Attribute geographic attributes
+        self.headquarters = headquarters  # City in which the league is based
+        self.state = headquarters.state
+        self.country = headquarters.country
+        self.cosmos = headquarters.cosmos
+        # Determine official league playing rules
+        self.classification = league_classification  # Level-of-play classification; this is where the rules live
+        # Update city, state, country, and cosmos leagues listings
+        self.headquarters.leagues.append(self)
+        self.state.leagues.append(self)
+        self.country.leagues.append(self)
         self.cosmos.leagues.append(self)
+        # Attribute founding date
         self.founded = self.cosmos.year
-        self.cities = []
-        self.teams = []
-        self.defunct = []
-        self.seasons = []
-
-        self.rules = Rules()
-            
+        # This gets set by self.league_offices.__init__()
+        self.name = None
+        # Form corresponding league offices, which will be a Business object that
+        # handles business and other considerations
+        self.offices = BaseballLeagueOffices(league=self)
+        # Prepare attributes that hold team personnel
+        self.commissioner = None
+        self.umpires = set()
+        self.set_league_personnel()
+        # Team attributes will be populated as new teams form
+        self.teams = set()  # Appended by Team.__init__()
+        # These only hold the current champion and current season
+        self.season = None
         self.champion = None
-        self.champions_timeline = {}
-        
-        self.central = self.init_headquarters()
-        
-        self.init_teams()
-
-        self.error_game = None
-        self.games_called_off = []  # Games that throw an error during simulation
-
-        print ("\n\nA new baseball major league has been formed in {hq}! It's been christened the "
-               "{league}, and features the following charter teams: {all_but_last}, and {last}.".format(
-                    hq=self.central.name, league=self.name,
-                    all_but_last=', '.join(team.name for team in self.teams[:-1]), last=self.teams[-1].name)
+        # This is used to hold all the games that need to be played today, because it
+        # is the league object's responsibility to instantiate the actual Game object
+        self.games_scheduled_for_today = set()
+        # Enfranchise a group of charter teams
+        self._init_enfranchise_charter_teams()
+        # Instantiate history object; do this after enfranchising charter teams so that
+        # LeagueHistory.charter_teams() can be inferred in that object's __init__ call
+        self.history = LeagueHistory(league=self)
+        # Determine the date that a new season will be planned for each year
+        self.date_to_plan_next_season = self.cosmos.config.date_for_league_to_plan_next_season  # (month_n, day_n)
+        print (
+            "\n\nA new baseball major league has been formed in {hq}! It's been christened the "
+            "{league}, and features the following charter teams: {all_but_last}, and {last}.".format(
+                hq=self.headquarters.name,
+                league=self.name,
+                all_but_last=', '.join(team.name for team in list(self.teams)[:-1]),
+                last=list(self.teams)[-1].name
+            )
         )
 
-        self.charter_teams = [t for t in self.teams]
-
-
-    def init_name(self):
-        
-        prefix = random.choice(['American', 'American', 'American', 
-                                'American', 'American', 'National',
-                                'National', 'National', 'National',
-                                'Federal', 'Federal', 'Union', 'Union', 
-                                'Continental', 'Continental', 
-                                'Conglomerated', 'Civil', 'United'])
-        
-       # if self.cosmos.year > int(round(normal(1918,8))):
-       #     sport_name = 'Baseball'
-       # else:
-       #     sport_name = 'Base Baseball'
-            
-        stem = random.choice(['League', 'Association'])
-        
-       # if self.cosmos.year < int(round(normal(1880,2))):
-       #     self.name = prefix + ' ' + sport_name + ' ' + suffix
-        
-        name = "{prefix} {stem}".format(prefix=prefix, stem=stem)
-            
-        return name
-        
-
-    def init_headquarters(self):
-
-        n = int(round(normal(0,4)))
-        while n < 1:
-            n = int(round(normal(0,1)))
-
-        pops = sorted([city.pop for city in self.country.cities], reverse=True)
-        chosen = pops[n]
-
-        headquarters = [city for city in self.country.cities if city.pop ==
-                        chosen][0]
-
-        return headquarters
-
-    def init_teams(self):
-
-        # Determine potential value of candidate cities to league, given
-        # central location
-
-        vals = self.evaluate_cities()
-        cands = []
-            
-        # Enfranchise qualifying candidate cities
-        
-        thresh = int(math.exp(math.log(self.central.pop)*0.71))
-        for city in vals:
-            x = random.randint(0, thresh)
-            if x < vals[city]:
-                for i in range(vals[city]):
-                    cands.append(city)
-        number = int(round(normal(9,2)))
-        for i in range(number):
-            if cands:
-                chosen_city = random.choice(cands)
-                Team(city=chosen_city, league=self)
-                while chosen_city in cands:
-                    cands.remove(chosen_city)
-
-
     def __str__(self):
-        
-        rep = self.name
-        return rep
-    
-    def evaluate_cities(self):
-        
-        vals = {}
-        
-        if self.cosmos.year < 1945:
-            central = self.central
-            for c in [c for c in self.country.cities if c not in self.cities]:
-                if (c.latitude == central.latitude and
-                            c.longitude == central.longitude):
-                    v = c.pop
-                elif central.distance_to(c) < 1:
-                    v = c.pop
-                else:
-                    v = int(c.pop/central.distance_to(c))
-                vals[c] = v
-        
-        if self.cosmos.year >= 1945:
-            mean_pop = sum([c.pop for c in self.country.cities])/len(self.country.cities)
-            for c in [c for c in self.country.cities if c not in self.cities]:
-                v = c.pop
-                if v >= mean_pop:
-                    vals[c] = v
-        
-        return vals
+        """Return string representation."""
+        return self.name
 
-    def conduct_season(self, updates=True, following=None):
-        
-        s = Season(league=self)
-        for team in self.teams:
-            team.cumulative_wins += team.wins
-            team.cumulative_losses += team.losses
-            team.records_timeline[self.cosmos.year] = [team.wins, team.losses]
-        self.champion = s.champion
-        self.champions_timeline[self.cosmos.year] = self.champion
-        self.print_league_standings()
-        self.print_league_leaders()
-        for team in self.teams:
-            team.wins = team.losses = 0
+    @property
+    def random_team(self):
+        """Return a random team in this league."""
+        return random.choice(list(self.teams))
 
-        # if updates:
-        #     print ('\t\n' + str(self.cosmos.year) + ' ' + self.name +
-        #            ' Champions: ' + s.champion.name + ' (' +
-        #            s.champion.record + ')\n')
-        #     raw_input ('')
-        #     if following:
-        #         print ('\t' + following.name + ' record: ' + following.record
-        #                + '\n')
-        #         raw_input ('')
-        #
-        # self.champion = s.champion
-        # self.champions.append(s.champion)
-        # self.champions_timeline.append(str(self.cosmos.year) + ': ' +
-        #                                s.champion.name)
-        #
-        # for team in self.teams:
-        #     team.records_timeline.append(str(self.cosmos.year) + ': ' +
-        #                                  team.record)
-        # s.champion.records_timeline[-1] += '^'
-        
-    def conduct_offseason(self):
-        
-        for team in self.teams:
-            if team.cumulative_wins+team.cumulative_losses:
-                team.progress()
-        
-        self.consider_expansion()
-
-            
-    def consider_expansion(self, to_replace=False):
-        
-        central = self.central
-        
-        vals = self.evaluate_cities()
-
-        if not to_replace:
-            ceiling = int(round(normal(13,3)))
-            room = ceiling - len(self.teams)
-            if room < 0:
-                room = 0
-        if to_replace:
-            room = 45
-        x = random.randint(0, 45)
-        if x <= room:
-            cands = []
-            thresh = int(math.exp(math.log(central.pop)*0.71))
-            for city in vals:
-                x = random.randint(0, thresh)
-                if x < vals[city]:
-                    # Weight by city value
-                    for i in range(vals[city]):
-                        cands.append(city)
-            x = random.randint(0, int(round(normal(2,0.5))))
-            for i in range(x):
-                if cands:
-                    chosen_city = random.choice(cands)
-                    Team(city=chosen_city, league=self, expansion=True)
-                    while chosen_city in cands:
-                        cands.remove(chosen_city)
-
-    def print_league_standings(self):
-        print "\n\n\t\t\tFinal {} {} Standings\n\n".format(self.cosmos.year, self.name)
-        self.teams.sort(key=lambda t: t.wins, reverse=True)
-        for team in self.teams:
-            print "{}: {}-{}".format(team.name, team.wins, team.losses)
-
-    def print_league_leaders(self):
-        # Batting average leaders
-        print "\n\n\t\tBATTING AVERAGE LEADERS"
-        for player in self.players:
-            batting_average = len(player.hits)/float(len(player.at_bats))
-            player.yearly_batting_averages[self.cosmos.year] = round(batting_average, 3)
-            player.career_hits += player.hits
-            player.career_at_bats += player.at_bats
-            player.hits = []
-            player.at_bats = []
-        leaders = list(self.players)
-        leaders.sort(key=lambda p: p.yearly_batting_averages[self.cosmos.year], reverse=True)
-        # leaders[0].batting_titles.append(self.current_season)
-        for i in xrange(9):
-            print "{}\t{}\t{}\t{}".format(
-                i+1, round(leaders[i].yearly_batting_averages[self.cosmos.year], 3),
-                leaders[i].name, leaders[i].team.city.name,
-            )
-        # Home run leaders
-        print "\n\n\t\tHOME RUN KINGS"
-        for player in self.players:
-            player.yearly_home_runs[self.cosmos.year] = len(player.home_runs)
-            player.career_home_runs += player.home_runs
-            player.home_runs = []
-        leaders = list(self.players)
-        leaders.sort(key=lambda p: p.yearly_home_runs[self.cosmos.year], reverse=True)
-        # leaders[0].home_run_titles.append(self.current_season)
-        for i in xrange(9):
-            print "{}\t{}\t{}\t{}".format(
-                i+1, leaders[i].yearly_home_runs[self.cosmos.year],
-                self.players[i].name, leaders[i].team.city.name,
-            )
+    @property
+    def cities(self):
+        """Return all the cities that have a team in this league."""
+        return {team.city for team in self.teams}
 
     @property
     def players(self):
+        """Return all the players that are currently playing in this league."""
         players = []
         for team in self.teams:
             players += team.players
         return players
+
+    def _init_enfranchise_charter_teams(self):
+        """Enfranchise a set of charter teams."""
+        config = self.cosmos.config
+        # First, establish a team in the city the league is based in
+        Team(city=self.headquarters, league=self)
+        # Evaluate prospective cities in which charter teams might be based
+        cities_ranked_by_utility = self.rank_prospective_cities()
+        # Invite cities to join the league until you have eight that have accepted
+        number_of_charter_teams_desired = config.number_of_charter_teams_for_a_league(year=self.cosmos.year)
+        for prospective_city in cities_ranked_by_utility:
+            if prospective_city is not self.headquarters:
+                if random.random() < config.chance_a_city_accepts_offer_to_join_league(city=prospective_city):
+                    # Instantiate a baseball team, which will be appended to this league's .teams
+                    # attribute (and will cause a BaseballOrganization object to be instantiated)
+                    Team(city=prospective_city, league=self)
+            # If we now have the desired number of charter teams, stop inviting cities to join
+            if len(self.teams) == number_of_charter_teams_desired:
+                break
+
+    def rank_prospective_cities(self):
+        """Evaluate prospective cities for their utility to this league as a team base."""
+        config = self.cosmos.config
+        city_evaluations = {}
+        for prospective_city in self.country.cities:
+            # Calculate a base score for all cities in the cosmos
+            city_evaluations[prospective_city] = config.city_utility_to_a_league(city=prospective_city)
+            # If air travel is not yet prominent, penalize cities for their distance from
+            # league headquarters
+            if self.cosmos.year < self.cosmos.config.year_air_travel_becomes_prominent:
+                distance_between_this_city_and_league_headquarters = self.headquarters.distance_to(prospective_city)
+                if distance_between_this_city_and_league_headquarters > 1:
+                    city_evaluations[prospective_city] /= distance_between_this_city_and_league_headquarters
+            # Also penalize the city if is already has a team (or multiple teams) in this league
+            if prospective_city in self.cities:
+                number_of_teams_in_this_city = len([t for t in self.teams if t.city is prospective_city])
+                for _ in xrange(number_of_teams_in_this_city):
+                    city_evaluations[prospective_city] *= config.city_utility_penalty_for_already_being_in_league
+        cities_ranked_by_utility = sorted(city_evaluations, key=lambda city: city_evaluations[city], reverse=True)
+        return cities_ranked_by_utility
+
+    def set_league_personnel(self):
+        """Set the personnel working for this team.
+
+        In this method, we set attributes pertaining to the actual baseball-class objects
+        corresponding to the employees of this organization. This method may be called any
+        time an employee in the organization quits, retires, is fired, or dies.
+        """
+        # Set commissioner
+        commissioner_person = next(e for e in self.offices.employees if isinstance(e, BaseballCommissioner)).person
+        self.commissioner = (
+            Commissioner(person=commissioner_person) if not commissioner_person.commissioner else
+            commissioner_person.commissioner
+        )
+        # Set umpires
+        umpire_people = [e.person for e in self.offices.employees if isinstance(e, BaseballUmpire)]
+        self.umpires = {
+            Umpire(person=ump_person) if not ump_person.umpire else ump_person.umire for ump_person in umpire_people
+        }
+
+    def conduct_season(self, updates=True, following=None):
+        pass
+        # s = Season(league=self)
+        # for team in self.teams:
+        #     team.cumulative_wins += team.wins
+        #     team.cumulative_losses += team.losses
+        #     team.records_timeline[self.cosmos.year] = [team.wins, team.losses]
+        # self.champion = s.champion
+        # self.champions_timeline[self.cosmos.year] = self.champion
+        # self.compose_league_standings()
+        # self.compose_league_leaders()
+        # for team in self.teams:
+        #     team.wins = team.losses = 0
+
+    def conduct_offseason_activity(self):
+        """Conduct this league's offseason procedures."""
+        # Have each team in the league conduct its offseason procedures
+        for team in self.teams:
+            team.conduct_offseason_activity()
+        # Potentially expand this league
+        self._potentially_expand()
+
+    def _potentially_expand(self):
+        """Potentially expand this league by enfranchising additional teams.
+
+        Note: Rather than the conventional notion of expansion, more frequently expansion will occur
+        in fledgling leagues as a way of replacing teams that have folded.
+        """
+        config = self.cosmos.config
+        if self._decide_to_expand():
+            # Determine how many teams to expand by
+            targeted_number_of_expansion_teams = self._determine_how_many_expansion_teams_to_target()
+            # Evaluate prospective cities in which expansion teams might be based
+            cities_ranked_by_utility = self.rank_prospective_cities()
+            # Invite cities to host an expansion team until you've reached the targeted number
+            n_teams_already_added = 0
+            for prospective_city in cities_ranked_by_utility:
+                if prospective_city is not self.headquarters:
+                    if random.random() < config.chance_a_city_accepts_offer_to_join_league(city=prospective_city):
+                        # Instantiate a baseball team, which will be appended to this league's .teams
+                        # attribute (and will cause a BaseballOrganization object to be instantiated)
+                        Team(city=prospective_city, league=self)
+                        n_teams_already_added += 1
+                # If we now have the desired number of charter teams, stop inviting cities to join
+                if n_teams_already_added == targeted_number_of_expansion_teams:
+                    break
+
+    def _decide_to_expand(self):
+        """Decide whether to attempt to expand this league."""
+        config = self.cosmos.config
+        max_number_of_teams_for_a_league_this_year = config.max_number_of_teams_to_expand_to(year=self.cosmos.year)
+        max_number_of_teams_that_could_be_accommodated = max_number_of_teams_for_a_league_this_year - len(self.teams)
+        if max_number_of_teams_that_could_be_accommodated >= 2:
+            if random.random() < config.chance_a_league_with_room_to_expand_does_expand_some_offseason:
+                return True
+        return False
+
+    def _determine_how_many_expansion_teams_to_target(self):
+        """Return the number of expansion teams this league will target."""
+        config = self.cosmos.config
+        # Determine how many teams *could* be accommodated in this league at this time
+        max_number_of_teams_for_a_league_this_year = config.max_number_of_teams_to_expand_to(year=self.cosmos.year)
+        max_number_of_teams_that_could_be_accommodated = max_number_of_teams_for_a_league_this_year - len(self.teams)
+        # Our options, then, are all even numbers in the inclusive range between 2 and the
+        # max number of teams that the league could viably accommodate
+        options = list(xrange(2, max_number_of_teams_that_could_be_accommodated+1, 2))
+        # If the only option is two teams, roll with that
+        if len(options) == 1:
+            assert options[0] == 2, "A league is attempting to expand by {} teams.".format(options[0])
+            return 2
+        # Reverse this list, and then iterate over it in that order, making a selection from
+        # it with greater probability as you approach n=2 (which will be the default pick if
+        # no larger n is targeted)
+        options.reverse()
+        for n in options[:-1]:
+            if config.decide_to_target_an_expansion_number(n=n):
+                return n
+        # If you got through all of those values without returning an n, then it's time to
+        # just go with the default number of 2
+        assert options[-1] == 2, "A league is attempting to expand by {} teams.".format(options[0])
+        return 2
+
+    def assign_umpire(self):
+        """Assign an umpire to a game."""
+        return random.choice(list(self.umpires))
+
+    def add_to_game_queue(self, away_team, home_team):
+        """Add a game to the queue of games that are scheduled to be played today."""
+        self.games_scheduled_for_today.add((away_team, home_team))
+
+    def operate(self):
+        """Conduct the regular operations of this league."""
+        if (self.cosmos.month, self.cosmos.day) == self.date_to_plan_next_season:
+            self.season = LeagueSeason(league=self)
+        for team in self.teams:
+            team.operate()  # This will populate self.games_scheduled_for_today
+        # Instantiate Game objects, which will cause the games to transpire
+        while self.games_scheduled_for_today:
+            away_team, home_team = self.games_scheduled_for_today.pop()
+            Game(home_team=home_team, away_team=away_team)

@@ -20,7 +20,7 @@ class Config(object):
         self.chance_of_a_quarry_at_time_of_town_founding = 0.15
         # When to stop
         self.date_gameplay_begins = (1979, 8, 19)
-        self.date_worldgen_begins = (1790, 8, 19)  # Date world gen begins
+        self.date_worldgen_begins = (1599, 8, 19)  # Date world gen begins
         self.year_worldgen_begins = self.date_worldgen_begins[0]
         self.date_of_epilogue = (2009, 8, 19)  # Date of epilogue 40 years after gameplay
         # City generation (in a topological sense)
@@ -40,6 +40,92 @@ class Config(object):
                 #################
 
         self.chance_baseball_curses_are_real = 0.5
+        #       LEAGUE FORMATION/EXPANSION/ETC.
+        self.city_utility_to_a_league = lambda city: len(city.residents)
+        self.city_utility_penalty_for_already_being_in_league = 0.1
+        self.chance_a_city_accepts_offer_to_join_league = lambda city: 0.8/(len(city.teams)+1)
+        self.number_of_charter_teams_for_a_league = lambda year: random.choice([6, 8, 10, 12])  # TODO make this cooler
+        self.max_number_of_teams_to_expand_to = lambda year: (
+            random.choice([14, 16, 18]) if year < self.year_air_travel_becomes_prominent else
+            random.choice([18, 20, 22]) if year < normal(1971, 2) else
+            random.choice([22, 24, 26]) if year < normal(1980, 2) else
+            random.choice([22, 24, 26]) if year < normal(1980, 2) else
+            random.choice([26, 28, 30])  # Up to the end of the sim (1989)
+        )
+        self.chance_a_league_with_room_to_expand_does_expand_some_offseason = 0.2
+        self.decide_to_target_an_expansion_number = (
+            # This function is called by a league that has decided to expand, but is now
+            # deciding between expanding by, e.g., 2, 4, 6, or 8 teams; this function will
+            # heavily favor lower numbers
+            lambda n: random.random() < (1.0 / (n**2))
+        )
+        self.calculate_franchise_tradition = (
+            lambda n_championships, n_years_in_town: (1 + n_championships) * n_years_in_town
+        )
+        self.fan_base_memory_window = lambda: normal(27, 5)
+        self.franchise_too_storied_to_relocate_mean = self.calculate_franchise_tradition(
+            n_championships=3, n_years_in_town=50
+        )
+        self.franchise_too_storied_to_relocate_sd = self.calculate_franchise_tradition(
+            n_championships=0, n_years_in_town=15
+        )
+        self.franchise_too_storied_to_relocate = lambda tradition: (
+            tradition > normal(self.franchise_too_storied_to_relocate_mean, self.franchise_too_storied_to_relocate_sd)
+        )
+        self.minimum_number_of_years_in_city_before_considering_relocation = lambda year: (
+            normal(37, 4) if year < self.year_air_travel_becomes_prominent else
+            normal(7, 2) if year < 1970 else
+            normal(21, 3)
+        )
+        self.minimum_number_of_years_before_league_established_enough_for_team_relocation = lambda: normal(28, 3)
+        self.chance_a_team_that_qualifies_to_relocate_will_relocate = 0.5
+        self.chance_a_relocated_team_retains_name = lambda tradition_in_the_old_city: (
+            min(0.7, tradition_in_the_old_city/300.)
+        )
+        self.chance_of_folding = lambda franchise_winning_percentage, league_years_in_existence: (
+            # This one was tuned empirically
+            (1 - franchise_winning_percentage) / (league_years_in_existence**1.2)
+        )
+        #       ROSTER LIMITS
+        self.temp_roster_limit = 14  # TODO YOU HAVE DATA TO MAKE THIS BETTER; USE BASEBALL.CLASS.PY
+        #       NAMES
+        # League names
+        self.countrywide_baseball_league_prefixes = (
+            ['American'] * 5 +
+            ['National'] * 4 +
+            ['Federal'] * 2 +
+            ['Union'] * 2 +
+            ['United'] * 2 +
+            ['Continental'] * 2 +
+            ['United'] * 2 +
+            ['Conglomerated'] * 1 +
+            ['Civil'] * 1
+        )
+        self.stylization_of_the_word_baseball = lambda year: (
+            "Baseball" if year > 1897 else "Base-Ball" if year > 1880 else "Base Ball"
+        )
+        self.baseball_league_stems = (
+            ['League'] * 5 +
+            ['Association'] * 5 +
+            ['Union'] * 1 +
+            ['Circuit'] * 1
+        )
+        #       SCHEDULING
+        self.date_for_league_to_plan_next_season = (2, 20)  # In honor of my mom :)
+        self.number_of_games_per_season = lambda year: (
+            # This is basically just ripping off MLB history currently TODO
+            70 if year < 1877 else
+            84 if year < 1883 else
+            98 if year < 1884 else
+            112 if year < 1886 else
+            126 if year < 1888 else
+            140 if year < 1892 else
+            154 if year < 1962 else
+            162
+        )
+        self.determine_opening_day = lambda: [4, random.randint(10, 22)]
+        self.determine_regular_season_terminus = lambda: [10, random.randint(2, 8)]
+        self.chance_of_a_doubleheader = lambda year: 0.1  # TODO GREAT ARTICLES EXIST ABOUT THIS
         #       ATTRIBUTES (this jazz was determined empirically)
         self.set_percentage_above_or_below_average = lambda diff_from_avg: abs(normal(0, diff_from_avg))
         # Intangibles
@@ -85,6 +171,17 @@ class Config(object):
         self.set_sidearm_throwing_error_per_foot = (
             lambda throwing_error_per_foot: normal(throwing_error_per_foot*2, throwing_error_per_foot/10.)
         )
+                # COMPOSURE/CONFIDENCE
+        self.confidence_unit_normalizer = 100.  # What to divide composure_confidence_diff by (see functions below)
+        self.composure_unit_multiplier = self.confidence_unit_normalizer/10.
+        self.change_to_confidence_after_game = lambda composure_confidence_diff, game_salience:  (
+            (composure_confidence_diff/self.confidence_unit_normalizer) * game_salience
+        )
+        self.change_to_composure_after_game = lambda composure_confidence_diff, game_salience:  (
+            (composure_confidence_diff/self.composure_unit_multiplier) * game_salience
+        )
+        # (composure_confidence_diff/10.) * self.salience
+        self.batter_penalty_for_stranding_baserunners = lambda n_baserunners: (n_baserunners**1.2) * 0.03
 
                 ###########################
                 ##  HISTORICAL ACCURACY  ##
@@ -93,7 +190,15 @@ class Config(object):
         self.function_to_get_desired_number_of_npcs_given_true_population_some_year = (
             lambda true_pop: max(45, true_pop**0.45)
         )
+        self.first_business_in_town = lambda year: (
+            (GeneralStore if year < 1930 else HardwareStore) if random.random() < 0.1 else
+            (Tavern if year < 1920 else Bar) if random.random() < 0.1 else
+            Farm
+        )
         self.desired_maximum_number_of_npcs_in_minor_cities = 15
+        self.number_of_neighbors_needed_to_never_leave_town = 50
+        self.max_number_of_miles_to_travel_a_town_over = lambda year: 15 if year < 1915 else 70
+        self.year_air_travel_becomes_prominent = 1955
 
                 ############
                 ##  SIM   ##
@@ -245,10 +350,13 @@ class Config(object):
             'ShoemakerShop': 'errand',
             'TailorShop': 'errand',
             'Tavern': 'leisure',
+            # Baseball businesses
+            'BaseballOrganization': 'errand',
+            'RelocatedBaseballOrganization': 'errand',
+            'BaseballStadium': 'leisure',
+            'BaseballLeagueOffices': 'errand',
         }
-        # self.errand_business_types = ('Supermarket', 'Bank', 'BusDepot', 'Cemetery', 'TaxiDepot', 'University')
-        # self.leisure_business_types = ('Restaurant', 'Park', 'Bar', 'Hotel')
-        # Socializing
+        #           SOCIALIZING
         # The chance someone will spark up an interaction with someone else has to
         # do with their extroversion, openness to experience (if they don't know
         # them already), and how well they already know that person; derivation of this
@@ -359,10 +467,12 @@ class Config(object):
                 0)
         )
         # Company types that are public resources, i.e., not privately owned
-        self.public_company_types = (CityHall, FireStation, Hospital, PoliceStation, School, University, Cemetery, Park)
+        self.public_company_types = (
+            CityHall, FireStation, Hospital, PoliceStation, School, University, Cemetery, Park, BaseballStadium
+        )
         self.public_places_closed_at_night = (Cemetery, Park)
         # Company types that get established on tracts, not on lots
-        self.companies_that_get_established_on_tracts = (Cemetery, Park, Farm, Quarry, CoalMine)  # TODO maybe add University?
+        self.companies_that_get_established_on_tracts = (Cemetery, Park, Farm, Quarry, CoalMine, BaseballStadium)
         # Companies hiring people
         self.preference_to_hire_immediate_family = 15
         self.preference_to_hire_extended_family = 7
@@ -405,7 +515,7 @@ class Config(object):
             Diner: (1945, 9999, 30),
             Distillery: (0, 1919, 0),
             DrugStore: (0, 1950, 30),
-            Farm: (0, 1920, 0),
+            Farm: (0, 9999, 0),  # Farms never go out of style when you're modeling every U.S. city
             FireStation: (0, 9999, 100),
             Foundry: (1830, 1950, 100),
             FurnitureStore: (0, 1930, 20),
@@ -437,6 +547,11 @@ class Config(object):
             Tavern: (0, 1920, 20),
             TaxiDepot: (1930, 9999, 9999),
             University: (0, 9999, 9999),
+            # Baseball business -- for now, never start these without a league initiating things
+            BaseballStadium: (float('Inf'), float('Inf'), float('Inf')),
+            BaseballLeagueOffices: (float('Inf'), float('Inf'), float('Inf')),
+            BaseballOrganization:  (float('Inf'), float('Inf'), float('Inf')),
+            RelocatedBaseballOrganization:  (float('Inf'), float('Inf'), float('Inf')),
         }
         # Business types that may be conglomerated under holding companies
         self.business_types_that_may_be_conglomerated_under_holding_companies = {
@@ -517,6 +632,11 @@ class Config(object):
             Tavern: 2,
             TaxiDepot: 1,
             University: 1,
+            # Baseball businesses
+            BaseballStadium: float('Inf'),
+            BaseballLeagueOffices: float('Inf'),
+            BaseballOrganization: float('Inf'),
+            RelocatedBaseballOrganization: float('Inf'),
         }
         # Services provided by each business type -- used to determine people's routines
         self.services_provided_by_business_of_type = {
@@ -576,6 +696,11 @@ class Config(object):
             Tavern: ('bar', 'restaurant'),
             TaxiDepot: ('transport',),
             University: (),
+            # Baseball businesses
+            BaseballStadium: (),  # Offers entertainment, but only on gameday, so have to handle specially
+            BaseballLeagueOffices: (),
+            BaseballOrganization: (),
+            RelocatedBaseballOrganization: (),
         }
         # Chance a business shuts down some timestep -- TODO actually model how well business is doing
         self.chance_a_business_closes_some_timestep = (1/730.) / 60  # Average business will last 60 years
@@ -649,6 +774,11 @@ class Config(object):
             Tavern: Proprietor,
             TaxiDepot: Owner,
             University: None,
+            # Baseball businesses
+            BaseballStadium: None,  # Publicly owned, for now
+            BaseballLeagueOffices: BaseballCommissioner,
+            BaseballOrganization: BaseballTeamOwner,
+            RelocatedBaseballOrganization: BaseballTeamOwner,
         }
         # Initial vacant positions for each business type
         self.initial_job_vacancies = {
@@ -989,6 +1119,40 @@ class Config(object):
                 'supplemental day': [Apprentice],
                 'supplemental night': [],
             },
+            # Baseball businesses
+            BaseballStadium: {
+                'day': (Groundskeeper,),
+                'night': (),
+                'supplemental day': [],
+                'supplemental night': [],
+                'special': (StadiumUsher, StadiumUsher, ConcessionWorker),  # On timesteps that games are being played
+            },
+            BaseballOrganization: {
+                'day': (Secretary,),  # Will automatically hire a BaseballTeamOwner
+                'night': (),
+                'supplemental day': [],
+                'supplemental night': [Janitor],
+                # Just hire a manager and a scout; players will be hired through a scouting process, since
+                # it's tricky to make sure a team hires all the right positions
+                'special': (BaseballManager, BaseballScout),  # On timesteps that games are being played
+            },
+            RelocatedBaseballOrganization: {
+                'day': (Secretary,),  # Will automatically hire a BaseballTeamOwner
+                'night': (),
+                'supplemental day': [],
+                'supplemental night': [Janitor],
+                # Just hire a manager and a scout; players will be hired through a scouting process, since
+                # it's tricky to make sure a team hires all the right positions
+                'special': (BaseballManager, BaseballScout),  # On timesteps that games are being played
+            },
+            BaseballLeagueOffices: {
+                'day': (Secretary, Secretary),  # Will automatically hire a BaseballCommissioner
+                'night': (),
+                'supplemental day': [],
+                'supplemental night': [Janitor],
+                # Hire a bunch of umpires that will only work on timesteps that games are being played
+                'special': (BaseballUmpire,) * 10,
+            },
         }
         # Occupations for which a college degree is required
         self.occupations_requiring_college_degree = {
@@ -1077,6 +1241,17 @@ class Config(object):
             Owner: 5,
             Mayor: 5,
             Magnate: 6,
+            # Baseball occupations  TODO these should really depend on the league status somehow
+            ConcessionWorker: 1,
+            StadiumUsher: 1,
+            StadiumGroundskeeper: 2,
+            PublicAddressAnnouncer: 2,
+            BaseballPlayer: 2,
+            BaseballUmpire: 2,
+            BaseballScout: 3,
+            BaseballManager: 4,
+            BaseballTeamOwner: 6,
+            BaseballCommissioner: 7,
         }
         # Preconditions to various occupations that enforce historical accuracy with
         # regard to gender and occupation
@@ -1188,6 +1363,20 @@ class Config(object):
             Professor: lambda applicant: applicant.male if applicant.cosmos.year < 1962 else True,
             Owner: lambda applicant: applicant.male if applicant.cosmos.year < 1977 else True,
             Mayor: lambda applicant: applicant.male if applicant.cosmos.year < 1977 else True,
+            # Baseball occupations
+            BaseballCommissioner: lambda applicant: applicant.male,
+            BaseballTeamOwner: lambda applicant: applicant.male,
+            BaseballManager: lambda applicant: applicant.male if applicant.cosmos.year < 1982 else True,
+            BaseballScout: lambda applicant: applicant.male if applicant.cosmos.year < 1982 else True,
+            BaseballUmpire: lambda applicant: applicant.male if applicant.cosmos.year < 1982 else True,
+            BaseballPlayer: lambda applicant: True,
+            PublicAddressAnnouncer: lambda applicant: applicant.male if applicant.cosmos.year < 1982 else True,
+            StadiumGroundskeeper: lambda applicant: (
+                applicant.male if applicant.cosmos.year < 1972 else True and
+                any(o for o in applicant.occupations if o.__class__ is Groundskeeper)
+            ),
+            StadiumUsher: lambda applicant: applicant.male if applicant.cosmos.year < 1972 else True,
+            ConcessionWorker: lambda applicant: applicant.male if applicant.cosmos.year < 1945 else True,
         }
         # Compensation for various occupations [MAJORLY INCOMPLETE TODO]
         self.compensations = {
@@ -2596,7 +2785,10 @@ class Config(object):
             'Bricklayer', 'Butcher', 'Carpenter', 'Clothier', 'Cooper', 'Dentist', 'Distiller',
             'Dressmaker', 'Druggist', 'Engineer', 'Farmer', 'Grocer', 'Innkeeper', 'Jeweler',
             'Joiner', 'Milkman', 'Miner', 'Painter', 'Plumber', 'Puddler', 'Quarryman', 'Seamstress',
-            'Shoemaker', 'Stonecutter', 'Tailor', 'Turner', 'Woodworker'
+            'Shoemaker', 'Stonecutter', 'Tailor', 'Turner', 'Woodworker',
+            # Baseball occupations
+            'BaseballCommissioner', 'BaseballManager', 'BaseballScout', 'BaseballUmpire',
+            'BaseballPlayer', 'PublicAddressAnnouncer', 'StadiumGroundskeeper',
         ]
 
             ####################

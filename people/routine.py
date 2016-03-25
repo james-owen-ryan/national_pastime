@@ -44,7 +44,7 @@ class Routine(object):
             else:
                 location, occasion = self.person.home, 'home'  # Kids stay home at night
         # If they have a job...
-        elif self.person.occupation and self.person.occupation.shift == self.person.cosmos.time_of_day:
+        elif self.person.occupation and self.person.occupation.scheduled_to_work_this_timestep:
             if random.random() < config.chance_someone_doesnt_have_to_work_some_day:
                 if random.random() < config.chance_someone_leaves_home_on_day_off[self.person.cosmos.time_of_day]:
                     location, occasion = self._go_in_public()
@@ -96,7 +96,7 @@ class Routine(object):
         else:
             person_they_will_visit = self._visit_someone()
             if person_they_will_visit:
-                location, occasion = person_they_will_visit.home, 'leisure'
+                location, occasion = person_they_will_visit.location, 'leisure'
             else:
                 location, occasion = self.person.home, 'home'
         # In case something went wrong, e.g., there's no business of a type
@@ -159,9 +159,8 @@ class Routine(object):
         relationship_to_person_who_person_who_will_be_visited = next(
             r for r in config.who_someone_visiting_will_visit_probabilities if r[0][0] <= x <= r[0][1]
         )[1]
-        if (relationship_to_person_who_person_who_will_be_visited == 'nb' and
-                self.person.neighbors):
-            person_they_will_visit = self._visit_a_neighbor()
+        if relationship_to_person_who_person_who_will_be_visited == 'nb':
+            person_they_will_visit = self._visit_a_neighbor()  # Or someone in the next town over
         elif (relationship_to_person_who_person_who_will_be_visited == "fr" and
                 any(f for f in self.person.friends if f.present and f.home is not self.person.home)):
             person_they_will_visit = self._visit_a_friend()
@@ -181,8 +180,34 @@ class Routine(object):
 
         TODO: Flesh this out.
         """
-        neighbor_they_will_visit = random.choice(list(self.person.neighbors))
-        return neighbor_they_will_visit
+        config = self.person.cosmos.config
+        person = self.person
+        # If you have a bunch of neighbors, visit one of them
+        if (self.person.neighbors and
+                len(person.neighbors) < config.number_of_neighbors_needed_to_never_leave_town):
+            person_they_will_visit = random.choice(list(person.neighbors))
+        else:
+            # Otherwise, go to a nearby town
+            # TODO NOT ALWAYS; MAKE THIS PROBABILISTIC; also make them consider friends/family in nearby towns
+            city = person.city
+            max_number_of_miles_to_travel_a_town_over = (
+                config.max_number_of_miles_to_travel_a_town_over(person.cosmos.year)
+            )
+            towns_within_short_distance = [
+                c for c in city.nearest_cities if
+                city.distance_to(c) < max_number_of_miles_to_travel_a_town_over
+            ]
+            try:
+                town_they_will_go_to = random.choice(towns_within_short_distance)
+                person_they_will_visit = random.choice(
+                    [r for r in town_they_will_go_to.residents if r.location.city is town_they_will_go_to]
+                )
+                print "{} is leaving {} to visit someone in {}".format(
+                    self.person.name, self.person.city.full_name, person_they_will_visit.city.full_name
+                )
+            except IndexError:
+                person_they_will_visit = None  # Will cause this person to just stay home
+        return person_they_will_visit
 
     def _visit_a_friend(self):
         """Return the friend that this person will visit.

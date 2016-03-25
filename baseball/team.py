@@ -2,420 +2,344 @@ import os
 import random
 import heapq
 from random import normalvariate as normal
+from corpora import Names
+from people.event import BaseballFranchiseTermination
+from people.business import BaseballOrganization, RelocatedBaseballOrganization
+from people.occupation import BaseballTeamOwner, BaseballManager, BaseballScout, BaseballPlayer
+from owner import Owner
+from manager import Manager
+from scout import Scout
+from history import FranchiseHistory
+from roster import Roster
 
-from equipment import Mitt
 
-COLORS = ['Blue', 'Blue', 'Blue', 'Gray', 'Gray', 'Gray', 'Red', 'Red',
-          'Red', 'Brown', 'Brown', 'Brown',  'Green', 'Green', 'Orange',
-          'Silver', 'Maroon', 'Black', 'Gold', 'Yellow', 'White', 'White',
-          'White']
-ANIMAL_NAMES = [name[:-1] for name in open(
-    os.getcwd()+'/corpora/animal_names_reg.txt','r')
-]
-ANIMAL_NAMES_IRREG = [name[:-1] for name in open(
-    os.getcwd()+'/corpora/animal_names_irreg.txt','r')
-]
-GEN_TEAM_NAMES = [name[:-1] for name in open(
-    os.getcwd()+'/corpora/gen_team_names.txt','r')
-]
+# TODO  MAKE SCOUTING A DURATIVE ACTIVITY THAT SCOUTS CARRY OUT OVER COURSE OF AN OFF-SEASON
+# TODO  BY SCOURING THE COUNTRY FOR YOUNG TALENT
 
 
 class Team(object):
     """A baseball team in a baseball cosmos."""
 
-    def __init__(self, city, league, expansion=False):
+    def __init__(self, city, league=None):
         """Initialize a Team object."""
-        self.city = city
-        self.state = city.state
-        self.country = city.country
         self.cosmos = city.cosmos
+        # Attribute the team's league; if None, this means this is an independent
+        # club (or something like that)
         self.league = league
-
-        self.ballpark = self.city.ballpark
-
+        self.league.teams.add(self)
+        # Prepare geographic and organizational attributes, which get set by
+        # .establish_base_in_city(), a method that will also be called in the case
+        # that this franchise relocates
+        self.city = None
+        self.state = None
+        self.country = None
+        self.organization = None
+        # This gets set by .establish_base_in_city()
+        self.nickname = None
+        # Prepare attributes that hold team personnel; these will also be updated by
+        # .establish_base_in_city()
+        self.personnel = set()
+        self.owner = None
+        self.manager = None
+        self.scout = None
+        # Prepare a ballpark attribute, which is set by establish_base_in_city() as well
+        self.ballpark = None
+        # Finally actually establish operations in the city
+        self.establish_base_in_city(city=city)
+        # Set various attributes
         self.founded = self.cosmos.year
-        self.folded = False
-        self.tradition = 0
-        self.charter_team, self.expansion = (True, False) if not expansion else (False, True)
-
-        self.players = []
-
-        self.wins = 0
-        self.losses = 0
-        self.record = '0-0'
-        self.win_diffs = []
-
-        self.pitcher = None
-        self.fielders = []
-
-        self.records_timeline = {}
-        self.pennants = []
-        self.championships = []
-
-        self.cumulative_wins = 0
-        self.cumulative_losses = 0
-
-        self.in_city_since = self.cosmos.year
-
-        nickname = self.init_name()
-        if nickname in self.cosmos.major_league_team_nicknames:
-            self.nickname = "Generics"
-        else:
-            self.nickname = nickname
-
-        city.teams.append(self)
-        league.teams.append(self)
-        league.cities.append(city)
-
-        self.sign_players()
-
-        self.names_timeline = [self.name + ' ' + str(self.cosmos.year) + '-']
-
-        if expansion:
-            print '{team} ({league}) have been enfranchised.'.format(team=self.name, league=self.league.name)
-            os.system('say a new franchise called the {} have been added to the league'.format(self.name))
-        # if not expansion:
-        #     print '\n {team} have been enfranchised.'.format(team=self.name)
-
-        # Statistical stuff
-        self.games_played = []
-        self.left_on_base = []
-
-    @property
-    def name(self):
-        return "{} {}".format(self.city.name, self.nickname)
-
-    def init_name(self):
-        # city_apt_team_nicknames = None
-        # if self.city.yearly_apt_team_nicknames:
-        #     if any(year for year in self.city.yearly_apt_team_nicknames.keys() if self.cosmos.year <= year):
-        #         year = min(self.city.yearly_apt_team_nicknames.keys(), key=lambda year: self.cosmos.year-year)
-        #         city_apt_team_nicknames = self.city.yearly_apt_team_nicknames[year]
-        # if city_apt_team_nicknames:
-        #     x = random.randint(4, 23)
-        # else:
-        #     x = random.randint(4, 14)
-        x = random.randint(4, 14)
-        if x in (0, 1):
-            nickname = random.choice(COLORS) + ' Stockings'
-        if x == 2:
-            nickname = random.choice(COLORS) + ' Legs'
-        if x == 3:
-            nickname = random.choice(COLORS) + ' Caps'
-        if x == 4:
-            nickname = random.choice(COLORS[:-6]) + 's'
-        if 4 < x < 13:
-            nickname = random.choice(ANIMAL_NAMES) + 's'
-        if x == 13:
-            nickname = random.choice(ANIMAL_NAMES_IRREG)
-        else:
-            nickname = random.choice(GEN_TEAM_NAMES) + 's'
-        # if x > 14:
-        #     nickname = random.choice(self.city.yearly_apt_team_nicknames[self.cosmos.year])
-        return nickname
-
-    def sign_players(self):
-        print "\nA new franchise in {} is fielding a team".format(self.city.name)
-        pool = self.state.free_agents + random.sample(self.country.free_agents, 1000)
-        pool = [p for p in pool if 16 < p.person.age < 41]
-        pool = set(pool)
-        # Find pitcher
-        subpool = [player for player in pool if player.pitch_speed > 85]
-        self.pitcher = max(subpool, key=lambda p: self.grade_pitcher(p))
-        pool.remove(self.pitcher)
-        print "\t{} has been signed as a pitcher".format(self.pitcher)
-        # Find catcher
-        self.catcher = max(pool, key=lambda p: self.grade_catcher(p))
-        pool.remove(self.catcher)
-        print "\t{} has been signed as a catcher".format(self.catcher)
-        # Find outfielders
-        lf = max(pool, key=lambda p: self.grade_left_fielder(p))
-        pool.remove(lf)
-        print "\t{} has been signed as a left fielder".format(lf)
-        cf = max(pool, key=lambda p: self.grade_center_fielder(p))
-        pool.remove(cf)
-        print "\t{} has been signed as a center fielder".format(cf)
-        rf = max(pool, key=lambda p: self.grade_right_fielder(p))
-        pool.remove(rf)
-        print "\t{} has been signed as a right fielder".format(rf)
-        # Find infielders
-        first = max(pool, key=lambda p: self.grade_first_baseman(p))
-        pool.remove(first)
-        print "\t{} has been signed as a first baseman".format(first)
-        second = max(pool, key=lambda p: self.grade_second_baseman(p))
-        pool.remove(second)
-        print "\t{} has been signed as a second baseman".format(second)
-        third = max(pool, key=lambda p: self.grade_third_baseman(p))
-        pool.remove(third)
-        print "\t{} has been signed as a third baseman".format(third)
-        ss = max(pool, key=lambda p: self.grade_shortstop(p))
-        print "\t{} has been signed as a shortstop".format(ss)
-        self.players = self.fielders = [self.pitcher, self.catcher, first, second, third, ss, lf, cf, rf]
-        for player in self.players:
-            player.team = self
-        self.pitcher.position = "P"
-        self.catcher.position = "C"
-        self.catcher.glove = Mitt()
-        self.fielders[2].position = "1B"
-        self.fielders[3].position = "2B"
-        self.fielders[4].position = "3B"
-        self.fielders[5].position = "SS"
-        for f in self.fielders[2:6]:
-            f.infielder = True
-        self.pitcher.infielder = self.catcher.infielder = True
-        self.fielders[6].position = "LF"
-        self.fielders[7].position = "CF"
-        self.fielders[8].position = "RF"
-        for f in self.fielders[6:]:
-            f.outfielder = True
-        for p in self.players:
-            p.career.team = self
-            p.primary_position = p.position
-
-    def sign_replacement(self, replacement_for):
-        print "{} are looking for a replacement for {} ({})".format(
-            self.name, replacement_for.name, replacement_for.position
-        )
-        position_of_need = replacement_for.position
-        pool = self.state.free_agents + random.sample(self.country.free_agents, 10000)
-        pool = [p for p in pool if 16 < p.person.age < 41]
-        pool = set(pool)
-        if position_of_need == "P":
-            # Find pitcher
-            subpool = [player for player in pool if player.pitch_speed > 85]
-            self.pitcher = max(subpool, key=lambda p: self.grade_pitcher(p))
-            print "{} has been signed as a pitcher".format(self.pitcher)
-            self.players[0] = self.fielders[0] = self.pitcher
-            self.pitcher.position = "P"
-            self.pitcher.infielder = True
-        elif position_of_need == "C":
-            # Find catcher
-            self.catcher = max(pool, key=lambda p: self.grade_catcher(p))
-            print "{} has been signed as a catcher".format(self.catcher)
-            self.players[1] = self.fielders[1] = self.catcher
-            self.catcher.position = "C"
-            self.catcher.infielder = True
-        elif position_of_need == "LF":
-            # Find outfielders
-            lf = max(pool, key=lambda p: self.grade_left_fielder(p))
-            print "{} has been signed as a left fielder".format(lf)
-            self.players[-3] = self.fielders[-3] = lf
-            lf.position = "LF"
-            lf.outfielder = True
-        elif position_of_need == "CF":
-            cf = max(pool, key=lambda p: self.grade_center_fielder(p))
-            print "{} has been signed as a center fielder".format(cf)
-            self.players[-2] = self.fielders[-2] = cf
-            cf.position = "CF"
-            cf.outfielder = True
-        elif position_of_need == "RF":
-            rf = max(pool, key=lambda p: self.grade_right_fielder(p))
-            print "{} has been signed as a right fielder".format(rf)
-            self.players[-1] = self.fielders[-1] = rf
-            rf.position = "RF"
-            rf.outfielder = True
-        elif position_of_need == "1B":
-            # Find infielders
-            first = max(pool, key=lambda p: self.grade_first_baseman(p))
-            print "{} has been signed as a first baseman".format(first)
-            self.players[2] = self.fielders[2] = first
-            first.position = "1B"
-            first.infielder = True
-        elif position_of_need == "2B":
-            second = max(pool, key=lambda p: self.grade_second_baseman(p))
-            print "{} has been signed as a second baseman".format(second)
-            self.players[3] = self.fielders[3] = second
-            second.position = "2B"
-            second.infielder = True
-        elif position_of_need == "3B":
-            third = max(pool, key=lambda p: self.grade_third_baseman(p))
-            print "{} has been signed as a third baseman".format(third)
-            self.players[4] = self.fielders[4] = third
-            third.position = "3B"
-            third.infielder = True
-        elif position_of_need == "SS":
-            ss = max(pool, key=lambda p: self.grade_shortstop(p))
-            print "{} has been signed as a shortstop".format(ss)
-            self.players[5] = self.fielders[5] = ss
-            ss.position = "SS"
-            ss.infielder = True
-        for player in self.players:
-            player.team = self
+        self.expansion = True if self.cosmos.year > self.league.founded else False
+        self.charter_team = True if not self.expansion else False
+        # Set history object
+        self.history = FranchiseHistory(franchise=self)
+        # Prepare various attributes
+        self.season = None  # Gets set by TeamSeason.__init__()
+        self.defunct = False
+        # Assemble a roster of players
+        self.players = set()
+        self.roster = None
+        self._sign_players()
+        self._assemble_roster()
+        if self.expansion:
+            print '{team} have been enfranchised in the {league}.'.format(team=self.name, league=self.league.name)
 
     def __str__(self):
         """Return string representation."""
         return self.name
 
-    @staticmethod
-    def grade_pitcher(player):
-        rating = (
-            (1.4-player.pitch_control) + 1.3*(player.pitch_speed/67.0) + player.composure
-        )
-        return rating
+    @property
+    def name(self):
+        """Return the name of this franchise."""
+        return "{city} {nickname}".format(city=self.city.name, nickname=self.nickname)
 
-    @staticmethod
-    def grade_catcher(player):
-        rating = (
-            1.5*player.pitch_receiving + 0.75*(player.throwing_velocity_mph/72.0) +
-            (2-player.swing_timing_error/0.14) + (player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_first_baseman(player):
-        rating = (
-            player.ground_ball_fielding +
-            1.7*(2-player.swing_timing_error/0.14) + 1.5*(player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_second_baseman(player):
-        rating = (
-            player.ground_ball_fielding +
-            1.25*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_third_baseman(player):
-        rating = (
-            player.ground_ball_fielding +
-            1.25*(2-player.swing_timing_error/0.14) + 0.5*(player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_shortstop(player):
-        rating = (
-            player.ground_ball_fielding +
-            0.9*(2-player.swing_timing_error/0.14) + 0.33*(player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_left_fielder(player):
-        rating = (
-            player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
-            1.5*(2-player.swing_timing_error/0.14) + (player.person.body.full_speed_seconds_per_foot/0.040623) +
-            player.bat_speed/2.0 + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_center_fielder(player):
-        rating = (
-            player.fly_ball_fielding + 0.75*(player.throwing_velocity_mph/72.0) +
-            1.75*(2-player.swing_timing_error/0.14) + 0.75*(player.person.body.full_speed_seconds_per_foot/0.040623) +
-            1.5*(player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    @staticmethod
-    def grade_right_fielder(player):
-        rating = (
-            0.75*player.fly_ball_fielding + (player.throwing_velocity_mph/72.0) +
-            2*(2-player.swing_timing_error/0.14) + 0.75*(player.person.body.full_speed_seconds_per_foot/0.040623) +
-            1.75*(player.bat_speed/2.0) + player.composure
-        )
-        return rating
-
-    def progress(self):
-
-        self.win_diffs.append(self.wins-self.losses)
-
-        self.tradition = (
-            (1 + len([c for c in self.championships if c > self.in_city_since])) *
-            (self.cosmos.year-self.in_city_since))
-
-        if self.cumulative_wins + self.cumulative_losses:
-            # Make sure expansions don't already consider folding, relocation
-            self.consider_folding()
-            if not self.folded:
-                self.consider_relocation()
-
-    def consider_folding(self):
-
-        if (float(self.cumulative_wins)/(
-                  self.cumulative_wins+self.cumulative_losses)
-            < .45):
-            if (self.cosmos.year-self.league.founded <
-                int(round(normal(25,2)))):
-                y = random.randint(0, self.cosmos.year-self.league.founded)
-                if y == 0:
-                    self.fold()
-                    # League will consider expansion more than usual to
-                    # replace folded team
-                    self.league.consider_expansion(to_replace=True)
-
-    def consider_relocation(self):
-
-        fanbase_memory = int(round(normal(27, 5)))
-        # Newer teams will not relocate, but only will possibly fold, since
-        # they would have no more value to another city than an expansion
-        if self.cosmos.year-self.in_city_since > fanbase_memory:
-            if (not self.championships or
-                self.cosmos.year-self.championships[-1] > fanbase_memory):
-                # Check if averaging losing season for duration of
-                # fanbase memory and prior season losing season
-                if (sum([d for d in self.win_diffs[-fanbase_memory:]]) /
-                    fanbase_memory < 0 and self.win_diffs[-1] < 0):
-                    # Some teams will never act
-                    if self.tradition >= int(round(normal(200, 15))):
-                        x = random.randint(0, self.tradition/4)
-                    else:
-                        x = random.randint(0,3)
-                    if x == 0:
-                        cands = []
-                        vals = self.league.evaluate_cities()
-                        for city in vals:
-                            for i in range(vals[city]):
-                                cands.append(city)
-                        if cands:
-                            self.relocate(city=random.choice(cands))
-
-    def relocate(self, city):
-
-        former_name = self.name
-        print (self.name + ' (' + self.league.name +
-               ') have relocated to become the...')
-        self.city.teams.remove(self)
-        self.city.former_teams.append(self)
-        self.league.cities.remove(self.city)
-        self.league.cities.append(city)
+    def establish_base_in_city(self, city, employees_to_relocate=None):
+        """Establish operations in a city, either due to enfranchisement or relocation."""
+        # Determine whether this is part of a relocation procedure, which is signaled by
+        # employees_to_relocate being passed
+        relocating = True if employees_to_relocate else False
+        tradition_in_the_old_city = None if not relocating else self.history.tradition
+        # Set geographic attributes
         self.city = city
-        city.teams.append(self)
-
-        self.in_city_since = self.league.cosmos.year
-
-        x = random.randint(0,10)
-        if x < 8:
-            self.nickname = self.init_name()
-            while self.nickname in self.country.major_league_team_nicknames:
-                self.nickname = self.init_name()
-
-        self.names_timeline[-1] = self.names_timeline[-1] + str(self.cosmos.year)
-        self.names_timeline.append(self.name + ' ' + str(self.cosmos.year) + '-')
-
-        print('\t' + self.name + ' ')
-        os.system('say the {} have relocated to become the {}'.format(former_name, self.name))
-
-    def fold(self):
-
-        print('\n' + self.name + ' (' + self.league.name +
-                  ') have folded. ')
-        os.system('say the {} have folded'.format(self.name))
-        self.city.teams.remove(self)
-        self.city.former_teams.append(self)
-        self.league.teams.remove(self)
-        self.league.cities.remove(self.city)
-        if self.cosmos.year == self.founded:
-             self.names_timeline[-1][:-1] += ' (folded)'
+        self.state = city.state
+        self.country = city.country
+        # Update teams listing of new city
+        self.city.teams.add(self)
+        # Form a corresponding baseball organization, which will be a Business object that
+        # handles business and other considerations
+        if not relocating:
+            self.organization = BaseballOrganization(team=self)
         else:
-            self.names_timeline[-1] += str(self.cosmos.year) + ' (folded)'
-        self.league.defunct.append(self)
+            self.organization = RelocatedBaseballOrganization(team=self, employees_to_relocate=employees_to_relocate)
+        # Come up with a nickname
+        self.nickname = self._determine_nickname(tradition_in_the_old_city=tradition_in_the_old_city)
+        # Update the organization's name accordingly
+        self.organization.set_name()
+        # Set your team personnel
+        self.set_team_personnel()
+        # Set the team's ballpark, which will have been procured by the organization's
+        # __init__() method
+        self.ballpark = self.organization.ballpark
 
-        self.folded = True
+    def _determine_nickname(self, tradition_in_the_old_city):
+        """Determine a nickname for this team."""
+        # If you're relocating, consider retaining the name of the team
+        if self._decide_to_retain_nickname(tradition_in_the_old_city=tradition_in_the_old_city):
+            return self.nickname
+        else:
+            return self._come_up_with_nickname()
 
-        for player in self.players:
-            player.team = None
+    def _decide_to_retain_nickname(self, tradition_in_the_old_city):
+        """Decide whether to retain the nickname of this relocating franchise."""
+        if tradition_in_the_old_city:  # This signals relocation
+            chance_we_retain_name = self.cosmos.config.chance_a_relocated_team_retains_name(
+                tradition_in_the_old_city=tradition_in_the_old_city
+            )
+            if random.random() < chance_we_retain_name:
+                # Make sure the name is not already taken
+                if not any(t for t in self.city.teams if t.nickname == self.nickname):
+                    return True
+        return False
+
+    def _come_up_with_nickname(self):
+        """Come up with a nickname for this team."""
+        # TODO CITY APT NICKNAMES AND NAMES OF HISTORICAL TEAMS IN THE CITY
+        name_already_taken = True
+        nickname = None
+        while name_already_taken:
+            nickname = Names.a_baseball_team_nickname(year=self.city.cosmos.year)
+            # Make sure the name is not already taken
+            if not any(t for t in self.city.teams if t.nickname == nickname):
+                name_already_taken = False
+            else:  # TODO fix this duct tape here
+                return "Generics"
+        return nickname
+
+    def set_team_personnel(self):
+        """Set the personnel working for this team.
+
+        In this method, we set attributes pertaining to the actual baseball-class objects
+        corresponding to the employees of this organization. This method may be called any
+        time an employee in the organization quits, retires, is fired, or dies.
+        """
+        # Set team owner
+        owner_person = next(e for e in self.organization.employees if isinstance(e, BaseballTeamOwner)).person
+        self.owner = Owner(person=owner_person) if not owner_person.team_owner else owner_person.team_owner
+        # Set manager
+        manager_person = next(e for e in self.organization.employees if isinstance(e, BaseballManager)).person
+        self.manager = (
+            Manager(person=manager_person, team=self) if not manager_person.manager else manager_person.manager
+        )
+        # Set scout
+        scout_person = next(e for e in self.organization.employees if isinstance(e, BaseballScout)).person
+        self.scout = Scout(person=scout_person, team=self) if not scout_person.scout else scout_person.scout
+        # Set personnel attribute
+        self.personnel = {self.owner, self.manager, self.scout}
+
+    def _sign_players(self):
+        """Sign players until you have a full roster."""
+        print "\t{scout} is signing players...".format(scout=self.scout.person.name)
+        roster_limit = self.league.classification.roster_limit
+        while len(self.players) < roster_limit:
+            position_of_need = self.manager.decide_position_of_greatest_need()
+            secured_player = self.scout.secure_a_player(position=position_of_need)
+            self._sign_player(player=secured_player, position=position_of_need)
+
+    def _sign_player(self, player, position):
+        """Sign the given player to play at the given position."""
+        print "\t\tsigning {}...".format(player.person.name)
+        player.career.team = self
+        player.position = position
+        self.players.add(player)
+        # Actually hire the player as an employee in the organization
+        self.organization.hire(occupation_of_need=BaseballPlayer, shift="special", selected_candidate=player.person)
+
+    def _assemble_roster(self):
+        """Assemble a roster for this team."""
+        # Prepare some variables that we'll need
+        roster_order = ('P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF')
+        lineup = []
+        available_players = list(self.players)
+        # Assemble starters
+        for position_to_slot in roster_order:
+            available_players_at_that_position = [p for p in available_players if p.position == position_to_slot]
+            best_available_at_that_position = max(
+                available_players_at_that_position,
+                key=lambda player: self.scout.grade(prospect=player, position=position_to_slot)
+            )
+            lineup.append(best_available_at_that_position)
+            available_players.remove(best_available_at_that_position)
+        # Assemble bullpen and bench
+        bullpen = []
+        bench = []
+        for bench_player in available_players:
+            if bench_player.position == 'P':
+                bullpen.append(bench_player)
+            else:
+                bench.append(bench_player)
+        # Instantiate and set a Roster object
+        self.roster = Roster(lineup=tuple(lineup), bullpen=tuple(bullpen), bench=tuple(bench))
+
+    def handle_retirement(self, player):
+        """Handle the retirement of a player."""
+        self.players.remove(player)
+
+    def conduct_offseason_activity(self):
+        """Conduct this team's offseason procedures."""
+        config = self.cosmos.config
+        # If you're a fairly established team in a very established league, consider relocating;
+        # newer teams won't consider relocating, since they're still establishing a fan base in
+        # their current cities; teams in leagues that aren't established don't relocate because
+        # they would have no more value to another city than an expansion team would
+        team_is_established_in_town = (
+            self.history.number_of_years_in_town >
+            config.minimum_number_of_years_in_city_before_considering_relocation(year=self.cosmos.year)
+        )
+        league_is_established_enough_for_relocation = (
+            self.league.history.years_in_existence >
+            config.minimum_number_of_years_before_league_established_enough_for_team_relocation()
+        )
+        if team_is_established_in_town and league_is_established_enough_for_relocation:
+            self._potentially_relocate()
+        # Otherwise, if you aren't a brand new team and the league isn't established yet,
+        # then consider folding
+        elif self.history.seasons and not league_is_established_enough_for_relocation:
+            self._potentially_fold()
+
+    def _potentially_fold(self):
+        """Potentially _fold this franchise."""
+        chance_of_folding = self.cosmos.config.chance_of_folding(
+            franchise_winning_percentage=self.history.cumulative_winning_percentage,
+            league_years_in_existence=self.league.history.years_in_existence
+        )
+        if random.random() < chance_of_folding:
+            self._fold()
+
+    def _fold(self):
+        """Cease operations of this franchise."""
+        # Have the organization go out of business, which will officially terminate
+        # all of the organization's employee occupations -- have to do this first so
+        # that the BaseballFranchiseTermination object gets all the attributes it needs
+        self.organization.go_out_of_business(reason=BaseballFranchiseTermination(franchise=self))
+        # Sever ties with the city you're located in
+        self._sever_ties_with_city()
+        # Sever ties with the league you're in
+        self._sever_ties_with_league()
+        # Sever ties with players and personnel
+        self._sever_ties_with_players_and_personnel()
+        # Update attributes
+        self.defunct = True
+
+    def _sever_ties_with_city(self):
+        """Sever ties with the city you were located in."""
+        self.city.teams.remove(self)
+        self.city.former_teams.add(self)
+
+    def _sever_ties_with_league(self):
+        """Sever ties with the league you were a member of."""
+        self.league.teams.remove(self)
+        self.league.history.defunct_teams.add(self)
+
+    def _sever_ties_with_players_and_personnel(self):
+        """Sever ties with your players and personnel."""
+        for stakeholder in self.players | self.personnel:
+            stakeholder.career.team = None
+
+    def _potentially_relocate(self):
+        """Potentially _relocate this franchise to a new city."""
+        config = self.cosmos.config
+        if self._qualified_to_relocate():
+            if random.random() < config.chance_a_team_that_qualifies_to_relocate_will_relocate:
+                self._relocate()
+
+    def _qualified_to_relocate(self):
+        """Return whether this franchise is qualified to relocate."""
+        config = self.cosmos.config
+        # If your last season was a losing season...
+        last_season_was_a_losing_season = self.history.seasons[-1].winning_percentage < 0.5
+        if not last_season_was_a_losing_season:
+            return False
+        # ...and your franchise isn't too storied to ever relocate...
+        franchise_is_too_storied_to_relocate = config.franchise_too_storied_to_relocate(
+            tradition=self.history.tradition
+        )
+        if franchise_is_too_storied_to_relocate:
+            return False
+        # ...and you've averaged a losing season over the duration of your fan base's memory...
+        fan_base_memory_window = int(config.fan_base_memory_window())
+        beginning_of_that_window = self.cosmos.year-fan_base_memory_window
+        winning_percentage_during_fan_base_memory = self.history.winning_percentage_during_window(
+            start_year=beginning_of_that_window, end_year=self.cosmos.year, city=self.city
+        )
+        averaged_losing_season_during_fan_base_memory = winning_percentage_during_fan_base_memory < 0.5
+        if not averaged_losing_season_during_fan_base_memory:
+            return False
+        # ..then you are qualified to relocate
+        return True
+
+    def _relocate(self):
+        """Relocate this franchise to a new city."""
+        # TODO EMBITTER FANS IN THIS CITY
+        # Sever ties with the city you are departing
+        self._sever_ties_with_city()
+        # Decide where to relocate to
+        city_to_relocate_to = self._decide_where_to_relocate_to()
+        # Shut down the current organization, but save all its employees so
+        # that we can offer them the chance to relocate to the new organization
+        employees_to_relocate = set(self.organization.employees)
+        # Set up operations in the new city
+        self.establish_base_in_city(city=city_to_relocate_to, employees_to_relocate=employees_to_relocate)
+        print "The {old_name} of the {league} have relocated to become the {new_name}".format(
+            # old_name="{} {}".format(self.history.seasons[-1].city.name, self.history.seasons[-1].nickname),
+            old_name='LOL HI!',
+            league=self.league.name,
+            new_name=self.name
+        )
+
+    def _decide_where_to_relocate_to(self):
+        """Decide which city to relocate this franchise to."""
+        cities_ranked_by_utility = self.league.rank_prospective_cities()
+        cities_ranked_by_utility.remove(self.city)  # Throw out the city we're leaving
+        # If the hometown of the owner of this franchise is a viable city to relocate
+        # to, then select that city
+        if self.owner.person.hometown in cities_ranked_by_utility:
+            return self.owner.person.hometown
+        most_appealing_city = cities_ranked_by_utility[0]
+        return most_appealing_city
+
+    def operate(self):
+        """Carry out the day-to-day operations of this franchise."""
+        # TODO MAKE TRAVEL REALISTIC ONCE TRAVEL SYSTEM IMPLEMENTED
+        # If it's game day, go to the ballpark and schedule the game with
+        # the league, who will instantiate the Game object
+        try:
+            next_scheduled_game = self.season.schedule.next_game
+            date_of_next_game, timestep_of_next_game, away_team_of_next_game, home_team_of_next_game = (
+                next_scheduled_game
+            )
+            ballpark_of_next_game = home_team_of_next_game.ballpark
+            if date_of_next_game == self.cosmos.ordinal_date and timestep_of_next_game == self.cosmos.time_of_day:
+                for stakeholder in {self.manager, self.scout} | self.players:
+                    stakeholder.person.go_to(destination=ballpark_of_next_game, occasion="baseball")
+            self.league.add_to_game_queue(away_team_of_next_game, home_team_of_next_game)
+        except AttributeError:  # No upcoming games
+            pass

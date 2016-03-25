@@ -23,7 +23,7 @@ class Personality(object):
         # one's own abilities), while lower and higher values represent under- and overconfidence,
         # respectively. This trait affects estimating whether you can beat a throw on the base paths.
         # It's also a plastic trait, meaning it may change very gradually; this currently happens in
-        # baseball.game.Game.effect_consequences()
+        # baseball.game.Game._evolve_player_confidence_and_composure()
         self.confidence = self._determine_higher_order_personality_trait(trait="confidence")
         # Audacity (high values have the signal E+, O+) also follows a normal distribution
         # around 0.8, where there is no ideal audacity, just that lower values will make the

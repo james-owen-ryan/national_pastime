@@ -24,7 +24,7 @@ class PlayAtBaseCall(object):
         # Effect consequences
         if (call == "Safe" and not at_bat.result and baserunner is at_bat.batter and
                 not baserunner.advancing_due_to_error):
-            # If baserunner *is* advancing due to error, AtBat.review() will score the hit and
+            # If baserunner *is* advancing due to error, AtBat._review() will score the hit and
             # no call will be attributed to it; if there is already an AtBat.result, it's because the
             # true result of the play was a FieldersChoice.
             if base == "1B":

@@ -14,7 +14,7 @@ from career import PlayerCareer
 # TODO PAIRWISE SYNERGY BETWEEN PLAYERS -- MAYBE A BASEBALL-CENTRIC CLASS RESEMBLING RELATIONSHIP()
 
 
-# TODO  progress skills according to age, practice, and also according to era somehow (maybe
+# TODO  conduct_offseason_activity skills according to age, practice, and also according to era somehow (maybe
 # TODO  have the averages, used often in diff_from_avg snippets, change over time?)
 
 
@@ -25,7 +25,6 @@ class Player(object):
         """Initialize a Player object."""
 
         # TEMP TODO FIGURE OUT WHAT TO DO ABOUT THESE
-        self.composure = person.mood.composure
         self.speed_home_to_first = person.body.speed_home_to_first
         self.height = person.body.height
         self.vertical_reach = person.body.vertical_reach
@@ -40,7 +39,6 @@ class Player(object):
         self.strike_zone = self._determine_strike_zone()
         self.bat = None
         self.glove = Glove()
-        self.primary_position = None
         # Inherent attributes that only change gradually over the course of a
         # life; these are set by _init_baseball_attributes(), and more info
         # on these can be found in the comments there
@@ -89,6 +87,10 @@ class Player(object):
         self._moving_right = False
         # Set inherent baseball attributes
         self._init_baseball_attributes()
+
+    @property  # TODO STOPGAP
+    def team(self):
+        return self.career.team if self.career else None
 
     def _init_baseball_attributes(self):
         """Set this player's inherent baseball attributes."""
@@ -327,11 +329,11 @@ class Player(object):
         if self.career.team:
             return "{name}, {position}, {team_name}".format(
                 name=self.person.name,
-                position=self.primary_position,
+                position=self.position,
                 team_name=self.career.team.name
             )
         else:
-            return "{name}, free agent, {city_name} ({state_name}) ".format(
+            return "{name}, free agent, {city_name}, {state_name}".format(
                 name=self.person.name,
                 city_name=self.person.city.name,
                 state_name=self.person.city.state.name
@@ -351,25 +353,6 @@ class Player(object):
     def lefty(self):
         """Return whether this player plays left-handed."""
         return self.person.body.lefty
-
-    def increase_in_age(self):
-        """Consider retirement."""
-        if not self.retired:
-            if self.team and self in self.team.players:
-                self.consider_retirement()
-
-    def consider_retirement(self):
-        if self.age > normal(36, 2):
-            self.retire()
-
-    def retire(self):
-        print "\n{} ({}) of the {} has retired at the age of {}".format(
-            self.name, self.position, self.team.name, self.age
-        )
-        self.retired = True
-        if self in self.team.players:
-            self.team.sign_replacement(replacement_for=self)
-        self.country.former_big_leaguers.append(self)
 
     def get_in_position(self, at_bat):
         """Get into position prior to a pitch."""
@@ -820,7 +803,7 @@ class Player(object):
         timing = base_timing / proportion_relative_to_ideal_pitch_speed
         # Affect timing according to composure (raised to the 1/3 power to mitigate
         # the effect)
-        timing /= self.composure**0.3
+        timing /= self.person.mood.composure**0.3
         # Determine swing contact point -- this is represented
         # as an (x, y) coordinate, where (0, 0) represents contact
         # at the bat's sweet spot; contact x-coordinate is determined
@@ -1139,7 +1122,7 @@ class Player(object):
                 self.immediate_goal = self.location
                 playing_action.covering_home = self
             elif self.position == "P":
-                if self.team.catcher.playing_the_ball:
+                if self.team.roster.catcher.playing_the_ball:
                     # Cover home (obviously should be backing up bases and stuff too TODO)
                     self.immediate_goal = [0, 0]
                     playing_action.covering_home = self
@@ -1317,7 +1300,7 @@ class Player(object):
                     self.person.last_name, batted_ball.time_since_contact
                 )
             if self is playing_action.running_to_first:
-                # Otherwise they won't make progress on the first timestep
+                # Otherwise they won't make conduct_offseason_activity on the first timestep
                 self.percent_to_base = (
                     batted_ball.time_since_contact/self.speed_home_to_first
                 )
@@ -1366,7 +1349,7 @@ class Player(object):
                     # We can't have, e.g., two playing_action.running_to_thirds, so if the
                     # preceding runner is rounding his base -- which, if you are rounding
                     # your base, he *is* -- but hasn't quite got there yet, while you
-                    # already have, keep incrementing your baserunning progress for a few
+                    # already have, keep incrementing your baserunning conduct_offseason_activity for a few
                     # timesteps until he rounds the base, at which point we can switch, e.g.,
                     # him to playing_action.running_to_home and you to playing_action.running_to_third
                     next_basepath_is_clear = False
@@ -1386,7 +1369,7 @@ class Player(object):
                                 self.person.last_name, batted_ball.time_since_contact
                             )
                     if next_basepath_is_clear:
-                        # Round the base, retaining the remainder of last timestep's baserunning progress
+                        # Round the base, retaining the remainder of last timestep's baserunning conduct_offseason_activity
                         self.percent_to_base -= 1.0
                         self.will_round_base = False
                         self._decided_finish = False
@@ -1509,8 +1492,8 @@ class Player(object):
         """Move along the base paths tentatively before resolution of a fly-ball fielding chance.
 
         Upon the ball being fielded, tentative baserunners will automatically realize (by virtue of
-        playing_action.enact()) they have to retreat and will begin to do so. If the ball is
-        not fielded cleanly, playing_action.enact() will cause tentative baserunners to consider
+        playing_action._transpire()) they have to retreat and will begin to do so. If the ball is
+        not fielded cleanly, playing_action._transpire() will cause tentative baserunners to consider
         whether they could now make it to their next base before a throw could, and if they believe
         they could, they'll start baserunning full speed."""
         batted_ball = playing_action.batted_ball
@@ -1860,7 +1843,7 @@ class Player(object):
             # Simulate whether the ball is cleanly fielded
             difficulty /= self.ground_ball_fielding
             difficulty /= self.glove.fielding_advantage
-            difficulty /= self.composure
+            difficulty /= self.person.mood.composure
             if difficulty >= 1.0:
                 difficulty = 0.999
             if random.random() > difficulty:
@@ -1884,7 +1867,7 @@ class Player(object):
             # Simulate whether the ball is cleanly fielded
             difficulty /= self.fly_ball_fielding
             difficulty /= self.glove.fielding_advantage
-            difficulty /= self.composure
+            difficulty /= self.person.mood.composure
             if difficulty >= 1.0:
                 difficulty = 0.999
             if random.random() > difficulty:
@@ -1949,7 +1932,7 @@ class Player(object):
             batted_ball.fielding_difficulty = difficulty
             difficulty /= self.fly_ball_fielding
             difficulty /= self.glove.fielding_advantage
-            difficulty /= self.composure
+            difficulty /= self.person.mood.composure
             if batted_ball.outfield_fence_contact_timestep:
                 if self in batted_ball.at_bat.game.home_team.players:
                     # Fielders deal more easily with their own ballpark's quirks
@@ -2013,7 +1996,7 @@ class Player(object):
             batted_ball.fielding_difficulty = difficulty
             difficulty /= self.ground_ball_fielding
             difficulty /= self.glove.fielding_advantage
-            difficulty /= self.composure
+            difficulty /= self.person.mood.composure
             if difficulty >= 1.0:
                 difficulty = 0.999
             if random.random() > difficulty:
@@ -2168,7 +2151,7 @@ class Player(object):
             self._throw_target = playing_action.covering_home
             self._throw_target_coords = [0, 0]
         elif back_to_pitcher:
-            self._throw_target = self.team.pitcher
+            self._throw_target = self.team.roster.pitcher
             self.throwing_back_to_pitcher = True
             self._throw_target_coords = [0, 60.5]
         elif relay:
@@ -2198,7 +2181,7 @@ class Player(object):
         elif base == "H":
             self.immediate_goal = [0, 0]
             runner_to_putout = playing_action.running_to_home
-        # Set playing_action.fielder_afoot_for_putout tuple, which is used by playing_action.enact()
+        # Set playing_action.fielder_afoot_for_putout tuple, which is used by playing_action._transpire()
         playing_action.fielder_afoot_for_putout = self, runner_to_putout, base
         # Determine the slope of a straight line between fielder's
         # current location and the goal location

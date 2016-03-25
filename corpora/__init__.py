@@ -55,6 +55,34 @@ class Names(object):
         name.strip('\n') for name in
         open(os.getcwd()+'/corpora/bar_names.txt', 'r')
     )
+    # Components of baseball team nicknames
+    colors = (
+        ['Blue'] * 3 +
+        ['Red'] * 3 +
+        ['Gray'] * 3 +
+        ['White'] * 3 +
+        ['Brown'] * 3 +
+        ['Green'] * 2 +
+        ['Silver'] * 2 +
+        ['Orange'] * 1 +
+        ['Maroon'] * 1 +
+        ['Gold'] * 1 +
+        ['Yellow'] * 1
+    )
+    animal_names = tuple(
+        "{}s".format(name.strip('\n')) for name in
+        open(os.getcwd()+'/corpora/animal_names_reg.txt', 'r')
+    )
+    animal_names = tuple(
+        list(animal_names) + [
+            name.strip('\n') for name in
+            open(os.getcwd()+'/corpora/animal_names_irreg.txt', 'r')
+        ]
+    )
+    generic_team_nicknames = tuple(
+        name.strip('\n') for name in
+        open(os.getcwd()+'/corpora/gen_team_names.txt', 'r')
+    )
 
     @classmethod
     def a_masculine_name(cls, year):
@@ -247,6 +275,22 @@ class Names(object):
     def a_bar_name(cls):
         """Return a random bar name."""
         return random.choice(cls.bar_names)
+
+    @classmethod
+    def a_baseball_team_nickname(cls, year):
+        """Return a random baseball team name that is not regionally specific."""
+        x = random.random()
+        if x < 0.2:
+            return "{color}s".format(color=random.choice(cls.colors))
+        elif x < 0.4:
+            if year < 1902:
+                return "{color} Stockings".format(color=random.choice(cls.colors))
+            else:
+                return "{color} Sox".format(color=random.choice(cls.colors))
+        elif x < 0.8:
+            return "{plural_animal_name}".format(plural_animal_name=random.choice(cls.animal_names))
+        else:
+            return "{generic_nickname}s".format(generic_nickname=random.choice(cls.generic_team_nicknames))
 
 
 class GravestoneDetails(object):

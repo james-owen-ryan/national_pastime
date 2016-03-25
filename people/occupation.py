@@ -1,5 +1,10 @@
 import string
 from event import *
+from baseball.manager import Manager as LiteralBaseballManager  # Don't want to squash Manager object here
+from baseball.owner import Owner as LiteralBaseballTeamOwner  # Don't want to squash Owner object here
+from baseball.scout import Scout
+from baseball.commissioner import Commissioner
+from baseball.umpire import Umpire
 
 
 class Occupation(object):
@@ -120,6 +125,11 @@ class Occupation(object):
     def has_a_boss(self):
         """Return whether the person with this occupation has a boss."""
         return True if self.company.owner is not self else False
+
+    @property
+    def scheduled_to_work_this_timestep(self):
+        """Return whether the person with this occupation is scheduled to work on the current timestep."""
+        return self.shift == self.person.cosmos.time_of_day
 
     def terminate(self, reason, replacement_already_hired=False):
         """Terminate this occupation, due to another hiring, lay off, retirement, departure, or death."""
@@ -373,10 +383,10 @@ class Bottler(Occupation):
 
 
 class Groundskeeper(Occupation):
-    """A mortician at a cemetery or park."""
+    """A groundskeeper at a cemetery or park."""
 
     def __init__(self, person, company, shift):
-        """Initialize a Mortician object.
+        """Initialize a Groundskeeper object.
 
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
@@ -1293,3 +1303,127 @@ class Woodworker(Occupation):
         @param company: The Company object for the company that person works for in this capacity.
         """
         super(Woodworker, self).__init__(person=person, company=company, shift=shift)
+
+
+class BaseballTeamOwner(Occupation):
+    """An owner of a baseball team."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a BaseballTeamOwner object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        # A team owner can actually work a regular shift schedule, since they don't
+        # need to travel to games, etc.
+        super(BaseballTeamOwner, self).__init__(person=person, company=company, shift=shift)
+
+
+class BaseballManager(Occupation):
+    """A professional baseball manager."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a BaseballManager object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(BaseballManager, self).__init__(person=person, company=company, shift=shift)
+
+
+class BaseballScout(Occupation):
+    """A professional baseball manager."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a BaseballScout object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(BaseballScout, self).__init__(person=person, company=company, shift=shift)
+
+
+class BaseballCommissioner(Occupation):
+    """A professional baseball commissioner."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a BaseballCommissioner object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball league.
+        """
+        # A commissioner can actually work a regular shift schedule, since they don't
+        # need to travel to games, etc.
+        super(BaseballCommissioner, self).__init__(person=person, company=company, shift=shift)
+
+
+class BaseballUmpire(Occupation):
+    """A professional baseball umpire."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a BaseballUmpire object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball league.
+        """
+        super(BaseballUmpire, self).__init__(person=person, company=company, shift=shift)
+
+
+class BaseballPlayer(Occupation):
+    """A professional baseball player."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a BaseballPlayer object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(BaseballPlayer, self).__init__(person=person, company=company, shift=shift)
+
+
+class PublicAddressAnnouncer(Occupation):
+    """A public-address announcer at a ballpark."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a PublicAddressAnnouncer object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(PublicAddressAnnouncer, self).__init__(person=person, company=company, shift=shift)
+
+
+class StadiumGroundskeeper(Occupation):
+    """A groundskeeper at a ballpark."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a StadiumGroundskeeper object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(StadiumGroundskeeper, self).__init__(person=person, company=company, shift=shift)
+
+
+class StadiumUsher(Occupation):
+    """An usher at a ballpark."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a ConcessionWorker object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(StadiumUsher, self).__init__(person=person, company=company, shift=shift)
+
+
+class ConcessionWorker(Occupation):
+    """A concession worker at a ballpark."""
+
+    def __init__(self, person, company, shift):
+        """Initialize a ConcessionWorker object.
+
+        @param person: The Person object for the person whose occupation this is.
+        @param company: A baseball team.
+        """
+        super(ConcessionWorker, self).__init__(person=person, company=company, shift=shift)

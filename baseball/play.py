@@ -65,7 +65,7 @@ class Pitch(object):
         # is modified by umpire.call_pitch() -- it represents only a
         # hypothetical call unless the batter doesn't swing at the pitch
         self.would_be_call = self.umpire.call_pitch(self)
-        # The actual call will be set to the would-be call by AtBat.enact()
+        # The actual call will be set to the would-be call by AtBat._transpire()
         # if the batter doesn't swing
         self.call = None
         # Check if batter is hit by pitch
@@ -80,7 +80,7 @@ class Pitch(object):
                 self.bean = True
                 Bean(pitch=self)
         # If the pitch is not swung at, or it results in a foul tip, whether
-        # or not it is caught will be modified by at_bat.enact() via
+        # or not it is caught will be modified by at_bat._transpire() via
         # catcher.receive_pitch()
         self.caught = False
         # Finally, append this to the AtBat's list of pitches -- do this last,
@@ -299,17 +299,17 @@ class FieldingAct(object):
         self.line_drive_at_pitcher = line_drive_at_pitcher
         self.ball_totally_missed = ball_totally_missed
         self.ball_bobbled = batted_ball.bobbled
-        self.fielder_composure = fielder.composure
+        self.fielder_composure = fielder.person.mood.composure
         # Affect player composure according to the objective difficulty of the fielding act and
         # whether it was successful
         if self.successful:
             if batted_ball.fielding_difficulty > 0.4:
-                fielder.composure += batted_ball.fielding_difficulty / 20.
+                fielder.person.mood.composure += batted_ball.fielding_difficulty / 20.
         else:
             ease = 1-batted_ball.fielding_difficulty
             if ease > 0.4:
-                fielder.composure -= ease / 40.
-        self.fielder_composure_after = fielder.composure
+                fielder.person.mood.composure -= ease / 40.
+        self.fielder_composure_after = fielder.person.mood.composure
         if batted_ball.at_bat.game.trace:
             if line_drive_at_pitcher:
                 print "-- Line drive right at {} ({}) [{}]".format(

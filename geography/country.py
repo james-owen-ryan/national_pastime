@@ -12,6 +12,8 @@ class Country(object):
         self.capital = self.federal_district
         self.cities = []
         cosmos.countries.append(self)
+        # Prepare baseball-centric attributes
+        self.leagues = []  # Leagues based here
 
     def _init_states_and_federal_district(self):
         """Instantiate objects for all 50 states."""
@@ -84,9 +86,13 @@ class Country(object):
 
     @property
     def free_agents(self):
-        all_players = [resident.player for resident in self.residents if resident.player]
-        free_agents = list(all_players)
-        for player in all_players:
+        """Return all the baseball players in this country that are not under contract."""
+        free_agents = {
+            resident.player for resident in self.residents if resident.player and
+            not resident.player.career.retired and
+            not resident.player.career.team
+        }
+        for player in free_agents:
             if player.career.retired:
                 free_agents.remove(player)
             elif player.career.team and player in player.career.team.players:
@@ -102,6 +108,8 @@ class State(object):
         self.cosmos = country.cosmos
         self.country = country
         self.cities = []  # Gets appended to by establish_cities, which gets called each year by Country
+        # Prepare baseball-centric attributes
+        self.leagues = []  # Leagues based here
 
     def __str__(self):
         return self.name
@@ -148,9 +156,13 @@ class State(object):
 
     @property
     def free_agents(self):
-        all_players = [resident.player for resident in self.residents if resident.player]
-        free_agents = list(all_players)
-        for player in all_players:
+        """Return all the baseball players in this state that are not under contract."""
+        free_agents = {
+            resident.player for resident in self.residents if resident.player and
+            not resident.player.career.retired and
+            not resident.player.career.team
+        }
+        for player in free_agents:
             if player.career.retired:
                 free_agents.remove(player)
             elif player.career.team and player in player.career.team.players:

@@ -1,0 +1,9 @@
+# First ever Talk of the Town-integrated game to be completed (03-18-2016):
+
+# Southwark (0-0) has beaten Reading (0-0) 4-3
+#
+# 		    1   2   3   4   5   6   7   8   9
+# 		    __________________________________
+# Southwark	0   4   0   0   0   0   0   0   0	4
+#
+# Reading	0   0   0   0   0   0   0   0   3	3

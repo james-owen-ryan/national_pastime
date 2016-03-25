@@ -1358,3 +1358,26 @@ class Retirement(Event):
         return "Retirement of {} as {} at {} in {}".format(
             self.subject.name, self.occupation.__class__.__name__, self.occupation.company.name, self.year
         )
+
+
+class BaseballFranchiseTermination(Event):
+    """The folding of a baseball franchise.."""
+
+    def __init__(self, franchise):
+        """Initialize a LayOff object."""
+        super(BaseballFranchiseTermination, self).__init__(cosmos=franchise.cosmos)
+        self.franchise = franchise
+        self.organization = franchise.organization
+        # Need to save these because they could change
+        self.city = franchise.city
+        self.nickname = franchise.nickname
+        self.league = franchise.league
+
+    def __str__(self):
+        """Return string representation."""
+        return "Folding of the {city} {team} ({league}) in {year}".format(
+            city=self.franchise.city.name,
+            team=self.nickname,
+            league=self.franchise.league.name,
+            year=self.year
+        )

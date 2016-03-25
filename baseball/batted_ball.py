@@ -8,7 +8,7 @@ class BattedBall(object):
                  vertical_launch_angle):
         # Note: swing may be a Bunt
         self.at_bat = swing.at_bat
-        self.ballpark = self.at_bat.game.ballpark
+        self.field = self.at_bat.game.field
         self.swing = swing
         swing.result = self
         if swing.bunt:
@@ -38,7 +38,7 @@ class BattedBall(object):
         self.location = [0, 0]
         self.final_location = None
         self.height = 3.5
-        self.time_since_contact = 0.0  # Adjusted by at_bat.enact()
+        self.time_since_contact = 0.0  # Adjusted by at_bat._transpire()
         self.speed = exit_speed
         self.obligated_fielder = None
         self.fielder_with_chance = None
@@ -94,8 +94,8 @@ class BattedBall(object):
         C = 0.3  # Drag coefficient  -- TODO change depending on certain things
         A = 0.004208351855042743  # Cross-sectional area of ball in meters
         D = (rho * C * A) / 2  # Drag
-        COR = 0.48  # Coefficient of restitution TODO should be self.ballpark.COR[(x, y)]
-        COF = 0.31  # Coefficient of friction TODO should be self.ballpark.COF[(x, y)]
+        COR = 0.48  # Coefficient of restitution TODO should be self.field.COR[(x, y)]
+        COF = 0.31  # Coefficient of friction TODO should be self.field.COF[(x, y)]
         ax = -(D/m)*v*vx  # Initial horizontal component of acceleration
         ay = -g-(D/m)*v*vy  # Initial vertical component of acceleration
         timestep = 0.1
@@ -154,37 +154,37 @@ class BattedBall(object):
                     if coordinate_x > coordinate_y or coordinate_y < 0:
                         # Ball is heading foul -- check for whether the ball contacted a foul fence between
                         # the last timestep and now
-                        if coordinate_y <= self.ballpark.playing_field_lower_bound[int(coordinate_x)]:
-                            if coordinate_z <= self.ballpark.foul_fence_height[int(coordinate_x)]:
+                        if coordinate_y <= self.field.playing_field_lower_bound[int(coordinate_x)]:
+                            if coordinate_z <= self.field.foul_fence_height[int(coordinate_x)]:
                                 # Rewrite the coordinates of the last timestep so that coordinate-y is the exact
                                 # coordinate of the wall -- otherwise it would be that a ball passed the
                                 # wall and was then sucked back through it to simulate hitting it
                                 self.position_at_timestep[last_timestep] = (
-                                    coordinate_x, self.ballpark.playing_field_lower_bound[int(coordinate_x)], coordinate_z
+                                    coordinate_x, self.field.playing_field_lower_bound[int(coordinate_x)], coordinate_z
                                 )
                                 self.foul_fence_contact_timestep = last_timestep
                                 vx *= -1  # Reverse horizontal component of velocity
-                                # TODO should be self.ballpark.outfield_fence_COR[x] or self.ballpark.foul_fence_COR[x]
+                                # TODO should be self.field.outfield_fence_COR[x] or self.field.foul_fence_COR[x]
                                 vx *= 0.6  # Adjust for coefficient of restitution of the fence
-                                # TODO should be self.ballpark.outfield_fence_COF[x] or self.ballpark.foul_fence_COF[x]
+                                # TODO should be self.field.outfield_fence_COF[x] or self.field.foul_fence_COF[x]
                                 vy *= 0.15  # Adjust for friction of the fence
                                 v = math.sqrt(vx**2 + vy**2)
                     else:
                         # Ball is heading fair -- check for whether the ball contacted the outfield fence
                         # between the last timestep and now
-                        if coordinate_y >= self.ballpark.playing_field_upper_bound[int(coordinate_x)]:
-                            if coordinate_z <= self.ballpark.outfield_fence_height[int(coordinate_x)]:
+                        if coordinate_y >= self.field.playing_field_upper_bound[int(coordinate_x)]:
+                            if coordinate_z <= self.field.outfield_fence_height[int(coordinate_x)]:
                                 # Rewrite the coordinates of the last timestep so that coordinate-y is the exact
                                 # coordinate of the wall -- otherwise it would be that a ball passed the
                                 # wall and was then sucked back through it to simulate hitting it
                                 self.position_at_timestep[last_timestep] = (
-                                    coordinate_x, self.ballpark.playing_field_upper_bound[int(coordinate_x)], coordinate_z
+                                    coordinate_x, self.field.playing_field_upper_bound[int(coordinate_x)], coordinate_z
                                 )
                                 self.outfield_fence_contact_timestep = last_timestep
                                 vx *= -1  # Reverse horizontal component of velocity
-                                # TODO should be self.ballpark.outfield_fence_COR[x] or self.ballpark.foul_fence_COR[x]
+                                # TODO should be self.field.outfield_fence_COR[x] or self.field.foul_fence_COR[x]
                                 vx *= 0.6  # Adjust for coefficient of restitution of the fence
-                                # TODO should be self.ballpark.outfield_fence_COF[x] or self.ballpark.foul_fence_COF[x]
+                                # TODO should be self.field.outfield_fence_COF[x] or self.field.foul_fence_COF[x]
                                 vy *= 0.15  # Adjust for friction of the fence
                                 v = math.sqrt(vx**2 + vy**2)
                 # Calculate new physics x and y coordinates
@@ -502,7 +502,7 @@ class BattedBall(object):
                 # the while-loop iteration representing the *next* timestep -- sort of like how
                 # we had to add 0.5s to all considerations in batted_ball.get_read_by_fielders to
                 # simulate their delayed reaction time, here we have to add 0.1s to all considerations
-                # to accommodate the control sequence of playing_action.enact()
+                # to accommodate the control sequence of playing_action._transpire()
                 height_of_ball_at_timestep = (
                     self.position_at_timestep[timestep][2]
                 )
@@ -743,26 +743,26 @@ class BattedBall(object):
                         # due to the control sequence of elifs below will
                         # favor home runs ever so slightly
                         playing_field_lower_bound_at_this_x = (
-                            self.ballpark.playing_field_lower_bound[-226]
+                            self.field.playing_field_lower_bound[-226]
                         )
                         playing_field_upper_bound_at_this_x = (
-                            self.ballpark.playing_field_upper_bound[-226]
+                            self.field.playing_field_upper_bound[-226]
                         )
                     elif self.location[0] > 226:
                         # We will have to approximate where it crossed the plane
                         # (see above comment block for explanation)
                         playing_field_lower_bound_at_this_x = (
-                            self.ballpark.playing_field_lower_bound[-226]
+                            self.field.playing_field_lower_bound[-226]
                         )
                         playing_field_upper_bound_at_this_x = (
-                            self.ballpark.playing_field_upper_bound[-226]
+                            self.field.playing_field_upper_bound[-226]
                         )
                     else:
                         playing_field_lower_bound_at_this_x = (
-                            self.ballpark.playing_field_lower_bound[int(self.location[0])]
+                            self.field.playing_field_lower_bound[int(self.location[0])]
                         )
                         playing_field_upper_bound_at_this_x = (
-                            self.ballpark.playing_field_upper_bound[int(self.location[0])]
+                            self.field.playing_field_upper_bound[int(self.location[0])]
                         )
                     if 0 <= abs(playing_field_lower_bound_at_this_x-self.location[1]) < 1.5:
                         self.at_the_foul_wall = True
@@ -777,7 +777,7 @@ class BattedBall(object):
                         self.left_playing_field = True
                         self.crossed_plane_foul = True
                 if ((int(self.location[0]), int(self.location[1])) in
-                        self.at_bat.game.ballpark.ground_rule_coords):
+                        self.at_bat.game.field.ground_rule_coords):
                     self.ground_rule_incurred = True
             elif self.time_since_contact > max(self.position_at_timestep.keys()):
                 # Modify self.position_at_timestep and self.x_velocity_at_timestep to

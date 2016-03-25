@@ -30,10 +30,10 @@ class CityData(object):
         for major_city in self.yearly_populations_for_major_cities:
             # Fill in missing values (especially ones in the range 1790-1839, which
             # aren't included in the data) with -99, the code for minor city
-            for year in xrange(1790, 1990):
+            for year in xrange(1599, 1990):
                 if year not in self.yearly_populations_for_major_cities[major_city]:
                     self.yearly_populations_for_major_cities[major_city][year] = -99
-        self.yearly_populations_for_minor_cities = {year: -99 for year in xrange(1790, 1990)}
+        self.yearly_populations_for_minor_cities = {year: -99 for year in xrange(1599, 1990)}
         # Prepare specifications holding all the pertinent data for each city in the U.S.
         self.city_specifications = []
         for line in open(os.getcwd()+'/data/all_us_cities_data.tsv', 'r').readlines()[1:]:  # Skip header
@@ -50,6 +50,35 @@ class CityData(object):
             self.ordinal_dates_of_city_establishment[city_specification.ordinal_date_to_establish].add(
                 city_specification
             )
+        # # Load in a dictionary that, for each city in the U.S., ranks all other U.S. cities
+        # # according to their distance from that city; we have precomputed this so that we don't
+        # # have to recompute all city mutual distances anytime a new city is established
+        # self.city_distance_rankings = pickle.load(
+        #     open(os.getcwd()+'/data/city_distance_rankings.dat', 'rb')
+        # )
+        # self._init_attribute_city_distance_rankings()
+
+    def _init_attribute_city_distance_rankings(self):
+        """Attribute to each CitySpecification object a ranking of all other such objects according
+        to the distance between the cities they specify.
+        """
+        for city_specification in self.city_specifications:
+            # Load in the ranking of (city_name, state_name) tuples
+            distance_rankings_for_this_city = self.city_distance_rankings[
+                (city_specification.city_name, city_specification.state_name)
+            ]
+            # Replace these tuples with the actual corresponding CitySpecification objects
+            distance_rankings_using_city_specification_objects = []
+            for city_name, state_name in distance_rankings_for_this_city:
+                city_specification_object = next(
+                    cs for cs in self.city_specifications if
+                    cs.city_name == city_name and cs.state_name == state_name
+                )
+                distance_rankings_using_city_specification_objects.append(city_specification_object)
+            # Attribute this new list
+            city_specification.all_cities_ranked_by_distance_from_me = (
+                distance_rankings_using_city_specification_objects
+            )
 
 
 class CitySpecification(object):
@@ -57,6 +86,9 @@ class CitySpecification(object):
 
     def __init__(self, city_data_object, raw_specification):
         """Initialize a CitySpecification object."""
+        # This will be set to hold the actual city object for this city, once it
+        # has been established in the simulation
+        self.city = None
         # For now, we're only including U.S. cities, though of course this may
         # change (in which case, this whole module will need to be modified)
         self.country_name = "United States of America"
@@ -82,6 +114,8 @@ class CitySpecification(object):
             self.yearly_populations = city_data_object.yearly_populations_for_major_cities[key]
         else:
             self.yearly_populations = city_data_object.yearly_populations_for_minor_cities
+        # This gets set by
+        self.all_cities_ranked_by_distance_from_me = None
 
     def _init_parse_raw_specification(self, city_data_object, raw_specification):
         """Parse the raw specification for this city's data to set the core attributes of this object."""

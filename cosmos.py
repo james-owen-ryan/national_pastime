@@ -6,6 +6,7 @@ from geography.city import City
 from geography.country import Country
 from people.business import *
 from people.productionist import Productionist
+from baseball.classification import Class, InformalPlay
 
 CHANCE_OF_A_DAY_BEING_SIMULATED = 0.005
 
@@ -67,8 +68,13 @@ class Cosmos(object):
         self.cities = []
         # Instantiate a first country
         Country(name='United States of America', cosmos=self)
-
-        self.leagues = []
+        # Prepare baseball-centric attributes
+        self.baseball_classifications = [
+            # TODO MAKE THIS BOTTOM-UP; HAVE AGENTS NEGOTIATE TO COMPOSE/MODIFY CLASSES
+            Class(cosmos=self, level='AAA'),
+            InformalPlay(cosmos=self)
+        ]
+        self.leagues = []  # Leagues based here
 
     @staticmethod
     def _init_cosmos_id():
@@ -144,16 +150,28 @@ class Cosmos(object):
         )
         return date
 
-    def advance_timechunk(self, n_timesteps=51122):
+    def progress(self, until=None):
+        """Progress the cosmos until the specified date."""
+        if not until:  # Progress one week
+            until = self.ordinal_date + 7
+        else:
+            if len(until) == 1:  # Just a year was passed
+                until = (until, 1, 1)
+            until = self.ordinal_date + 7 if not until else datetime.date(*until).toordinal()
+        while self.ordinal_date < until:
+            for l in self.leagues:
+                l.operate()
+            self._advance_timechunk(3)
+
+    def _advance_timechunk(self, n_timesteps=51122):
         """Simulate the passing of a chunk of time at a lower fidelity than normal."""
         for i in xrange(n_timesteps):
             self._advance_time()
-            for country in self.countries:
-                for city in country.cities:
-                    if random.random() < 0.03:
-                        city.manipulate_population()
-                    if random.random() < CHANCE_OF_A_DAY_BEING_SIMULATED:
-                        self._simulate_a_timestep_in_a_city(city)
+            for city in self.cities:
+                if random.random() < 0.03:
+                    city.manipulate_population()
+                if random.random() < CHANCE_OF_A_DAY_BEING_SIMULATED:
+                    self._simulate_a_timestep_in_a_city(city)
 
     def _advance_time(self):
         """Advance time of day and date, if it's a new day."""
@@ -203,19 +221,10 @@ class Cosmos(object):
     def _simulate_a_timestep_in_a_city(self, city):
         """Simulate a timestep in the given city."""
         print "Simulating a {} in {}...".format(self.time_of_day, city.full_name)
+        # Simulate birth, death, retirement, college, and moving out of parents
         for person in list(city.residents):
-            if person.pregnant:
-                if self.ordinal_date >= person.due_date:
-                    person.give_birth()
-            if person.marriage and person.spouse.home is person.home:
-                chance_they_are_trying_to_conceive_this_year = (
-                    self.config.function_to_determine_chance_married_couple_are_trying_to_conceive(
-                        n_kids=len(person.marriage.children_produced)
-                    )
-                )
-                chance_they_are_trying_to_conceive_this_year /= CHANCE_OF_A_DAY_BEING_SIMULATED*365
-                if random.random() < chance_they_are_trying_to_conceive_this_year:
-                    person.have_sex(partner=person.spouse, protection=False)
+            if person.pregnant and self.ordinal_date >= person.due_date:
+                person.give_birth()
             if person.age > max(65, random.random() * 100):
                 person.die(cause_of_death="Natural causes")
             elif person.occupation and person.age > max(65, random.random() * 100):
@@ -233,9 +242,20 @@ class Cosmos(object):
         # Have people go to the location they will be at this timestep
         for person in list(city.residents):
             person.routine.enact()
+        # Simulate sex  TODO sex outside out marriage
+        for person in list(city.residents):
+            if person.marriage and person.spouse.home is person.home:
+                chance_they_are_trying_to_conceive_this_year = (
+                    self.config.function_to_determine_chance_married_couple_are_trying_to_conceive(
+                        n_kids=len(person.marriage.children_produced)
+                    )
+                )
+                chance_they_are_trying_to_conceive_this_year /= CHANCE_OF_A_DAY_BEING_SIMULATED*365
+                if random.random() < chance_they_are_trying_to_conceive_this_year:
+                    person.have_sex(partner=person.spouse, protection=False)
         # Have people observe their surroundings, which will cause knowledge to
         # build up, and have them socialize with other people also at that location --
-        # this will cause relationships to form/progress and knowledge to propagate
+        # this will cause relationships to form/conduct_offseason_activity and knowledge to propagate
         for person in list(city.residents):
             if person.age > 3:
                 # person.observe()

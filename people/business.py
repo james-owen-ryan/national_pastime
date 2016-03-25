@@ -5,6 +5,7 @@ from residence import *
 from event import Demolition, BusinessConstruction, Hiring, BusinessClosure, LayOff
 from utils.errors import NoVacantTractsError
 from corpora import Names
+from baseball.field import Field
 
 # Objects of a business class represents both the company itself and the building
 # at which it is headquartered. All business subclasses inherit generic attributes
@@ -59,7 +60,6 @@ class Business(object):
         if self.__class__ in config.public_company_types:  # Hospital, police station, fire station, etc.
             self.public, self.private = True, False
             self.owner = None
-            self.founder = None
         elif self.__class__.__name__ == "HoldingCompany":
             self.public, self.private = False, True
             self.owner = self._init_set_and_get_owner_occupation_and_handle_holding_company_stuff(owner=self.owner)
@@ -67,6 +67,7 @@ class Business(object):
             self.public, self.private = False, True
             owner = self._init_determine_who_is_starting_this_business()
             self.owner = self._init_set_and_get_owner_occupation_and_handle_holding_company_stuff(owner=owner)
+        self.founder = self.owner
         self._init_hire_initial_employees()
         # Also set the vacancies this company will initially have that may get filled
         # up gradually by people seeking employment (most often, this will be kids who
@@ -97,12 +98,7 @@ class Business(object):
         self.block = lot.block
         # Choose a name for this business
         self.name = None
-        while not self.name or any(
-            # If this is a new holding company, its newly held company will not yet have a name, so
-            # that's why we have to include the 'hasattr(c, 'name')' snippet in this generator
-            c for c in self.city.companies if c is not self and hasattr(c, 'name') and c.name == self.name
-        ):
-            self._init_get_named()
+        self._init_get_named()
         # Set miscellaneous attributes
         self.people_here_now = set()
         self.demolition = None  # Potentially gets set by event.Demolition.__init__()
@@ -278,137 +274,142 @@ class Business(object):
             Restaurant, University, Park, Farm
         )
         name = None
-        if self.__class__ not in classes_that_get_special_names:
-            if random.random() < config.chance_company_gets_named_after_owner:
-                prefix = self.owner.person.last_name
-            elif random.random() < 0.5:
-                prefix = self.street_address_is_on.name
-            elif random.random() < 0.5:
-                prefix = self.city.name
-            else:  # Duct tape -- we need more variation here
-                prefix = "Generic"
-            name = "{0} {1}".format(prefix, class_to_company_name_component[self.__class__])
-        elif self.__class__ in (CityHall, FireStation, Hospital, PoliceStation, School, Cemetery):
-            name = "{0} {1}".format(self.city.name, class_to_company_name_component[self.__class__])
-        elif self.__class__ is Farm:
-            name = "{}'s farm".format(self.owner.person.name)
-            if any(c for c in self.city.companies if c.name == name):
-                name = "{}'s farm".format(self.owner.person.full_name)
-        elif self.__class__ is LawFirm:
-            associates = [e for e in self.employees if e.__class__ is Lawyer]
-            suffix = "{0} & {1}".format(
-                ', '.join(a.person.last_name for a in associates[:-1]), associates[-1].person.last_name
-            )
-            name = "{0} {1}".format(class_to_company_name_component[LawFirm], suffix)
-        elif self.__class__ is Bar:
-            name = Names.a_bar_name()
-            # if self.city.cosmos.year > 1968:
-            #     # Choose a name from the corpus of bar names
-            #     name = Names.a_bar_name()
-            # else:
-            #     name = self.owner.person.last_name + "'s"
-        elif self.__class__ is Restaurant:
-            name = Names.a_restaurant_name()
-            # if self.city.cosmos.year > 1968:
-            #     # Choose a name from the corpus of restaurant names
-            #     name = Names.a_restaurant_name()
-            # else:
-            #     name = self.owner.person.last_name + "'s"
-        elif self.__class__ is University:
-            name = "{} College".format(self.city.name)
-        elif self.__class__ is Park:
-            if self.lot.former_buildings:
-                business_here_previously = list(self.lot.former_buildings)[-1]
-                owner = business_here_previously.owner.person
-                if business_here_previously.__class__ is Farm:
-                    x = random.random()
-                    if x < 0.25:
-                        name = '{} {} Park'.format(
-                            owner.first_name, owner.last_name
-                        )
-                    elif x < 0.5:
-                        name = '{} Farm Park'.format(
-                            owner.last_name
-                        )
+        while not name or any(
+            # If this is a new holding company, its newly held company will not yet have a name, so
+            # that's why we have to include the 'hasattr(c, 'name')' snippet in this generator
+            c for c in self.city.companies if c is not self and hasattr(c, 'name') and c.name == self.name
+        ):
+            if self.__class__ not in classes_that_get_special_names:
+                if random.random() < config.chance_company_gets_named_after_owner:
+                    prefix = self.owner.person.last_name
+                elif random.random() < 0.5:
+                    prefix = self.street_address_is_on.name
+                elif random.random() < 0.5:
+                    prefix = self.city.name
+                else:  # Duct tape -- we need more variation here
+                    prefix = "Generic"
+                name = "{0} {1}".format(prefix, class_to_company_name_component[self.__class__])
+            elif self.__class__ in (CityHall, FireStation, Hospital, PoliceStation, School, Cemetery):
+                name = "{0} {1}".format(self.city.name, class_to_company_name_component[self.__class__])
+            elif self.__class__ is Farm:
+                name = "{}'s farm".format(self.owner.person.name)
+                if any(c for c in self.city.companies if c.name == name):
+                    name = "{}'s farm".format(self.owner.person.full_name)
+            elif self.__class__ is LawFirm:
+                associates = [e for e in self.employees if e.__class__ is Lawyer]
+                suffix = "{0} & {1}".format(
+                    ', '.join(a.person.last_name for a in associates[:-1]), associates[-1].person.last_name
+                )
+                name = "{0} {1}".format(class_to_company_name_component[LawFirm], suffix)
+            elif self.__class__ is Bar:
+                name = Names.a_bar_name()
+                # if self.city.cosmos.year > 1968:
+                #     # Choose a name from the corpus of bar names
+                #     name = Names.a_bar_name()
+                # else:
+                #     name = self.owner.person.last_name + "'s"
+            elif self.__class__ is Restaurant:
+                name = Names.a_restaurant_name()
+                # if self.city.cosmos.year > 1968:
+                #     # Choose a name from the corpus of restaurant names
+                #     name = Names.a_restaurant_name()
+                # else:
+                #     name = self.owner.person.last_name + "'s"
+            elif self.__class__ is University:
+                name = "{} College".format(self.city.name)
+            elif self.__class__ is Park:
+                if self.lot.former_buildings:
+                    business_here_previously = list(self.lot.former_buildings)[-1]
+                    owner = business_here_previously.owner.person
+                    if business_here_previously.__class__ is Farm:
+                        x = random.random()
+                        if x < 0.25:
+                            name = '{} {} Park'.format(
+                                owner.first_name, owner.last_name
+                            )
+                        elif x < 0.5:
+                            name = '{} Farm Park'.format(
+                                owner.last_name
+                            )
 
-                    elif x < 0.75:
-                        name = '{} Park'.format(
-                            owner.last_name
-                        )
-                    elif x < 0.8:
-                        name = 'Old Farm Park'
-                    elif x < 0.9:
-                        name = '{} {} Memorial Park'.format(
-                            owner.first_name, owner.last_name
-                        )
-                    elif x < 0.97:
-                        name = '{} Memorial Park'.format(
-                            owner.last_name
-                        )
-                    else:
-                        name = '{} Park'.format(self.city.name)
-                elif business_here_previously.__class__ is Quarry:
-                    x = random.random()
-                    if x < 0.25:
-                        name = '{} {} Park'.format(
-                            owner.first_name, owner.last_name
-                        )
-                    elif x < 0.5:
-                        name = '{} Park'.format(
-                            business_here_previously.name
-                        )
+                        elif x < 0.75:
+                            name = '{} Park'.format(
+                                owner.last_name
+                            )
+                        elif x < 0.8:
+                            name = 'Old Farm Park'
+                        elif x < 0.9:
+                            name = '{} {} Memorial Park'.format(
+                                owner.first_name, owner.last_name
+                            )
+                        elif x < 0.97:
+                            name = '{} Memorial Park'.format(
+                                owner.last_name
+                            )
+                        else:
+                            name = '{} Park'.format(self.city.name)
+                    elif business_here_previously.__class__ is Quarry:
+                        x = random.random()
+                        if x < 0.25:
+                            name = '{} {} Park'.format(
+                                owner.first_name, owner.last_name
+                            )
+                        elif x < 0.5:
+                            name = '{} Park'.format(
+                                business_here_previously.name
+                            )
 
-                    elif x < 0.75:
-                        name = '{} Park'.format(
-                            owner.last_name
-                        )
-                    elif x < 0.8:
-                        name = 'Old Quarry Park'
-                    elif x < 0.9:
-                        name = '{} {} Memorial Park'.format(
-                            owner.first_name, owner.last_name
-                        )
-                    elif x < 0.97:
-                        name = 'Quarry Park'.format(
-                            owner.last_name
-                        )
-                    else:
-                        name = '{} Park'.format(self.city.name)
-                elif business_here_previously.__class__ is CoalMine:
-                    x = random.random()
-                    if x < 0.25:
-                        name = '{} {} Park'.format(
-                            owner.first_name, owner.last_name
-                        )
-                    elif x < 0.5:
-                        name = '{} Park'.format(
-                            business_here_previously.name
-                        )
+                        elif x < 0.75:
+                            name = '{} Park'.format(
+                                owner.last_name
+                            )
+                        elif x < 0.8:
+                            name = 'Old Quarry Park'
+                        elif x < 0.9:
+                            name = '{} {} Memorial Park'.format(
+                                owner.first_name, owner.last_name
+                            )
+                        elif x < 0.97:
+                            name = 'Quarry Park'.format(
+                                owner.last_name
+                            )
+                        else:
+                            name = '{} Park'.format(self.city.name)
+                    elif business_here_previously.__class__ is CoalMine:
+                        x = random.random()
+                        if x < 0.25:
+                            name = '{} {} Park'.format(
+                                owner.first_name, owner.last_name
+                            )
+                        elif x < 0.5:
+                            name = '{} Park'.format(
+                                business_here_previously.name
+                            )
 
-                    elif x < 0.75:
-                        name = '{} Park'.format(
-                            owner.last_name
-                        )
-                    elif x < 0.8:
-                        name = 'Old Mine Park'
-                    elif x < 0.9:
-                        name = '{} {} Memorial Park'.format(
-                            owner.first_name, owner.last_name
-                        )
-                    elif x < 0.97:
-                        name = 'Coal Mine Park'.format(
-                            owner.last_name
-                        )
-                    elif x < 0.99:
-                        name = 'Coal Park'.format(
-                            owner.last_name
-                        )
-                    else:
-                        name = '{} Park'.format(self.city.name)
-            else:
-                name = '{} Park'.format(Names.an_english_surname())
-        if not name:
-            raise Exception("A company of class {} was unable to be named.".format(self.__class__.__name__))
+                        elif x < 0.75:
+                            name = '{} Park'.format(
+                                owner.last_name
+                            )
+                        elif x < 0.8:
+                            name = 'Old Mine Park'
+                        elif x < 0.9:
+                            name = '{} {} Memorial Park'.format(
+                                owner.first_name, owner.last_name
+                            )
+                        elif x < 0.97:
+                            name = 'Coal Mine Park'.format(
+                                owner.last_name
+                            )
+                        elif x < 0.99:
+                            name = 'Coal Park'.format(
+                                owner.last_name
+                            )
+                        else:
+                            name = '{} Park'.format(self.city.name)
+                else:
+                    name = '{} Park'.format(Names.an_english_surname())
+            if not name:
+                raise Exception("A company of class {} was unable to be named.".format(self.__class__.__name__))
         self.name = name
 
     def _init_hire_initial_employees(self):
@@ -419,6 +420,11 @@ class Business(object):
         # Hire employees for the night shift
         for vacant_position in self.city.cosmos.config.initial_job_vacancies[self.__class__]['night']:
             self.hire(occupation_of_need=vacant_position, shift="night")
+            # If this business has a special shift (e.g., stadium employees only work on timesteps
+        # on which a game is being played), then hire employees for that shift as well
+        if 'special' in self.city.cosmos.config.initial_job_vacancies[self.__class__]:
+            for vacant_position in self.city.cosmos.config.initial_job_vacancies[self.__class__]['special']:
+                self.hire(occupation_of_need=vacant_position, shift="special")
 
     def _init_acquire_currently_occupied_lot(self):
         """If there are no vacant lots in town, acquire a lot and demolish the home currently on it."""
@@ -824,8 +830,9 @@ class HoldingCompany(Business):
         name = "{}.{}. {} Holdings".format(
             self.owner.person.first_name[0], self.owner.person.middle_name[0], self.owner.person.last_name
         )
-        while any(c for c in self.city.companies if c is not self and hasattr(c, 'name') and c.name == self.name):
-            i = 2
+        i = 1
+        while any(c for c in self.city.companies if c is not self and hasattr(c, 'name') and c.name == name):
+            i += 1
             name += " {}".format(i)
         self.name = name
 
@@ -1463,3 +1470,115 @@ class University(Business):
         """Initialize a University object."""
         super(University, self).__init__(city)
         self.city.university = self
+
+
+class BaseballLeagueOffices(Business):
+    """A baseball league's offices and organizational headquarters."""
+
+    def __init__(self, league):
+        """Initialize a BaseballLeagueOffices object."""
+        super(BaseballLeagueOffices, self).__init__(league.headquarters)
+        self.league = league
+        # Attribute the name we've come up with to the league object itself
+        # and then rename this object to include 'Offices of the' prefix
+        league.name = self.name
+        self.name = 'Offices of the {league_name}'.format(league_name=self.name)
+
+    def _init_get_named(self):
+        """Return a name for this baseball league."""
+        cosmos = self.city.cosmos
+        config = cosmos.config
+        name_already_taken = True
+        league_name = None
+        while name_already_taken:
+            # Select an adjectival prefix, e.g., 'American' or 'National'
+            adjectival_prefix = random.choice(config.countrywide_baseball_league_prefixes)
+            # Determine how to stylize the word 'baseball' appropriately for the current era
+            stylization_of_the_word_baseball = config.stylization_of_the_word_baseball(year=cosmos.year)
+            # Select a stem, e.g., 'League' or 'Association'
+            word_for_league = random.choice(config.baseball_league_stems)
+            # Put them all together
+            league_name = "{prefix} {baseball} {stem}".format(
+                prefix=adjectival_prefix,
+                baseball=stylization_of_the_word_baseball,
+                stem=word_for_league
+            )
+            # Make sure the name is not already taken
+            if not any(l for l in cosmos.leagues if l.name == league_name):
+                name_already_taken = False
+        # Set the name
+        self.name = league_name
+
+
+class BaseballOrganization(Business):
+    """A baseball organization."""
+
+    def __init__(self, team):
+        """Initialize a BaseballOrganization object."""
+        super(BaseballOrganization, self).__init__(team.city)
+        self.team = team
+        self.league = team.league
+        # Procure a ballpark
+        self.ballpark = self.determine_home_ballpark()
+
+    def _init_get_named(self):
+        """Return None; this will be set by set_name() once a nickname has been established by the Team object."""
+        return None
+
+    def determine_home_ballpark(self):
+        """Determine where this team will play its home games."""
+        # TODO POTENTIALLY HAVE MULTIPLE STADIUMS IN A MAJOR CITY LIKE NYC
+        if self.city.businesses_of_type(BaseballStadium):
+            return self.city.businesses_of_type(BaseballStadium)[0]
+        else:
+            # Build a new stadium in the city
+            return BaseballStadium(city=self.city)
+
+    def set_name(self):
+        """Set the name of this baseball organization."""
+        self.name = "{city} {nickname} {baseball} Club".format(
+            city=self.city.name,
+            nickname=self.team.nickname,
+            baseball=self.city.cosmos.config.stylization_of_the_word_baseball(year=self.city.cosmos.year)
+        )
+
+
+class RelocatedBaseballOrganization(BaseballOrganization):
+    """A baseball organization relocated from another city (and thus another organization).
+
+    This class is necessary because of a few of the basic methods of Business and
+    BaseballOrganization needing to be overridden in the case of a team relocating (since
+    we want to retain the owner and other employees).
+    """
+
+    def __init__(self, team, employees_to_relocate):
+        """Initialize a RelocatedBaseballOrganization object."""
+        self.employees_to_relocate = employees_to_relocate
+        super(RelocatedBaseballOrganization, self).__init__(team)
+
+    def _init_determine_who_is_starting_this_business(self):
+        """Relocate the owner of this franchise."""
+        owner_of_this_franchise = next(e for e in self.employees_to_relocate if isinstance(e, BaseballTeamOwner))
+        return owner_of_this_franchise.person
+
+    def _init_hire_initial_employees(self):
+        """Offer the prospect of relocating to this organization to all its members who worked
+        for this franchise's organization in the old city.
+        """
+        for member in self.employees_to_relocate:
+            if not isinstance(member, BaseballTeamOwner):  # Since we've already relocated the franchise owner
+                self.hire(occupation_of_need=member.__class__, shift=member.shift, selected_candidate=member.person)
+
+
+class BaseballStadium(Business):
+    """A baseball stadium."""
+
+    def __init__(self, city):
+        """Initialize a BaseballStadium object."""
+        super(BaseballStadium, self).__init__(city)
+        self.field = Field(site=self)
+        # TODO MODEL ASPECTS OF THE STADIUM, LIKE SEATING, ETC. (MAYBE EVEN OBSTRUCTIONS, ETC.)
+
+    def _init_get_named(self):
+        """Return a name for this business."""
+        self.name = "{} Municipal Field".format(self.city.name)  # TODO MAKE COOL

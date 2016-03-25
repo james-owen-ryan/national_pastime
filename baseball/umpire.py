@@ -11,11 +11,8 @@ class Umpire(object):
 
     def __init__(self, person):
         """Initialize an Umpire object."""
-
-        # TODO FIGURE THESE OUT
-        self.name = person.name
-
         self.person = person  # The person in whom this umpire layer embeds
+        person.umpire = self
         # Prepare career attribute
         self.career = UmpireCareer(umpire=self)
         # Prepare bias attributes
@@ -160,7 +157,7 @@ class Umpire(object):
             right_edge += self.pitch_call_lefty_bias
         # Further pollute the model with home-team--pitcher bias, if
         # appropriate, which expands the strike zone at all edges
-        if pitch.pitcher.team is pitch.at_bat.game.home_team:
+        if pitch.pitcher.career.team is pitch.at_bat.game.home_team:
             left_edge -= self.pitch_call_home_team_bias
             right_edge += self.pitch_call_home_team_bias
             top_edge += self.pitch_call_home_team_bias
