@@ -3,6 +3,7 @@ import os
 import random
 from game import Game
 from schedule import LeagueSchedule
+from award import Pennant
 from printout import compose_league_leaders as COMPOSE_LEAGUE_LEADERS
 from printout import compose_league_standings as COMPOSE_LEAGUE_STANDINGS
 
@@ -14,18 +15,23 @@ class LeagueSeason(object):
         """Initialize a LeagueSeason object."""
         # Set basic attributes
         self.league = league
+        league.season = self
         league.history.seasons.append(self)
         self.year = league.cosmos.year
-        # Prepare award attributes
-        self.championship = None
-        self.pennants = []
-        self.division_titles = []
         # Record name, league offices, and commissioner, since this could change later (i.e.,
         # we can't rely on accessing these attributes of the franchise itself)
         self.league_name = league.name
         self.league_offices = league.offices
         self.commissioner = league.commissioner
         self.umpires = league.umpires
+        # These may be set by self.review()
+        self.champion = None
+        self.standings = None
+        self.league_leaders = None
+        # Prepare award attributes
+        self.championship_trophy = None
+        self.pennants = []
+        self.division_titles = []
         # Attribute a TeamSeason object for each team, and attribute these objects to this one
         self.teams = []
         for team in league.teams:
@@ -33,9 +39,6 @@ class LeagueSeason(object):
             self.teams.append(team.season)
         # Devise a league schedule
         self.schedule = LeagueSchedule(league)
-        # These may be set by self.review()
-        self.standings = None
-        self.league_leaders = None
 
     def __str__(self):
         """Return string representation."""
@@ -44,51 +47,34 @@ class LeagueSeason(object):
             league_name=self.league_name
         )
 
-    def progress(self):
-
-        while any(team for team in self.league.teams if team.wins+team.losses < 152):
-            random.shuffle(self.league.teams)
-            home_team = next(team for team in self.league.teams if team.wins+team.losses < 152)
-            away_team = min([o for o in self.league.teams if o is not home_team],
-                            key=lambda t: home_team.times_played[t])
-            game = Game(ballpark=home_team.city.ballpark, league=self.league, home_team=home_team,
-                        away_team=away_team, rules=self.league.rules, radio=False, trace=False)
-            self.league.error_game = game
-            game.transpire()
-            home_team.times_played[away_team] += 1
-            away_team.times_played[home_team] += 1
-        for team in self.league.teams:
-            self.records[team] = [team.wins, team.losses]
-        self.championship = self.determine_champ()
-        self.championship.pennants.append(self.year)
-
-    def determine_champ(self):
-
-        champion = max(self.teams, key=lambda team: team.wins)
-
-        if any(team for team in self.teams if team is not champion and team.wins == champion.wins):
-            print "\n--\tTIEBREAKER GAME TO DETERMINE WORLD'S CHAMPIONS\t--"
-            other_champion = next(team for team in self.teams if team is not champion and
-                                  team.wins == champion.wins)
-            if random.random() > 0.5:
-                home_team, away_team = champion, other_champion
-            else:
-                home_team, away_team = other_champion, champion
-            tiebreaker = Game(ballpark=home_team.city.ballpark, league=self.league, home_team=home_team,
-                              away_team=away_team, rules=self.league.rules, radio=False)
-            tiebreaker.transpire()
-            champion = tiebreaker.winner
-
-        os.system('say and the champions of the {} {} season are the {} and {} {}'.format(
-            self.league.country.year, self.league.name, champion.wins, champion.losses, champion.name
-        ))
-
-        return champion
-
     def review(self):
         """Review this season to effect outcomes and record statistics."""
+        # Compile standings
         self.standings = COMPOSE_LEAGUE_STANDINGS(season=self)
-        self.league_leaders = COMPOSE_LEAGUE_LEADERS(season=self)
+        # Name a champion
+        self.champion = self._name_champion()
+        self.league.history.champions_timeline[self.year] = self.champion
+        print "THE {} HAVE WON THE {} {} CHAMPIONSHIP!".format(
+            self.champion.team.name.upper(), self.year, self.league.name.upper()
+        )
+        # Compile league leaders
+        # self.league_leaders = COMPOSE_LEAGUE_LEADERS(season=self)
+        # Have each team review its season, as well
+        for team_season in self.teams:
+            team_season.review()
+        # Send the league into the offseason
+        self.league.season = None
+
+    def _name_champion(self):
+        """Name the league champion for this season."""
+        # TODO BREAK TIES
+        return max(self.teams, key=lambda team: len(team.wins))
+
+    def terminate(self):
+        """Terminate this season after its conclusion; this will prompt the offseason."""
+        self.league.season = None
+        for team in self.teams:
+            team.team.season = None
 
 
 class TeamSeason(object):
@@ -121,12 +107,11 @@ class TeamSeason(object):
 
     def __str__(self):
         """Return string representation."""
-        return "{year} {city} {nickname} Season ({wins}-{losses}{championship}{pennant}{division}{wild_card}".format(
+        return "{year} {city} {nickname} Season ({record}){championship}{pennant}{division}{wild_card}".format(
             year=self.year,
             city=self.city.name,
             nickname=self.nickname,
-            wins=self.wins,
-            losses=self.losses,
+            record=self.record,
             championship='†' if self.championship else '',
             pennant='*' if self.pennant else '',
             division='^' if self.division_title else '',
@@ -135,23 +120,28 @@ class TeamSeason(object):
 
     @property
     def wins(self):
-        """Return the number of wins this team has/had this season."""
-        return len([g for g in self.games if g.winner is self.team])
+        """Return the games this team won this season."""
+        return [g for g in self.games if g.winner is self.team]
 
     @property
     def losses(self):
-        """Return the number of losses this team has/had this season."""
-        return len([g for g in self.games if g.winner is not self.team])
-
-    @property
-    def winning_percentage(self):
-        """Return the team's winning percentage this season."""
-        return float(self.wins)/(self.wins+self.losses)
+        """Return the games this team lost this season."""
+        return [g for g in self.games if g.winner is not self.team]
 
     @property
     def record(self):
         """Return this team's record."""
-        return "{wins}-{losses}".format(wins=self.wins, losses=self.losses)
+        return "{wins}-{losses}".format(wins=len(self.wins), losses=len(self.losses))
+
+    @property
+    def winning_percentage(self):
+        """Return the team's winning percentage this season."""
+        return float(len(self.wins))/len((self.wins+self.losses))
+
+    def review(self):
+        """Review this season to effect outcomes and record statistics."""
+        for player in self.team.players:
+            player.career.potentially_retire()
 
 
 class PlayerSeason(object):

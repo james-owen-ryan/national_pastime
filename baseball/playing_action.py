@@ -1,6 +1,17 @@
 from outcome import Run
 
 
+# IDEA: HAVE EVERY UNIT OF ACTION THAT OCCURS IN THIS SIMULATION BE ASSOCIATED WITH
+# AN 'EXPRESSION' OBJECT, WHICH STANDS FOR AN EXPRESSION OF A PLAYER'S SKILL, STYLE,
+# INTELLECT, ETC., THAT PROJECTS FROM THE PLAYER'S EXECUTION OF THAT UNIT OF ACTION.
+# SO ANYTIME A PLAYER DOES SOMETHING, THEY'RE BLASTING OUT EXPRESSIONS OF THEIR
+# UNDERLYING SKILL, ETC., AND PEOPLE IN THE STANDS AND MANAGERS AND SCOUTS ETC. CAN
+# DISCERN THESE EXPRESSIONS (WITH VARYING SKILLS, E.G., SCOUTS WOULD BE BETTER AND
+# BETTER SCOUTS WOULD BE BETTER YET). NOT SURE HOW TO REPRESENT THE EXPRESSIONS, BUT
+# SOMETHING NICE AND MODULAR -- MAYBE TUPLES (ATTRIBUTE, MEAN, VARIANCE)? MIGHT WANT
+# TO GO BELIEF FACET ROUTE, BUT I KIND OF WANT TO GUT THAT.
+
+
 class PlayingAction(object):
 
     def __init__(self, batted_ball):
@@ -310,5 +321,8 @@ class PitchInterim(object):
         # Fielders and baserunners get in position
         for player in at_bat.fielders + at_bat.frame.baserunners + [at_bat.batter]:
             player.get_in_position(at_bat=at_bat)
+        # Minds wander
+        for person in at_bat.game.ballpark.people_here_now:
+            person.mind.wander()
         # Pitcher prepares delivery
         at_bat.pitcher.decide_pitch(at_bat=at_bat)

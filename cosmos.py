@@ -2,10 +2,11 @@ import random
 import datetime
 from utils.config import Config
 from data import CityData
-from geography.city import City
-from geography.country import Country
+from places.city import City
+from places.country import Country
 from people.business import *
 from people.productionist import Productionist
+from people.thought import Thoughts, ThoughtPrototype
 from baseball.classification import Class, InformalPlay
 
 CHANCE_OF_A_DAY_BEING_SIMULATED = 0.005
@@ -21,6 +22,11 @@ class Cosmos(object):
         print "Preparing {self}...".format(self=self)
         # Load the config parameters
         self.config = Config()
+        # Prepare Thoughts class
+        Thoughts.thought_prototypes = [
+            ThoughtPrototype(tag=spec[0], likelihood=spec[1], preconditions=spec[2], effects=spec[3])
+            for spec in self.config.thought_prototype_specifications
+        ]
         # Load the city data (specifies data about all cities that will eventually
         # be established in this simulation)
         self.city_data = CityData()
@@ -152,21 +158,22 @@ class Cosmos(object):
 
     def progress(self, until=None):
         """Progress the cosmos until the specified date."""
-        if not until:  # Progress one week
-            until = self.ordinal_date + 7
+        if not until:  # Progress one day
+            until = self.ordinal_date + 1
         else:
             if len(until) == 1:  # Just a year was passed
-                until = (until, 1, 1)
-            until = self.ordinal_date + 7 if not until else datetime.date(*until).toordinal()
-        while self.ordinal_date < until:
-            for l in self.leagues:
-                l.operate()
-            self._advance_timechunk(3)
+                until = datetime.date(year=until, month=1, day=1).toordinal()
+            else:
+                until = datetime.date(*until).toordinal()
+        number_of_timesteps_until_then = max(1, (until-self.ordinal_date)*2)
+        self._advance_n_timesteps(number_of_timesteps_until_then)
 
-    def _advance_timechunk(self, n_timesteps=51122):
+    def _advance_n_timesteps(self, n_timesteps=1):
         """Simulate the passing of a chunk of time at a lower fidelity than normal."""
         for i in xrange(n_timesteps):
             self._advance_time()
+            for l in self.leagues:
+                l.operate()
             for city in self.cities:
                 if random.random() < 0.03:
                     city.manipulate_population()
@@ -255,11 +262,14 @@ class Cosmos(object):
                     person.have_sex(partner=person.spouse, protection=False)
         # Have people observe their surroundings, which will cause knowledge to
         # build up, and have them socialize with other people also at that location --
-        # this will cause relationships to form/conduct_offseason_activity and knowledge to propagate
+        # this will cause relationships to form/progress and knowledge to propagate
         for person in list(city.residents):
             if person.age > 3:
                 # person.observe()
-                person.socialize(missing_timesteps_to_account_for=days_since_last_simulated_day*2)
+                person.socialize(
+                    missing_timesteps_to_account_for=days_since_last_simulated_day*2,
+                    propagate_knowledge=False
+                )
         city.last_simulated_day = self.ordinal_date
 
     def find_by_hex(self, hex_value):

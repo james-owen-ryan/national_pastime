@@ -30,3 +30,6 @@ class Mood(object):
         config = self.person.cosmos.config
         min_composure, max_composure = config.min_composure, config.max_composure
         self.composure = max(min_composure, min(self.composure, max_composure))
+
+    def long_for_family(self):
+        """Long for your family."""

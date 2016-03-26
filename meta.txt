@@ -1,9 +1,200 @@
-# First ever Talk of the Town-integrated game to be completed (03-18-2016):
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%   (c. Summer 2014):   %%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Southwark (0-0) has beaten Reading (0-0) 4-3
-#
-# 		    1   2   3   4   5   6   7   8   9
-# 		    __________________________________
-# Southwark	0   4   0   0   0   0   0   0   0	4
-#
-# Reading	0   0   0   0   0   0   0   0   3	3
+# #       "Single hit by Cyrille Buroker"
+
+# #       "Home run hit by Steward Wainer!"  [Was waiting a long time to see this finally]
+
+# #       FINALLY, a double is hit! By Bob McKibben (Philadelphia).
+
+
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%    03-18-2016   %%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%
+
+First ever Talk of the Town-integrated game to be completed
+
+Southwark (0-0) has beaten Reading (0-0) 4-3
+
+ 		    1   2   3   4   5   6   7   8   9
+ 		    __________________________________
+Southwark	0   4   0   0   0   0   0   0   0	4
+
+Reading	    0   0   0   0   0   0   0   0   3	3
+
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%    03-24-2016   %%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%
+
+First (but still kind of mangled, and also colonial lol) season in the larger simulation
+
+			Final 1671 Conglomerated Base Ball Association Standings
+
+                    Chartley Bulldogs: 211-1
+                    Taunton Yellow Stockings: 178-33
+                    Marshfield Foxes: 155-57
+                    North Dartmouth Green Stockings: 134-78
+                    Rehoboth Braves: 131-81
+                    Dartmouth Greens: 109-103
+                    Attleboro Falls Pelicans: 102-110
+                    Bryantville Excelsiors: 81-131
+                    Plymouth Pinnacles: 78-134
+                    Swansea Pinnacles: 57-155
+                    Assonet Braves: 33-178
+                    Portsmouth Brants: 1-211
+
+Here's the game they lost (game #76):
+
+                    1   2   3   4   5   6   7   8   9
+                    __________________________________
+        Chartley	0   0   0   0   0   1   0   2   0	3
+
+        Portsmouth	3   0   0   0   2   0   1   0   -	6
+
+
+Their start was catcher Albert Weidig:
+			            AB	R	H	2B	3B	HR	RBI	BB	SO	SB	AVG
+        Weidig		C	641	344	112	9	0	62	372	803	149	0	.175
+
+I am cursing them
+
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%    03-26-2016   %%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%
+
+First ever felicitous season! (After nightmare scheduling bug.)
+
+
+		Final 1670 American Base Ball Association Standings
+
+                Westport Point Silvers: 58-5
+                South Dartmouth Green Stockings: 44-19
+                Lynn Greens: 42-21
+                Providence Whimbrels: 38-25
+                Cumberland Goldfinches: 36-27
+                North Dartmouth Rustlers: 25-38
+                Assonet Maroon Stockings: 25-38
+                Dartmouth Braves: 22-41
+                Warwick Pinnacles: 13-50
+                Stonington Cranes: 12-51
+
+
+First back-to-back champions:
+
+		Final 1670 American Base Ball Association Standings
+
+                Taunton Woodchucks: 60-6
+                Attleboro Falls Pelicans: 52-14
+                Duxbury Spectaculars: 42-24
+                North Attleboro Silver Stockings: 41-25
+                Rehoboth Gray Stockings: 35-31
+                Plymouth Bobolinks: 35-31
+                Providence Bluebirds: 31-35
+                Dedham Excelsiors: 29-37
+                Brighton Greens: 24-42
+                Bryantville Reds: 21-45
+                Monponsett Gray Stockings: 13-53
+                Manchester Blue Jays: 13-53
+
+
+		Final 1671 American Base Ball Association Standings
+
+                Taunton Woodchucks: 59-7
+                Attleboro Falls Pelicans: 54-12
+                North Attleboro Silver Stockings: 42-24
+                Duxbury Spectaculars: 37-29
+                Providence Bluebirds: 36-30
+                Plymouth Bobolinks: 36-30
+                Dedham Excelsiors: 30-36
+                Brighton Greens: 29-37
+                Rehoboth Gray Stockings: 25-41
+                Bryantville Reds: 22-44
+                Monponsett Gray Stockings: 13-53
+                Manchester Blue Jays: 13-53
+
+First dynasty these are all championships -- whoa! On further inspection, no one was aging and
+    no one was retiring, also this was the first team fielded (so they were the best players in America)
+
+                1670 Westerly Excelsiors Season (65-5)
+                1671 Westerly Excelsiors Season (56-14)
+                1672 Westerly Excelsiors Season (59-11)
+                1673 Westerly Excelsiors Season (61-9)
+                1674 Westerly Excelsiors Season (59-11)
+                1675 Westerly Excelsiors Season (58-12)
+                1676 Westerly Excelsiors Season (58-12)
+                1677 Westerly Excelsiors Season (58-12)
+                1678 Westerly Excelsiors Season (62-8)
+                1679 Westerly Excelsiors Season (62-8)
+                1680 Westerly Excelsiors Season (57-13)
+                1681 Westerly Excelsiors Season (63-7)
+                1682 Westerly Excelsiors Season (61-9)
+                1683 Westerly Excelsiors Season (56-14)
+                1684 Westerly Excelsiors Season (61-9)
+                1685 Westerly Excelsiors Season (60-10)
+                1686 Westerly Excelsiors Season (65-5)
+
+Here's the first season with retirement:
+
+
+
+            >>> print l
+            Union Base Ball Association
+            >>> print l.founded, c.year
+            1670 1692
+
+            1670 Chartley Ocelots Season (57-13)
+            1671 Dartmouth Rustlers Season (61-9)
+            1672 Dartmouth Rustlers Season (50-20)
+            1673 Assonet Oranges Season (66-4)
+            1674 Middleboro Maroons Season (59-11)
+            1675 Assonet Oranges Season (63-7)
+            1676 Assonet Oranges Season (61-9)
+            1677 Assonet Oranges Season (59-11)
+            1678 Assonet Oranges Season (62-8)
+            1679 Swansea Dunlins Season (50-20)
+            1680 Chartley Ocelots Season (52-18)
+            1681 Dartmouth Rustlers Season (46-24)
+            1682 Chartley Ocelots Season (52-18)
+            1683 Swansea Dunlins Season (52-18)
+            1684 Chartley Ocelots Season (58-12)
+            1685 Assonet Oranges Season (53-17)
+            1686 Dartmouth Rustlers Season (55-15)
+            1687 Assonet Oranges Season (57-13)
+            1688 Assonet Oranges Season (53-17)
+            1689 Middleboro Maroons Season (48-22)
+            1690 Middleboro Maroons Season (61-9)
+            1691 Dartmouth Rustlers Season (50-20)
+
+
+
+            >>>
+            >>> print compose_career_leaders(l)
+
+
+                    BATTING AVERAGE LEADERS
+
+            1	0.123	William McLaren		LF	1686-1691
+            2	0.118	William Perusse		3B	1670-1676
+            3	0.115	John Bellew		CF	1686-1691
+            4	0.111	Eugene Krause		CF	1682-1687
+            5	0.111	Frank Brownfield		RF	1684-1688
+            6	0.106	Harry Tape		3B	1675-1679
+            7	0.104	Harold Hough		3B	1687-1691
+            8	0.104	Warren Keedy		SS	1683-1688
+            9	0.098	George Detlefsen		1B	1680-1686
+
+                    HOME RUN KINGS
+
+            1	64	Simon Richey		LF	1683-1691
+            2	62	Joe Pons		RF	1683-1691
+            3	50	John Bellew		CF	1686-1691
+            4	47	Harold Hough		3B	1687-1691
+            5	45	Edward McKowen		LF	1682-1691
+            6	35	Fred Bouillion-Skillman		SS	1684-1691
+            7	31	Nicholas Reichenbach		1B	1687-1691
+            8	29	Jim Geoghagan		C	1682-1691
+            9	24	Lee Hanks		3B	1680-1691

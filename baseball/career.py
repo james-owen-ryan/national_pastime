@@ -20,22 +20,39 @@ class PlayerCareer(Career):
         self.player = player  # The player to whom this career pertains
         self.team = None
         self.statistics = PlayerStatistics(player=player)
+        self.planning_to_retire = False  # Modified during a PitchInterim potentially
 
-    def increase_in_age(self):
+    @property
+    def debut(self):
+        """Return this player's debut game."""
+        try:
+            return self.statistics.games_played[0]
+        except IndexError:
+            return None
+
+    @property
+    def finale(self):
+        """Return this player's final game."""
+        try:
+            return self.statistics.games_played[-1]
+        except IndexError:
+            return None
+
+    def potentially_retire(self):
         """Consider retirement."""
-        if not self.retired:
-            if self.team and self in self.team.players:
-                self.consider_retirement()
+        if not self.retired and self.planning_to_retire:
+            self.retire()
 
     def consider_retirement(self):
-        if self.player.person.age > normal(36, 2):
-            self.retire()
+        """Consider retirement."""
+        if self.player.person.age > 36:
+            self.planning_to_retire = True
 
     def retire(self):
         """Retire from professional baseball."""
+        self.planning_to_retire = False
         self.retired = True
-        if self in self.team.players:
-            self.team.handle_retirement(player=self)
+        self.team.process_a_retirement(player=self.player)
 
 
 class ManagerCareer(Career):

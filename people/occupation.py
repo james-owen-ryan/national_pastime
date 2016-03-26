@@ -1,5 +1,5 @@
 import string
-from event import *
+import events.major_event
 from baseball.manager import Manager as LiteralBaseballManager  # Don't want to squash Manager object here
 from baseball.owner import Owner as LiteralBaseballTeamOwner  # Don't want to squash Owner object here
 from baseball.scout import Scout
@@ -133,6 +133,7 @@ class Occupation(object):
 
     def terminate(self, reason, replacement_already_hired=False):
         """Terminate this occupation, due to another hiring, lay off, retirement, departure, or death."""
+        config = self.person.cosmos.config
         self.end_date = self.person.cosmos.year
         self.terminus = reason
         self.company.employees.remove(self)
@@ -140,12 +141,12 @@ class Occupation(object):
         if self is self.company.owner:
             self.company.former_owners.append(self)
         # If this isn't an in-house promotion, update a bunch of attributes
-        in_house_promotion = (isinstance(reason, Hiring) and reason.promotion)
+        in_house_promotion = (isinstance(reason, events.major_event.Hiring) and reason.promotion)
         if not in_house_promotion:
             # Update the .coworkers attribute of the person's now former coworkers (the
             # person's attribute has already been updated by their new occupation's
             # '_init_update_coworker_listings()' method
-            company_of_new_occupation = None if not isinstance(reason, Hiring) else reason.company
+            company_of_new_occupation = None if not isinstance(reason, events.major_event.Hiring) else reason.company
             for employee in self.company.employees:
                 # As a solution to the '.coworkers' bug of March 2016, we need to add
                 # a check here to make sure that we don't remove this person as a coworker
@@ -172,7 +173,6 @@ class Occupation(object):
                 self.person.former_coworkers.add(employee.person)
                 employee.person.former_coworkers.add(self.person)
             # Update all relevant salience values for everyone involved
-            config = self.person.cosmos.config
             change_in_salience_for_former_coworker = (
                 config.salience_increment_from_relationship_change["former coworker"] -
                 config.salience_increment_from_relationship_change["coworker"]
@@ -196,7 +196,10 @@ class Occupation(object):
         # a family member seeking work)
         if not self.company.out_of_business:
             position_that_is_now_vacant = self.__class__
-            if not self.supplemental:
+            if position_that_is_now_vacant is BaseballPlayer:
+                # This baseball player will be replaced through the team's established signing process
+                self.person.player.career.retire()
+            elif not self.supplemental:
                 self.company.hire(
                     occupation_of_need=position_that_is_now_vacant, shift=self.shift, to_replace=self
                 )
@@ -207,7 +210,7 @@ class Occupation(object):
         if self.person.occupation is self:
             self.person.occupation = None
         # If this person is retiring, set their .coworkers to the empty set
-        if isinstance(reason, Retirement):
+        if isinstance(reason, events.major_event.Retirement):
             self.person.coworkers = set()
         else:
             # If they're not retiring, decrement their salience to everyone else
@@ -224,6 +227,12 @@ class Occupation(object):
         # no longer include this person's name
         if self.__class__ is Lawyer:
             self.company.rename_due_to_lawyer_change()
+        # If this is a baseball occupation, we also need to update league or team
+        # personnel attributes
+        if self.__class__ in config.baseball_league_occupations:
+            self.company.league.set_league_personnel()
+        elif self.__class__ in config.baseball_franchise_occupations:
+            self.company.team.set_team_personnel()
 
 
 class Magnate(Occupation):
@@ -532,7 +541,7 @@ class Doctor(Occupation):
 
     def deliver_baby(self, mother):
         """Instantiate a new Birth object."""
-        Birth(mother=mother, doctor=self)
+        events.major_event.Birth(mother=mother, doctor=self)
 
 
 class FireChief(Occupation):
@@ -613,11 +622,11 @@ class Lawyer(Occupation):
 
     def file_divorce(self, clients):
         """File a name change on behalf of person."""
-        Divorce(subjects=clients, lawyer=self)
+        events.major_event.Divorce(subjects=clients, lawyer=self)
 
     def file_name_change(self, person, new_last_name, reason):
         """File a name change on behalf of person."""
-        NameChange(subject=person, new_last_name=new_last_name, reason=reason, lawyer=self)
+        events.major_event.NameChange(subject=person, new_last_name=new_last_name, reason=reason, lawyer=self)
 
 
 class Mayor(Occupation):
@@ -647,7 +656,7 @@ class Mortician(Occupation):
 
     def inter_body(self, deceased, cause_of_death):
         """Inter a body in a cemetery."""
-        Death(subject=deceased, mortician=self, cause_of_death=cause_of_death)
+        events.major_event.Death(subject=deceased, mortician=self, cause_of_death=cause_of_death)
 
 
 class Optometrist(Occupation):
@@ -725,7 +734,7 @@ class Realtor(Occupation):
 
     def sell_home(self, clients, home):
         """Return a sold home."""
-        home_sales = HomePurchase(subjects=clients, home=home, realtor=self)
+        home_sales = events.major_event.HomePurchase(subjects=clients, home=home, realtor=self)
         return home_sales.home
 
 

@@ -6,7 +6,7 @@ from city_planning import CityPlan
 from people.business import *
 from people.person import PersonExNihilo
 from utils import utilities
-from people.event import Fate
+from events import Fate
 from baseball.field import Field
 
 

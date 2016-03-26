@@ -1,9 +1,10 @@
 import random
-from name import Name
-from person import Person
+import people.name
+import people.person
 from corpora import Names
-from residence import House
-from artifact import WeddingRing
+import people.residence
+import people.artifact
+from events import Event
 
 
 # TODO HOW TO GIVE RETCONNED EVENTS PROPERLY ORDERED EVENT NUMBERS?
@@ -12,27 +13,6 @@ from artifact import WeddingRing
 
 # TODO ALLOW BUSINESSES TO MOVE (ESPECIALLY HOLDING COMPANIES, WHICH FORCE THEIR OWNERS
 # TO NEVER MOVE, BECAUSE THEN THEY WOULD HAVE TO GO TO WORK IN A DIFFERENT CITY EACH DAY)
-
-
-class Event(object):
-    """A superclass that all event subclasses inherit from."""
-
-    def __init__(self, cosmos):
-        """Initialize an Event object."""
-        self.year = cosmos.year
-        if self.year < cosmos.config.year_worldgen_begins:  # This event is being retconned; generate a random day
-            self.month, self.day, self.ordinal_date = cosmos.get_random_day_of_year(year=self.year)
-            self.time_of_day = random.choice(['day', 'night'])
-            self.date = cosmos.get_date(ordinal_date=self.ordinal_date)
-        else:
-            self.month = cosmos.month
-            self.day = cosmos.day
-            self.ordinal_date = cosmos.ordinal_date
-            self.time_of_day = cosmos.time_of_day
-            self.date = cosmos.date
-        # Also request and attribute an event number, so that we can later
-        # determine the precise ordering of events that happen on the same timestep
-        self.event_number = cosmos.assign_event_number(new_event=self)
 
 
 class Adoption(Event):
@@ -70,7 +50,7 @@ class Birth(Event):
         self.mother = mother
         self.biological_father = mother.impregnated_by
         self.father = self.mother.spouse if self.mother.spouse and self.mother.spouse.male else self.biological_father
-        self.subject = Person(cosmos=mother.cosmos, birth=self)
+        self.subject = people.person.Person(cosmos=mother.cosmos, birth=self)
         if self.father and self.father is not self.biological_father:
             self.adoption = Adoption(subject=self.subject, adoptive_parents=(self.father,))
         if self.biological_father is self.mother.spouse:
@@ -186,7 +166,7 @@ class Birth(Event):
             hyphenated_surname_object = older_sibling_with_hyphenated_surname.maiden_name
         else:
             # Instantiate a new Name object with this child as the progenitor
-            hyphenated_surname_object = Name(
+            hyphenated_surname_object = people.name.Name(
                 hyphenated_last_name, progenitor=self.subject, conceived_by=self.subject.parents,
                 derived_from=(self.mother.last_name, self.father.last_name,)
             )
@@ -204,7 +184,7 @@ class Birth(Event):
                 first_name_rep = Names.a_masculine_name(year=self.year)
             else:
                 first_name_rep = Names.a_feminine_name(year=self.year)
-            first_name = Name(
+            first_name = people.name.Name(
                 value=first_name_rep, progenitor=self.subject, conceived_by=self.subject.parents, derived_from=()
             )
         return first_name, first_name_namegiver
@@ -221,7 +201,7 @@ class Birth(Event):
                 middle_name_rep = Names.a_masculine_name(year=self.year)
             else:
                 middle_name_rep = Names.a_feminine_name(year=self.year)
-            middle_name = Name(
+            middle_name = people.name.Name(
                 value=middle_name_rep, progenitor=self.subject, conceived_by=self.subject.parents, derived_from=()
             )
         return middle_name, middle_name_namegiver
@@ -643,7 +623,9 @@ class Departure(Event):
         # ownerships when starting a new company in a new city
         for person in self.subjects:
             if person.occupation and person.occupation.company.city is self.city:
-                person.occupation.terminate(reason=self)
+                # TODO IS THIS ENOUGH TO MAKE BASEBALL PEOPLE NOT QUIT THEIR JOBS? PROB SHOULDN'T EVEN LET THEM MOVE
+                if person.occupation not in person.cosmos.config.baseball_franchise_occupations:
+                    person.occupation.terminate(reason=self)
 
 
 class Divorce(Event):
@@ -850,20 +832,6 @@ class Divorce(Event):
             )
 
 
-class Fate(Event):
-    """A catch-all event that can serve as the reason for anything in the cosmos that was forced to happen
-    by top-down methods in the greater simulation (usually ones that are in service to population maintenance).
-    """
-
-    def __init__(self, cosmos):
-        """Initialize a Retirement object."""
-        super(Fate, self).__init__(cosmos=cosmos)
-
-    def __str__(self):
-        """Return string representation."""
-        return "Fate"
-
-
 class Hiring(Event):
     """A hiring of a person by a company to serve in a specific occupational role.
 
@@ -948,7 +916,7 @@ class HouseConstruction(Event):
         super(HouseConstruction, self).__init__(cosmos=subjects[0].cosmos)
         self.subjects = subjects
         self.architect = architect
-        self.house = House(lot=lot, construction=self)
+        self.house = people.residence.House(lot=lot, construction=self)
         if self.architect:
             self.construction_firm = architect.company
             self.builders = set([
@@ -1095,7 +1063,7 @@ class Marriage(Event):
         """
         # TODO HAVE THEM BUY THESE AT THE LOCAL JEWELRY STORE, IF THERE IS ONE
         for newlywed in self.subjects:
-            newlywed.wedding_ring_on_finger = WeddingRing()
+            newlywed.wedding_ring_on_finger = people.artifact.WeddingRing()
 
     def _have_newlyweds_pool_money_together(self):
         """Have the newlyweds combine their money holdings into a single account."""

@@ -2,7 +2,7 @@ import heapq
 from occupation import *
 from person import PersonExNihilo
 from residence import *
-from event import Demolition, BusinessConstruction, Hiring, BusinessClosure, LayOff
+from events.major_event import Demolition, BusinessConstruction, Hiring, BusinessClosure, LayOff
 from utils.errors import NoVacantTractsError
 from corpora import Names
 from baseball.field import Field

@@ -1,5 +1,5 @@
 import random
-from people.event import Event
+from events import Event
 from outcome import Strike, Ball, FoulBall, Single, Double, Triple, HomeRun, Run, DoublePlay, TriplePlay, FieldersChoice
 from playing_action import PitchInterim, PlayingAction
 from printout import compose_box_score as COMPOSE_BOX_SCORE
@@ -8,17 +8,24 @@ from printout import compose_box_score as COMPOSE_BOX_SCORE
 class Game(Event):
     """A baseball game played in a baseball cosmos."""
 
-    def __init__(self, home_team, away_team, ballpark=None, league=None, rules=None,
+    def __init__(self, series, home_team=None, away_team=None, ballpark=None, league=None, rules=None,
                  radio=False, trace=False, debug=False):
         """Initialize a Game object."""
-        self.cosmos = home_team.city.cosmos
-        super(Game, self).__init__(cosmos=self.cosmos)  # This will collect metadata about the date, etc.
-        self.home_team = home_team
-        self.away_team = away_team
+        # Save metadata
+        self.series = series
+        self.home_team = series.home_team if series else home_team
+        self.away_team = series.away_team if series else away_team
+        self.rosters = {home_team: self.home_team.roster, away_team: self.away_team.roster}
+        self.cosmos = self.home_team.city.cosmos
+        # This will collect metadata about the date, etc.
+        super(Game, self).__init__(cosmos=self.cosmos)
         # If it's a league game, record the game
-        if home_team.league is away_team.league:
-            home_team.season.games.append(self)
-            away_team.season.games.append(self)
+        if self.home_team.league is self.away_team.league:
+            self.home_team.season.games.append(self)
+            self.away_team.season.games.append(self)
+        # Update schedule
+        if series:
+            series.record_game(game=self)
         # Turn debug or trace parameters on or off
         self.debug = debug
         self.trace = trace
@@ -27,9 +34,9 @@ class Game(Event):
         # Identify the audience of people that have come to the ballpark for the game
         self.audience = self._init_attract_audience()
         # Determine ballpark, league, rules of play, and umpire
-        self.ballpark = home_team.ballpark if not ballpark else ballpark  # In case of neutral field
+        self.ballpark = self.home_team.ballpark if not ballpark else ballpark  # In case of neutral field
         self.field = self.ballpark.field
-        self.league = home_team.league if not league else league  # In case of non-league play
+        self.league = self.home_team.league if not league else league  # In case of non-league play
         self.rules = self.league.classification.rules if not rules else rules  # In case of weird rules jazz
         self.umpire = self.league.assign_umpire()
         # Prepare for game
@@ -37,9 +44,9 @@ class Game(Event):
         self.winner = None
         self.loser = None
         self.innings = []
-        self.left_on_base = {home_team: [], away_team: []}
+        self.left_on_base = {self.home_team: [], self.away_team: []}
         self.player_composures_before = {}
-        for player in away_team.players | home_team.players:
+        for player in self.away_team.players | self.home_team.players:
             self.player_composures_before[player] = player.person.mood.composure
         # Prepare the radio broadcast, if applicable (this is my testbed for situated
         # procedural sports commentary)
@@ -51,6 +58,10 @@ class Game(Event):
             self.radio_announcer.call_pregame(game=self)
         # Play the game
         self.transpire()
+        # TODO THIS WILL HAVE TO BE UPDATED WHEN SUBSTITUTION A THING
+        for team in (self.away_team, self.home_team):
+            for player in team.roster.lineup:
+                player.career.statistics.games_played.append(self)
         # Save the box score
         self.box_score = COMPOSE_BOX_SCORE(game=self)
         # Potentially print the box score
@@ -114,7 +125,7 @@ class Game(Event):
             )
             player.person.mood.composure -= change_to_composure
             # Clamp their new composure
-            player.person.mood.composure = max(0.5, min(player.person.mood.composure, 1.5))
+            player.person.mood.clamp_composure()
             if self.trace:
                 print "{}'s confidence changed by {}; his composure reverted from {} to {}".format(
                     player.person.name, round(player.person.personality.confidence-confidence_before, 4),

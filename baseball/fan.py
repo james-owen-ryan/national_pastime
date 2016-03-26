@@ -15,5 +15,5 @@ class Fan(object):
 
     def heckle(self, player):
         """Heckle a player, thus affecting the player's internal state."""
-        # TODO
+        # TODO SELECT EFFECTIVE THOUGHT_PROTOTYPE FORCE A CALL TO PLAYER.MIND.ENTERTAIN(THOUGHT_PROTOTYPE)
         pass

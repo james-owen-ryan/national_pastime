@@ -4,7 +4,7 @@ from random import normalvariate as normal
 from people.business import BaseballLeagueOffices
 from people.occupation import BaseballCommissioner, BaseballUmpire
 from history import LeagueHistory
-from team import Team
+from franchise import Team
 from season import LeagueSeason
 from commissioner import Commissioner
 from umpire import Umpire
@@ -36,6 +36,7 @@ class League(object):
         self.cosmos.leagues.append(self)
         # Attribute founding date
         self.founded = self.cosmos.year
+        self.ceased = None
         # This gets set by self.league_offices.__init__()
         self.name = None
         # Form corresponding league offices, which will be a Business object that
@@ -48,8 +49,7 @@ class League(object):
         # Team attributes will be populated as new teams form
         self.teams = set()  # Appended by Team.__init__()
         # These only hold the current champion and current season
-        self.season = None
-        self.champion = None
+        self.season = None  # Modified by LeagueSeason.__init__() and LeagueSeason.terminate()
         # This is used to hold all the games that need to be played today, because it
         # is the league object's responsibility to instantiate the actual Game object
         self.games_scheduled_for_today = set()
@@ -75,11 +75,6 @@ class League(object):
         return self.name
 
     @property
-    def random_team(self):
-        """Return a random team in this league."""
-        return random.choice(list(self.teams))
-
-    @property
     def cities(self):
         """Return all the cities that have a team in this league."""
         return {team.city for team in self.teams}
@@ -91,6 +86,24 @@ class League(object):
         for team in self.teams:
             players += team.players
         return players
+
+    @property
+    def random_team(self):
+        """Return a random team in this league."""
+        return random.choice(list(self.teams))
+
+    @property
+    def random_player(self):
+        """Return a random player on this team."""
+        return random.choice(list(self.players))
+
+    @property
+    def champion(self):
+        """Return the franchise that holds the most recent championship in this league."""
+        try:
+            return self.history.seasons[-1].champion.team
+        except IndexError:
+            return None
 
     def _init_enfranchise_charter_teams(self):
         """Enfranchise a set of charter teams."""
@@ -148,22 +161,8 @@ class League(object):
         # Set umpires
         umpire_people = [e.person for e in self.offices.employees if isinstance(e, BaseballUmpire)]
         self.umpires = {
-            Umpire(person=ump_person) if not ump_person.umpire else ump_person.umire for ump_person in umpire_people
+            Umpire(person=ump_person) if not ump_person.umpire else ump_person.umpire for ump_person in umpire_people
         }
-
-    def conduct_season(self, updates=True, following=None):
-        pass
-        # s = Season(league=self)
-        # for team in self.teams:
-        #     team.cumulative_wins += team.wins
-        #     team.cumulative_losses += team.losses
-        #     team.records_timeline[self.cosmos.year] = [team.wins, team.losses]
-        # self.champion = s.champion
-        # self.champions_timeline[self.cosmos.year] = self.champion
-        # self.compose_league_standings()
-        # self.compose_league_leaders()
-        # for team in self.teams:
-        #     team.wins = team.losses = 0
 
     def conduct_offseason_activity(self):
         """Conduct this league's offseason procedures."""
@@ -237,17 +236,43 @@ class League(object):
         """Assign an umpire to a game."""
         return random.choice(list(self.umpires))
 
-    def add_to_game_queue(self, away_team, home_team):
+    def add_to_game_queue(self, series):
         """Add a game to the queue of games that are scheduled to be played today."""
-        self.games_scheduled_for_today.add((away_team, home_team))
+        self.games_scheduled_for_today.add(series)
 
     def operate(self):
         """Conduct the regular operations of this league."""
-        if (self.cosmos.month, self.cosmos.day) == self.date_to_plan_next_season:
-            self.season = LeagueSeason(league=self)
+        # Have teams conduct regular operations
         for team in self.teams:
-            team.operate()  # This will populate self.games_scheduled_for_today
+            team.operate()  # This will populate self.games_scheduled_for_today (if season underway)
+        # Check for special dates
+        if not self.season:  # Off-season
+            self._operate_during_offseason()
+        elif self.season:
+            self._operate_during_season()
+
+    def _operate_during_offseason(self):
+        """Conduct the regular offseason operations of this league."""
+        if (self.cosmos.month, self.cosmos.day) == self.date_to_plan_next_season:
+            self.conduct_offseason_activity()
+            LeagueSeason(league=self)
+
+    def _operate_during_season(self):
+        """Conduct the regular in-season operations of this league."""
+        if self.cosmos.ordinal_date == self.season.schedule.regular_season_terminus:
+            self.season.review()  # Will kick into offseason mode by setting League.season to None
         # Instantiate Game objects, which will cause the games to transpire
         while self.games_scheduled_for_today:
-            away_team, home_team = self.games_scheduled_for_today.pop()
-            Game(home_team=home_team, away_team=away_team)
+            series = self.games_scheduled_for_today.pop()
+            # Because of doubleheaders, this series may have multiple games that
+            # need to be played today
+            while (
+                    series.dates_scheduled and
+                    series.dates_scheduled[0] == (self.cosmos.ordinal_date, self.cosmos.time_of_day)
+            ):
+                Game(series=series)
+
+    def process_a_retirement(self, player):
+        """Handle the retirement of a player."""
+        # TODO DETERMINE CEREMONIES, ETC., IF EXCEPTIONAL CAREER
+        self.history.former_players.add(player)

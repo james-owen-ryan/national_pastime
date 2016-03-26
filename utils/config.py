@@ -1,5 +1,5 @@
+from events.major_event import *
 from people.occupation import *
-from people.event import *
 from people.business import *
 from people.conversation import *
 import math
@@ -40,6 +40,13 @@ class Config(object):
                 #################
 
         self.chance_baseball_curses_are_real = 0.5
+        #       BUSINESS OF BASEBALL
+        self.baseball_league_occupations = (BaseballCommissioner, BaseballUmpire)
+        self.baseball_franchise_occupations = (
+            # Here, we exclude BaseballPlayer, because they are not acquired through the typical
+            # business hiring process (instead, they are signed)
+            BaseballTeamOwner, BaseballManager, BaseballScout
+        )
         #       LEAGUE FORMATION/EXPANSION/ETC.
         self.city_utility_to_a_league = lambda city: len(city.residents)
         self.city_utility_penalty_for_already_being_in_league = 0.1
@@ -200,9 +207,9 @@ class Config(object):
         self.max_number_of_miles_to_travel_a_town_over = lambda year: 15 if year < 1915 else 70
         self.year_air_travel_becomes_prominent = 1955
 
-                ############
-                ##  SIM   ##
-                ############
+                #####################################
+                ##  GENERAL TALK OF THE TOWN SIM   ##
+                #####################################
 
         self.chance_of_a_timestep_being_simulated = 0.005  # 3.6 timesteps a year on average
         # Daily routines
@@ -372,7 +379,11 @@ class Config(object):
         self.chance_someone_instigates_interaction_with_other_person_cap = 0.95
         # Marriage
         self.min_mutual_spark_value_for_someone_to_propose_marriage = 5
-        self.chance_one_newlywed_takes_others_name = 0.9
+        self.chance_one_newlywed_takes_others_name = lambda year: (
+            0.0 if year < 1968 else
+            0.05 if year < 1979 else
+            0.075
+        )
         self.chance_newlyweds_decide_children_will_get_hyphenated_surname = 0.4  # Given already not taking same name
         self.chance_a_newlywed_keeps_former_love_interest = 0.01
         self.chance_stepchildren_take_stepparent_name = 0.3
@@ -2902,6 +2913,29 @@ class Config(object):
                 ('them', 'answer where do you work', 1)
             ],
         }
+
+                #################
+                ##  THOUGHTS   ##
+                #################
+
+        self.thought_prototype_specifications = sorted([
+            # Each prototype is specified as a tuple (tag, likelihood, preconditions, effects)
+            (
+                "retiring from baseball", 0.0,  # TODO TUNE THIS LIKELIHOOD
+                # Preconditions
+                (
+                    lambda person: person.player and person.player.career.team,
+                ),
+                # Effects
+                (
+                    lambda person: person.player.career.consider_retirement,
+                )
+            ),
+            # Sort these by likelihood, so that the most frequent thought prototypes are considered
+            # first; this just makes sense, but it will also serve computational efficiency, because
+            # we'll be rolling far less random numbers when we iterate in this order
+        ], key=lambda prototype: prototype[1], reverse=True
+        )
 
     @staticmethod
     def fit_probability_distribution(relative_frequencies_dictionary):

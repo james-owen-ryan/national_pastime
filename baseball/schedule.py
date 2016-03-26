@@ -217,20 +217,16 @@ class TeamSchedule(object):
     def __init__(self, team):
         """Initialize a TeamSchedule object."""
         self.team = team
-        self.series = []
-        self.upcoming_series = []  # This list gets consumed as the season progresses
+        self.series = []  # Completed series; this gets populated by Series.record_game()
+        self.upcoming_series = []  # This list gets consumed as the season progresses; it includes the current series
 
     @property
-    def next_game(self):
+    def next_series(self):
         """Return the date and location of the next scheduled game as a tuple (ordinal_date, timestep, city)."""
-        if self.upcoming_series:
-            next_series = self.upcoming_series[0]
-            number_of_games_already_played_in_that_series = len(next_series.games)
-            date_of_next_game, timestep_of_next_game = (
-                next_series.dates_scheduled[number_of_games_already_played_in_that_series]
-            )
-            return date_of_next_game, timestep_of_next_game, next_series.away_team, next_series.home_team
-        return None
+        try:
+            return self.upcoming_series[0]
+        except IndexError:
+            return None
 
 
 class Series(object):
@@ -240,13 +236,27 @@ class Series(object):
         """Initialize a Series object."""
         self.home_team = home_team
         self.away_team = away_team
-        self.games = []  # Will become populated with actual Game objects as they conclude
-        self.dates_scheduled = self._schedule_each_game(number_of_games=number_of_games, date_range=date_range)
+        self.games = []  # Completed games; this gets populated by self.record_game()
+        self.dates_scheduled = self._init_schedule_each_game_in_the_series(
+            number_of_games=number_of_games, date_range=date_range
+        )
         for team in home_team, away_team:
-            team.season.schedule.series.append(self)
             team.season.schedule.upcoming_series.append(self)
 
-    def _schedule_each_game(self, number_of_games, date_range):
+    def __str__(self):
+        """Return string representation."""
+        if self.dates_scheduled:
+            return "Scheduled series: {away_team} at {home_team}".format(
+                away_team=self.away_team.name,
+                home_team=self.home_team.name
+            )
+        else:
+            return "Series: {away_team} at {home_team}".format(
+                away_team=self.away_team.name,
+                home_team=self.home_team.name
+            )
+
+    def _init_schedule_each_game_in_the_series(self, number_of_games, date_range):
         """Schedule each game in this series, i.e., set an ordinal date on which each will be played."""
         cosmos = self.home_team.cosmos
         # Compile all the available days
@@ -262,12 +272,36 @@ class Series(object):
         # Schedule the dates  TODO NIGHT BASEBALL
         if doubleheader_in_this_series:
             dates_scheduled = [(chosen_start_date, 'day'), (chosen_start_date, 'day')]  # A true day doubleheader :)
-            number_of_days_needed -= 2
+            number_of_days_needed -= 1
             next_date = chosen_start_date + 1
         else:
             dates_scheduled = []
             next_date = chosen_start_date
         while number_of_days_needed:
             dates_scheduled.append((next_date, 'day'))
+            next_date += 1
             number_of_days_needed -= 1
+        assert len(dates_scheduled) > 2, "The {league} is attempting to schedule a {n}-game series".format(
+            league=self.home_team.league.name
+        )
         return dates_scheduled
+
+    def record_game(self, game):
+        """Record that a game in this series has been played.
+
+        This will cause updated to team scheduled, which are necessary for the season to proceed.
+        """
+        assert game.ordinal_date == self.dates_scheduled[0][0] and game.time_of_day == self.dates_scheduled[0][1], (
+            "{game} (event {event_number}) is not being played at its scheduled time!".format(
+                game=game, event_number=game.event_number
+            )
+        )
+        # Keep track of the game
+        self.games.append(game)
+        # The date is no longer scheduled for the future
+        self.dates_scheduled = self.dates_scheduled[1:]
+        # If that culminates the series, update the teams' schedules
+        if not self.dates_scheduled:
+            for team in (self.home_team, self.away_team):
+                team.season.schedule.series.append(self)
+                team.season.schedule.upcoming_series.remove(self)

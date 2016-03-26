@@ -1,9 +1,5 @@
 import random
-from utils.config import Config
-from people.event import Event
-
-
-CONFIG = Config()
+from events import Event
 
 
 class Thought(Event):
@@ -20,7 +16,7 @@ class Thought(Event):
 
     def __str__(self):
         """Return string representation."""
-        return "A thought about {tag} produced in the mind of {owner} on the {date}".format(
+        return "A thought about {tag}, produced in the mind of {owner} on the {date}".format(
             tag=self.tag,
             owner=self.mind.person.name,
             date=self.date[0].lower()+self.date[1:]
@@ -29,7 +25,7 @@ class Thought(Event):
     def execute(self):
         """Register the effects of this thought on its thinker."""
         for effect in self.effects:
-            effect(person=self.mind.person)
+            effect(person=self.mind.person)()
 
 
 class Thoughts(object):
@@ -38,15 +34,11 @@ class Thoughts(object):
     More specifically, this class evaluates thought preconditions to supply viable thoughts
     objects, whose effects may then be executed by calling method Thought.execute().
     """
-    # Prepare thought prototypes
-    thought_prototypes = [
-        ThoughtPrototype(tag=spec[0], likelihood=spec[1], preconditions=spec[2], effects=spec[3])
-        for spec in CONFIG.thought_prototype_specifications
-    ]
-    # Sort these by likelihood, so that the most frequent thought prototypes are considered
-    # first; this just makes sense, but it will also serve computational efficiency, because
-    # we'll be rolling far less random numbers when we iterate in this order
-    thought_prototypes.sort(key=lambda thought_prototype: thought_prototype.likelihood, reverse=True)
+    # Prepare thought prototypes; these will be sorted these by likelihood, so that the most
+    # frequent thought prototypes are considered first; this just makes sense, but it will
+    # also serve computational efficiency, because we'll be rolling far less random numbers
+    # when we iterate in this order
+    thought_prototypes = None  # This will be set by Cosmos.__init__()
 
     @classmethod
     def a_thought(cls, mind):
@@ -55,7 +47,7 @@ class Thoughts(object):
         person = mind.person
         for thought_prototype in cls.thought_prototypes:
             if random.random() < thought_prototype.likelihood:
-                if all(thought_prototype.preconditions(person=person)):
+                if all(precondition(person=person) for precondition in thought_prototype.preconditions):
                     thought = Thought(mind=mind, tag=thought_prototype.tag, effects=thought_prototype.effects)
                     return thought
         # If there's no viable thought patterns, return None

@@ -1,5 +1,5 @@
 import random
-from event import Event
+from events import Event
 from evidence import Statement, Declaration, Lie, Eavesdropping
 from belief import PersonMentalModel, DwellingPlaceModel, BusinessMentalModel
 

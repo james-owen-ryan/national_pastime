@@ -7,7 +7,16 @@ class LeagueHistory(object):
         self.defunct_teams = set()  # Populated as teams _fold
         self.charter_teams = set(league.teams)
         self.seasons = []  # Appended to by LeagueSeason.__init__()
-        self.champions_timeline = {}  # Maps year to champion that year
+        self.champions_timeline = {}  # Maps year to champion that year; updated by LeagueSeason.review()
+        self.former_players = set()
+
+    def __str__(self):
+        """Return string representation."""
+        return "History of the {league} ({founded}-{ceased})".format(
+            league=self.league.name,
+            founded=self.league.founded,
+            ceased=self.league.ceased if self.league.ceased else ''
+        )
 
     @property
     def years_in_existence(self):
@@ -23,6 +32,23 @@ class FranchiseHistory(object):
         self.franchise = franchise
         self.seasons = []  # Appended to by TeamSeason.__init__()
         self.championships = []
+        self.former_players = set()
+
+    def __str__(self):
+        """Return string representation."""
+        return "History of the {franchise} ({founded}-{ceased})".format(
+            franchise=self.franchise.name,
+            founded=self.franchise.founded,
+            ceased=self.franchise.ceased if self.franchise.ceased else ''
+        )
+
+    @property
+    def games(self):
+        """Return all the games ever played by this franchise."""
+        games = []
+        for season in self.seasons:
+            games += season.games
+        return games
 
     @property
     def years_in_existence(self):

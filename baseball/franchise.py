@@ -3,7 +3,7 @@ import random
 import heapq
 from random import normalvariate as normal
 from corpora import Names
-from people.event import BaseballFranchiseTermination
+from events.major_event import BaseballFranchiseTermination
 from people.business import BaseballOrganization, RelocatedBaseballOrganization
 from people.occupation import BaseballTeamOwner, BaseballManager, BaseballScout, BaseballPlayer
 from owner import Owner
@@ -48,6 +48,7 @@ class Team(object):
         self.establish_base_in_city(city=city)
         # Set various attributes
         self.founded = self.cosmos.year
+        self.ceased = None
         self.expansion = True if self.cosmos.year > self.league.founded else False
         self.charter_team = True if not self.expansion else False
         # Set history object
@@ -71,6 +72,11 @@ class Team(object):
     def name(self):
         """Return the name of this franchise."""
         return "{city} {nickname}".format(city=self.city.name, nickname=self.nickname)
+
+    @property
+    def random_player(self):
+        """Return a random player on this team."""
+        return random.choice(list(self.players))
 
     def establish_base_in_city(self, city, employees_to_relocate=None):
         """Establish operations in a city, either due to enfranchisement or relocation."""
@@ -157,12 +163,15 @@ class Team(object):
 
     def _sign_players(self):
         """Sign players until you have a full roster."""
-        print "\t{scout} is signing players...".format(scout=self.scout.person.name)
         roster_limit = self.league.classification.roster_limit
+        if len(self.players) < roster_limit:
+            print "\t{scout} is signing players...".format(scout=self.scout.person.name)
         while len(self.players) < roster_limit:
             position_of_need = self.manager.decide_position_of_greatest_need()
             secured_player = self.scout.secure_a_player(position=position_of_need)
             self._sign_player(player=secured_player, position=position_of_need)
+        # Update the team's roster
+        self._assemble_roster()
 
     def _sign_player(self, player, position):
         """Sign the given player to play at the given position."""
@@ -199,9 +208,21 @@ class Team(object):
         # Instantiate and set a Roster object
         self.roster = Roster(lineup=tuple(lineup), bullpen=tuple(bullpen), bench=tuple(bench))
 
-    def handle_retirement(self, player):
+    def process_a_retirement(self, player):
         """Handle the retirement of a player."""
+        # TODO DETERMINE CEREMONIES, ETC., IF EXCEPTIONAL CAREER
+        self._terminate_contract(player=player)
+        self.history.former_players.add(player)
+        # Let the league know
+        self.league.process_a_retirement(player=player)
+
+    def _terminate_contract(self, player):
+        """Terminate the contract of a player."""
         self.players.remove(player)
+        player.career.team = None
+        # If this is during a season, potentially sign a replacement
+        if self.season:
+            self._sign_players()
 
     def conduct_offseason_activity(self):
         """Conduct this team's offseason procedures."""
@@ -248,6 +269,7 @@ class Team(object):
         self._sever_ties_with_players_and_personnel()
         # Update attributes
         self.defunct = True
+        self.ceased = self.cosmos.year
 
     def _sever_ties_with_city(self):
         """Sever ties with the city you were located in."""
@@ -327,19 +349,31 @@ class Team(object):
         return most_appealing_city
 
     def operate(self):
-        """Carry out the day-to-day operations of this franchise."""
+        """Conduct the regular operations of this franchise."""
         # TODO MAKE TRAVEL REALISTIC ONCE TRAVEL SYSTEM IMPLEMENTED
-        # If it's game day, go to the ballpark and schedule the game with
-        # the league, who will instantiate the Game object
-        try:
-            next_scheduled_game = self.season.schedule.next_game
-            date_of_next_game, timestep_of_next_game, away_team_of_next_game, home_team_of_next_game = (
-                next_scheduled_game
-            )
-            ballpark_of_next_game = home_team_of_next_game.ballpark
-            if date_of_next_game == self.cosmos.ordinal_date and timestep_of_next_game == self.cosmos.time_of_day:
-                for stakeholder in {self.manager, self.scout} | self.players:
-                    stakeholder.person.go_to(destination=ballpark_of_next_game, occasion="baseball")
-            self.league.add_to_game_queue(away_team_of_next_game, home_team_of_next_game)
-        except AttributeError:  # No upcoming games
-            pass
+        if self.season:
+            # Check if you have any games scheduled for this timestep
+            try:
+                next_scheduled_series = self.season.schedule.next_series
+                ordinal_date_of_next_game, timestep_of_next_game = next_scheduled_series.dates_scheduled[0]
+                ballpark_of_next_game = next_scheduled_series.home_team.ballpark
+                game_is_this_timestep = (
+                    ordinal_date_of_next_game == self.cosmos.ordinal_date and
+                    timestep_of_next_game == self.cosmos.time_of_day
+                )
+                # If the game is this timestep...
+                if game_is_this_timestep:
+                    # ...then head to the ballpark...
+                    for stakeholder in {self.manager, self.scout} | self.players:
+                        stakeholder.person.go_to(destination=ballpark_of_next_game, occasion="baseball")
+                    # ...and let the league know the game is this timestep; League.operate() will
+                    # eventually instantiate the actual Game object
+                    self.league.add_to_game_queue(next_scheduled_series)
+            # No game scheduled for this timestep, so just hang out
+            except AttributeError:
+                pass
+        else:  # Off-season
+            # Players will have already retired by LeagueSeason.review() calling
+            # TeamSeason.review(); if anyone did retire, this team needs to sign
+            # more players to get to the roster limit
+            self._sign_players()

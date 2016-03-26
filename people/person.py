@@ -1,8 +1,9 @@
-import random
+# import random
 import heapq
-import datetime
-from corpora import Names
-import event
+# import datetime
+# from corpora import Names
+import events.major_event
+from events import Fate
 from name import Name
 from personality import Personality
 from mood import Mood
@@ -13,7 +14,7 @@ from body import Body
 from routine import Routine
 from whereabouts import Whereabouts
 from relationship import Acquaintance
-from evidence import Reflection, Observation, Lie, Statement
+# from evidence import Reflection, Observation, Lie, Statement
 from belief import *
 import face
 from baseball.player import Player
@@ -577,7 +578,7 @@ class Person(object):
         """Return next of kin.
 
         A person's next of kin will make decisions about their estate and
-        so forth upon the person's eeath.
+        so forth upon the person's death.
         """
         if self.spouse and self.spouse.present(city=self.city):
             next_of_kin = self.spouse
@@ -594,9 +595,10 @@ class Person(object):
         elif any(f for f in self.friends if f.adult and f.present(city=self.city)):
             next_of_kin = next(f for f in self.friends if f.adult and f.present(city=self.city))
         else:
-            next_of_kin = random.choice(
-                [r for r in self.city.residents if r.adult and r.present(city=self.city)]
-            )
+            try:
+                next_of_kin = random.choice([r for r in self.city.residents if r.adult and r.present(city=self.city)])
+            except IndexError:
+                next_of_kin = random.choice([r for r in self.cosmos.residents if r.adult and r.present(city=self.city)])
         return next_of_kin
 
     @property
@@ -1520,7 +1522,7 @@ class Person(object):
         if lawyer:
             lawyer.occupation.file_name_change(person=self, new_last_name=new_last_name, reason=reason)
         else:
-            event.NameChange(subject=self, new_last_name=new_last_name, reason=reason, lawyer=None)
+            events.major_event.NameChange(subject=self, new_last_name=new_last_name, reason=reason, lawyer=None)
 
     def have_sex(self, partner, protection):
         """Have sex with partner."""
@@ -1553,7 +1555,7 @@ class Person(object):
         # )
         # TODO weird bug going on here
         if self.present(city=self.city) and partner.present(city=self.city):
-            event.Marriage(subjects=(self, partner))
+            events.major_event.Marriage(subjects=(self, partner))
 
     def divorce(self, partner):
         """Divorce partner."""
@@ -1574,7 +1576,7 @@ class Person(object):
         if doctor:
             doctor.occupation.deliver_baby(mother=self)
         else:
-            event.Birth(mother=self, doctor=None)
+            events.major_event.Birth(mother=self, doctor=None)
 
     def die(self, cause_of_death):
         """Die and get interred at the local cemetery."""
@@ -1584,7 +1586,7 @@ class Person(object):
         if mortician:
             mortician.occupation.inter_body(deceased=self, cause_of_death=cause_of_death)
         else:  # This is probably the mortician themself dying
-            event.Death(subject=self, mortician=None, cause_of_death=cause_of_death)
+            events.major_event.Death(subject=self, mortician=None, cause_of_death=cause_of_death)
 
     def look_for_work(self):
         """Attempt to find a job at a local business.
@@ -1785,7 +1787,7 @@ class Person(object):
     def move(self, new_home, reason, forced_cohort=set()):
         """Move to an apartment or home."""
         if self.city and new_home.city is not self.city:
-            event.Departure(subjects=tuple(self.nuclear_family), reason=reason)
+            events.major_event.Departure(subjects=tuple(self.nuclear_family), reason=reason)
         if forced_cohort:
             # This is used in cases of divorce, where children may or may not
             # leave with the spouse who is moving out, and the decision pertaining to
@@ -1793,7 +1795,7 @@ class Person(object):
             cohort_of_this_move = tuple(forced_cohort)
         else:
             cohort_of_this_move = tuple(self.nuclear_family)
-        event.Move(subjects=cohort_of_this_move, new_home=new_home, reason=reason)
+        events.major_event.Move(subjects=cohort_of_this_move, new_home=new_home, reason=reason)
 
     def go_to(self, destination, occasion=None):
         """Go to destination and spend this timestep there."""
@@ -1822,7 +1824,7 @@ class Person(object):
 
     def retire(self):
         """Retire from an occupation."""
-        event.Retirement(subject=self)
+        events.major_event.Retirement(subject=self)
 
     # def depart_city(self, forced_nuclear_family=set()):
     #     """Depart the city (and thus the simulation), never to return.
@@ -1917,7 +1919,7 @@ class Person(object):
 
     def purchase_home(self, purchasers, home):
         # TEMP THING DUE TO CIRCULAR DEPENDENCY -- SEE RESIDENCE.PY -- TODO
-        event.HomePurchase(subjects=purchasers, home=home, realtor=None)
+        events.major_event.HomePurchase(subjects=purchasers, home=home, realtor=None)
 
     def _purchase_home(self, home):
         """Purchase a house or apartment unit, with the help of a realtor."""
@@ -1930,7 +1932,7 @@ class Person(object):
             clients = (self,)
         if not realtor:
             # TODO FIGURE THIS OUT
-            home_purchase = event.HomePurchase(subjects=clients, home=home, realtor=None)
+            home_purchase = events.major_event.HomePurchase(subjects=clients, home=home, realtor=None)
             return home_purchase.home
         return realtor.occupation.sell_home(clients=clients, home=home)
 
@@ -1967,7 +1969,7 @@ class Person(object):
             clients = (self, self.spouse,)
         else:
             clients = (self,)
-        return event.HouseConstruction(subjects=clients, architect=architect, lot=lot).house
+        return events.major_event.HouseConstruction(subjects=clients, architect=architect, lot=lot).house
 
     def _choose_vacant_home_or_vacant_lot(self, city):
         """Choose a vacant home to move into or a vacant lot to build on.
@@ -2135,7 +2137,7 @@ class Person(object):
         else:
             self.mind.mental_models[subject].build_up(new_observation_or_reflection=observation)
 
-    def socialize(self, missing_timesteps_to_account_for=1):
+    def socialize(self, missing_timesteps_to_account_for=1, propagate_knowledge=False):
         """Socialize with nearby people."""
         if not self.location:
             raise Exception("{} tried to socialize, but they have no location currently.".format(self.name))
@@ -2165,7 +2167,7 @@ class Person(object):
                 )
                 # If this is being called by the full-fidelity simulation,
                 # have these two people exchange information with each other
-                if missing_timesteps_to_account_for == 1:
+                if propagate_knowledge:
                     self._exchange_information(interlocutor=person)
 
     def _exchange_information(self, interlocutor):
@@ -2357,7 +2359,7 @@ class Person(object):
         if consider_leaving_town and random.random() < config.chance_a_new_adult_decides_to_leave_town:
             new_city_to_move_to = self.choose_new_city_to_move_to()
             if new_city_to_move_to:
-                self.move_to_new_city(city=new_city_to_move_to, reason=event.Fate(cosmos=self.cosmos))
+                self.move_to_new_city(city=new_city_to_move_to, reason=Fate(cosmos=self.cosmos))
 
     def update_salience_of(self, entity, change):
         """Increment your salience value for entity by change."""
