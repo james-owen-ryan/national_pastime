@@ -76,8 +76,8 @@ class Person(object):
         self.attracted_to_men, self.attracted_to_women = self._init_sexuality()
         # Set face
         self.face = Face(person=self)
-        # Set body
-        self.body = Body(person=self)
+        # Set body (will be set by PersonExNihilo.__init__(), since an age has to be known)
+        self.body = Body(person=self) if self.birth else None
         # Set personality
         self.personality = Personality(person=self)
         # Set mood
@@ -90,7 +90,7 @@ class Person(object):
         # timestep of their life
         self.whereabouts = Whereabouts(person=self)
         # Set baseball layers
-        self.player = Player(person=self) if self.male else None
+        self.player = Player(person=self) if (self.male and self.birth) else None  # Set by PEN.__init__() after body
         self.fan = Fan(person=self)
         self.manager = None  # No need to set some of these until needed
         self.scout = None
@@ -2315,12 +2315,15 @@ class Person(object):
         """Check if it's this persons birth day; if it is, age them."""
         config = self.cosmos.config
         consider_leaving_town = False
+        # Update age
         self.age = age = self.cosmos.true_year - self.birth_year
         if age == config.age_people_start_working(year=self.cosmos.year):
             self.ready_to_work = True
             consider_leaving_town = True
         if age == 18:
             self.adult = True
+        # Develop body
+        self.body.develop()
         # If you haven't in a while (in the logarithmic sense, rather than absolute
         # sense), update all relationships you have to reflect the new age difference
         # between you and the respective other person
@@ -2444,6 +2447,9 @@ class PersonExNihilo(Person):
         self.age = self.cosmos.true_year - self.birth_year
         if self.age >= 18:
             self.adult = True
+        # Set body and baseball-player layer
+        self.body = Body(person=self)
+        self.player = Player(person=self) if self.male else None
         # Determine a random birthday and add it to the game's listing of all characters' birthdays
         self.birthday = self._get_random_birthday()
         try:

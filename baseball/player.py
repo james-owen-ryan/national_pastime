@@ -25,7 +25,6 @@ class Player(object):
         """Initialize a Player object."""
 
         # TEMP TODO FIGURE OUT WHAT TO DO ABOUT THESE
-        self.speed_home_to_first = person.body.speed_home_to_first
         self.height = person.body.height
         self.vertical_reach = person.body.vertical_reach
         self.full_speed_seconds_per_foot = person.body.full_speed_seconds_per_foot
@@ -98,6 +97,12 @@ class Player(object):
         self._init_baseball_fielding_attributes()
         self._init_baseball_throwing_attributes()
 
+        #           -- Baserunning attributes --
+        # Determine baserunning speed,
+        # [TODO penalize long follow-through and lefties on speed to first]
+        self.speed_home_to_first = (
+            (self.full_speed_seconds_per_foot*180) / (1.62 + normal(0, 0.01))
+        )
         #           -- Pitching attributes --
 
         # Pitch control is modeled as the player's standard deviation,
@@ -130,7 +135,8 @@ class Player(object):
         base_swing_timing = (
             0.75*self.person.body.coordination + 1.5*self.person.personality.focus + self.person.body.reflexes
         )
-        self.swing_timing_error = base_swing_timing/40.0
+        # self.swing_timing_error = base_swing_timing/40.0  JOR COMMENTED OUT 03-28-2016 TO TRY TO FIX BATTING AVGs
+        self.swing_timing_error = base_swing_timing/60.0
         # Swing-contact error is a measure of a batter's standard
         # deviation, both on the x- and y-axis, from perfect swing
         # contact, i.e., bat-ball contact at the bat's sweet spot;
@@ -748,15 +754,15 @@ class Player(object):
         # how far the ball, if batted, will travel in the air; with
         # increasing swing power comes increasing chances to swing
         # and miss [Naively asserting medium-high power for now]
-        # if random.random() > 0.6:
-        #     self._swing_power = normal(0.75, 0.05)
-        # else:
-        #     self._swing_power = 1.0
-        self._swing_power = 1.0
-        # if self._swing_power > 1.0:
-        #     self._swing_power = 1.0
-        # if self._swing_power < 0.65:
-        #     self._swing_power = 0.65
+        if random.random() > 0.6:
+            self._swing_power = normal(0.75, 0.05)
+        else:
+            self._swing_power = 1.0
+        if self._swing_power > 1.0:
+            self._swing_power = 1.0
+        if self._swing_power < 0.65:
+            self._swing_power = 0.65
+        # self._swing_power = 1.0
         # Decide upward force of the swing -- this will be a major
         # factor in determining a ball's trajectory upon being hit
         # The values correspond to hit types in the following way:
@@ -767,11 +773,11 @@ class Player(object):
         # 0.6	upward			    --  fly ball
         # 0.8+	increasingly upward --  pop-up
         # --------------------------------------------------------
-        # if random.random() > 0.6:
-        #     self._swing_incline = normal(7.5, 2)   # TODO [this is naive]
-        # else:
-        #     self._swing_incline = normal(25, 6)
-        self._swing_incline = normal(25, 6)
+        if random.random() > 0.6:
+            self._swing_incline = normal(7.5, 2)   # TODO [this is naive]
+        else:
+            self._swing_incline = normal(25, 6)
+        # self._swing_incline = normal(25, 6)
         # Decide whether to attempt to pull the ball to the opposite
         # field
         if random.random() < 0.3:

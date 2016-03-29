@@ -47,22 +47,18 @@ class City(object):
         self.leagues = []  # Leagues based here
         # Generate a city plan
         city_plan = None
+        print "\t...devising its city plan..."
         while not city_plan:
-            try:
-                city_plan = CityPlan(city=self)
-            except KeyError:  # Very rare error encountered in _determine_travel_distances_between_parcels()
-                pass
+            city_plan = CityPlan(city=self)
         while len(city_plan.tracts) < 2:
             print "Re-rolling on a city plan for {} (not enough tracts)".format(self.full_name)
-            try:
-                city_plan = CityPlan(city=self)
-            except KeyError:  # Very rare error encountered in _determine_travel_distances_between_parcels()
-                pass
+            city_plan = CityPlan(city=self)
+        print "\t...establishing a city infrastructure..."
+        self.distances_between_lots = {}  # Maps (lot1, lot2) tuples to distance between them; built up lazily
         self.streets = city_plan.streets
         self.parcels = city_plan.parcels
         self.lots = city_plan.lots
         self.tracts = city_plan.tracts
-        self.travel_distances_between_blocks = city_plan.travel_distances_between_parcels
         for lot in self.lots | self.tracts:
             lot.set_neighboring_lots()
             lot.init_generate_address()
@@ -124,16 +120,19 @@ class City(object):
 
     def distance_between(self, lot1, lot2):
         """Return travel distance in blocks (given street layouts) between the given lots."""
+        assert lot1.city is lot2.city, "Trying to find distance between a lot in {} and one in {} -- lol?".format(
+            lot1.city, lot2.city
+        )
+        lot_distances_dict_key = tuple(sorted([lot1.id, lot2.id]))
+        if lot_distances_dict_key in self.distances_between_lots:
+            return self.distances_between_lots[lot_distances_dict_key]
         min_dist = float("inf")
         for parcel in lot1.parcels:
             for other_parcel in lot2.parcels:
-                try:
-                    if self.travel_distances_between_blocks[(parcel, other_parcel)] < min_dist:
-                        min_dist = self.travel_distances_between_blocks[(parcel, other_parcel)]
-                except KeyError:
-                    print "Trying to find distance between a lot in {} and one in {} -- lol?".format(
-                        lot1.city, lot2.city
-                    )
+                distance = spatial.distance.euclidean(parcel.coordinates, other_parcel.coordinates)
+                if distance < min_dist:
+                    min_dist = distance
+        self.distances_between_lots[lot_distances_dict_key] = min_dist
         return min_dist
 
     def nearest_business_of_type(self, lot, business_type):
@@ -204,10 +203,12 @@ class City(object):
 
     def set_nearest_cities(self):
         """Get the ten nearest cities to this one."""
-        nearest_cities = heapq.nsmallest(
-            # 21, self.state.country.cities, key=lambda city: self.distance_to(city)
-            21, self.state.cities, key=lambda city: self.distance_to(city)
-        )
+        # TODO PRECOMPUTE
+        # nearest_cities = heapq.nsmallest(
+        #     # 21, self.state.country.cities, key=lambda city: self.distance_to(city)
+        #     21, self.state.cities, key=lambda city: self.distance_to(city)
+        # )
+        nearest_cities = list(self.state.cities)[:21]
         if self in nearest_cities:
             nearest_cities.remove(self)
         self.nearest_cities = nearest_cities
@@ -314,13 +315,24 @@ class City(object):
             if self.unemployed:
                 resident_to_move = random.choice(list(self.unemployed))
             else:
-                resident_to_move = random.choice([p for p in self.residents if p.adult])
-            # Attempt to have them move to an underpopulated city
-            underpopulated_city_to_move_to = resident_to_move.choose_new_city_to_move_to()
-            if underpopulated_city_to_move_to:
-                resident_to_move.move_to_new_city(
-                    city=underpopulated_city_to_move_to, reason=Fate(cosmos=self.cosmos)
-                )
+                config = self.cosmos.config
+                residents_of_this_city = sorted(self.residents, key=lambda *args: random.random())
+                try:
+                    resident_to_move = next(
+                        p for p in residents_of_this_city if p.adult and
+                        not (p.occupation and p.occupation.vocation == 'magnate') and
+                        not p.occupation in config.baseball_franchise_occupations and
+                        not p.occupation in config.baseball_league_occupations
+                    )
+                except StopIteration:
+                    resident_to_move = None
+            if resident_to_move:
+                # Attempt to have them move to an underpopulated city
+                underpopulated_city_to_move_to = resident_to_move.choose_new_city_to_move_to()
+                if underpopulated_city_to_move_to:
+                    resident_to_move.move_to_new_city(
+                        city=underpopulated_city_to_move_to, reason=Fate(cosmos=self.cosmos)
+                    )
 
     def _manipulate_population_as_a_major_city(self):
         """Attempt to manipulate the population of this major city to reflect its true population this year."""
@@ -346,7 +358,7 @@ class City(object):
                     true_pop=true_population_this_year
                 )
             )
-        else:  # elif true_population_this_year == -1:
+        elif true_population_this_year == -1:  # elif true_population_this_year == -1:
             # This is a (one-time) major city, but we don't have data for the true population
             # this year, so just attempt to maintain the last population count on record
             years_that_have_passed_already = xrange(config.year_worldgen_begins, self.cosmos.year)
@@ -359,15 +371,27 @@ class City(object):
                     true_pop=last_population_on_record
                 )
             )
+        else:  # elif true_population_this_year == -99:
+            number_of_npcs_to_shoot_for = config.desired_maximum_number_of_npcs_in_minor_cities
         return number_of_npcs_to_shoot_for
 
     def _cause_population_growth(self):
         """Do things that will cause the population of this city to grow."""
         if not self.vacant_lots:
-            # This city is likely going to run too low on living quarters -- build an
-            # apartment complex
-            ApartmentComplex(city=self)
-        else:
+            # This city is likely going to run too low on living quarters, so let's preemptively
+            # expand an apartment complex
+            apartment_complexes = self.businesses_of_type('ApartmentComplex')
+            if apartment_complexes:
+                random.choice(apartment_complexes).expand()
+        # Try to have a new company established; this requires either that there be a vacant lot
+        # in this city, or that there's a lot in this city with a house on it, which can be
+        # demolished to make room for a new company (this also creates a natural progression in
+        # a place like Manhattan, where actual houses are eventually totally replaced by businesses,
+        # causing apartment units to become the only type of residences)
+        lot_can_be_made_available = (
+            self.vacant_lots or any(l for l in self.lots if l.building and l.building.type == 'residence')
+        )
+        if lot_can_be_made_available:
             self._have_a_new_business_start_up()
 
     def _cause_population_reduction(self):

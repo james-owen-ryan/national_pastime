@@ -227,12 +227,13 @@ class Occupation(object):
         # no longer include this person's name
         if self.__class__ is Lawyer:
             self.company.rename_due_to_lawyer_change()
-        # If this is a baseball occupation, we also need to update league or team
-        # personnel attributes
-        if self.__class__ in config.baseball_league_occupations:
-            self.company.league.set_league_personnel()
-        elif self.__class__ in config.baseball_franchise_occupations:
-            self.company.team.set_team_personnel()
+        # If this is a baseball occupation, and this termination is not occurring because
+        # of a team folding, we also need to update league or team personnel attributes
+        if not self.company.out_of_business:
+            if self.__class__ in config.baseball_league_occupations:
+                self.company.league.set_league_personnel()
+            elif self.__class__ in config.baseball_franchise_occupations:
+                self.company.team.set_team_personnel()
 
 
 class Magnate(Occupation):

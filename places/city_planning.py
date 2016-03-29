@@ -16,6 +16,8 @@ class CityPlan(object):
 
         @param city: The city for whom this plan is being devised.
         """
+        # Prepare counters for street, parcel, and lot IDs (opting for speed over readability here)
+        self.id_counters = {0: 0, 1: 0, 2: 0, }
         self.city = city
         self.streets = set()
         self.blocks = set()
@@ -34,7 +36,6 @@ class CityPlan(object):
         # Devise a city plan
         self.generate_city_plan()
         self.parcels = set(self._parcels_listing.values())
-        self.travel_distances_between_parcels = self._determine_travel_distances_between_parcels()
 
     def generate_city_plan(self):
         """Generate a plan for a city that specifies what will be its streets, blocks, lots, and tracts.
@@ -151,8 +152,7 @@ class CityPlan(object):
                         planned_streets.append([direction, street_origin_coordinates, street_terminus_coordinates])
         return planned_streets
 
-    @staticmethod
-    def _reify_street(street_plan, city, quadtree_multiplier):
+    def _reify_street(self, street_plan, city, quadtree_multiplier):
         """Instantiate a Street object given a street plan."""
         if street_plan[0] == "ns":
             number = int(street_plan[1][0]/quadtree_multiplier) + 1
@@ -167,9 +167,10 @@ class CityPlan(object):
         starting_parcel = int(starting_parcel/quadtree_multiplier) + 1
         ending_parcel = int(ending_parcel/quadtree_multiplier) + 1
         street_object = Street(
-            city=city, number=number, direction=street_plan[0],
+            street_id=self.id_counters[0], city=city, number=number, direction=street_plan[0],
             starting_parcel=starting_parcel, ending_parcel=ending_parcel
         )
+        self.id_counters[0] += 1  # Increment street-ID counter
         return street_object
 
     @staticmethod
@@ -210,20 +211,34 @@ class CityPlan(object):
         for i in xrange(size_of_parcel+1):
             insert_once(
                 self._parcels_listing, (ew, ns+i, 'NS'),
-                Parcel(self._north_south_streets[(ew, ns)], (i+ns) * 100, (ew, ns+i))
+                Parcel(
+                    self.id_counters[1], self._north_south_streets[(ew, ns)], (i+ns) * 100, (ew, ns+i)
+                )
             )
+            self.id_counters[1] += 1
             insert_once(
                 self._parcels_listing, (ew+i, ns, 'EW'),
-                Parcel(self._east_west_streets[(ew, ns)], (i+ew) * 100, (ew+i, ns))
+                Parcel(
+                    self.id_counters[1], self._east_west_streets[(ew, ns)], (i+ew) * 100, (ew+i, ns)
+                )
             )
+            self.id_counters[1] += 1
             insert_once(
                 self._parcels_listing, (ew+size_of_parcel, ns+i, 'NS'),
-                Parcel(self._north_south_streets[(ew+size_of_parcel, ns)], (i+ns) * 100, (ew+size_of_parcel, ns+i))
+                Parcel(
+                    self.id_counters[1], self._north_south_streets[(ew+size_of_parcel, ns)],
+                    (i+ns) * 100, (ew+size_of_parcel, ns+i)
+                )
             )
+            self.id_counters[1] += 1
             insert_once(
                 self._parcels_listing, (ew+i, ns+size_of_parcel, 'EW'),
-                Parcel(self._east_west_streets[(ew, ns+size_of_parcel)], (i+ew) * 100, (ew+i, ns+size_of_parcel))
+                Parcel(
+                    self.id_counters[1], self._east_west_streets[(ew, ns+size_of_parcel)],
+                    (i+ew) * 100, (ew+i, ns+size_of_parcel)
+                )
             )
+            self.id_counters[1] += 1
 
     def _update_house_numbering_listing_for_new_parcel(self, ew, ns, size_of_parcel):
         """Update the listing of house numberings for each block for the newly instantiated blocks."""
@@ -247,7 +262,8 @@ class CityPlan(object):
 
     def _reify_tract(self, ew, ns, size_of_parcel, quadtree_size, n_buildings_per_parcel):
         """Instantiate a Tract object and attribute its blocks."""
-        tract = Tract(city=self.city)
+        tract = Tract(lot_id=self.id_counters[2], city=self.city)
+        self.id_counters[2] += 1
         self.tracts.add(tract)
         for i in xrange(size_of_parcel+1):
             tract.attribute_parcel(
@@ -280,13 +296,15 @@ class CityPlan(object):
     def _reify_lots(self, ew, ns, size_of_parcel, quadtree_size, n_buildings_per_parcel):
         """Instantiate Lot objects for a given block."""
         # Lot on northeast corner of block
-        northeast_corner = Lot(city=self.city)
+        northeast_corner = Lot(lot_id=self.id_counters[2], city=self.city)
+        self.id_counters[2] += 1
         insert_into(self._lots_listing, (ew, ns, 'N'), (0, northeast_corner))
         insert_into(self._lots_listing, (ew, ns, 'E'), (0, northeast_corner))
         self._street_corners.add((ew, ns, 'EW', ew, ns, 'NS'))
         self.lots.add(northeast_corner)
         # Lot on northwest corner of block
-        northwest_corner = Lot(city=self.city)
+        northwest_corner = Lot(lot_id=self.id_counters[2], city=self.city)
+        self.id_counters[2] += 1
         if ew + size_of_parcel <= quadtree_size / 2:
             insert_into(
                 self._lots_listing, (ew + size_of_parcel - 1, ns, 'N'), (n_buildings_per_parcel - 1, northwest_corner)
@@ -295,7 +313,8 @@ class CityPlan(object):
         self._street_corners.add((ew + size_of_parcel - 1, ns, 'EW', ew + size_of_parcel, ns, 'NS'))
         self.lots.add(northwest_corner)
         # Lot on southeast corner of block
-        southeast_corner = Lot(city=self.city)
+        southeast_corner = Lot(lot_id=self.id_counters[2], city=self.city)
+        self.id_counters[2] += 1
         insert_into(self._lots_listing, (ew, ns + size_of_parcel, 'S'), (0, southeast_corner))
         if ns + size_of_parcel <= quadtree_size / 2:
             insert_into(
@@ -304,7 +323,8 @@ class CityPlan(object):
         self._street_corners.add((ew, ns + size_of_parcel, 'EW', ew, ns + size_of_parcel - 1, 'NS'))
         self.lots.add(southeast_corner)
         # Lot on southwest corner of block
-        southwest_corner = Lot(city=self.city)
+        southwest_corner = Lot(lot_id=self.id_counters[2], city=self.city)
+        self.id_counters[2] += 1
         insert_into(
             self._lots_listing, (ew + size_of_parcel - 1, ns + size_of_parcel, 'S'),
             (n_buildings_per_parcel - 1, southwest_corner)
@@ -319,18 +339,22 @@ class CityPlan(object):
         # Interior lots (?)
         for i in range(1, size_of_parcel * CONFIG.n_buildings_per_parcel - 1):
             block_number = int(i / 2)
-            lot = Lot(city=self.city)
+            lot = Lot(lot_id=self.id_counters[2], city=self.city)
+            self.id_counters[2] += 1
             self.lots.add(lot)
             insert_into(self._lots_listing, (ew, ns + block_number, 'E'), (i % n_buildings_per_parcel, lot))
-            lot = Lot(city=self.city)
+            lot = Lot(lot_id=self.id_counters[2], city=self.city)
+            self.id_counters[2] += 1
             self.lots.add(lot)
             insert_into(self._lots_listing, (ew + block_number, ns, 'N'), (i % n_buildings_per_parcel, lot))
-            lot = Lot(city=self.city)
+            lot = Lot(lot_id=self.id_counters[2], city=self.city)
+            self.id_counters[2] += 1
             self.lots.add(lot)
             insert_into(
                 self._lots_listing, (ew + size_of_parcel, ns + block_number, 'W'), (i % n_buildings_per_parcel, lot)
             )
-            lot = Lot(city=self.city)
+            lot = Lot(lot_id=self.id_counters[2], city=self.city)
+            self.id_counters[2] += 1
             self.lots.add(lot)
             insert_into(
                 self._lots_listing, (ew + block_number, ns + size_of_parcel, 'S'), (i % n_buildings_per_parcel, lot)
@@ -377,24 +401,6 @@ class CityPlan(object):
                 self._parcels_listing[(corner[0], corner[1], corner[2])]
             )
 
-    def _determine_travel_distances_between_parcels(self):
-        """Determine travel distances between blocks, given street layouts."""
-        travel_distances_between_blocks = {}
-        for start in self.parcels:
-            for goal in self.parcels:
-                if start == goal:
-                    travel_distances_between_blocks[(start, goal)] = 0
-                elif (start, goal) not in travel_distances_between_blocks:
-                    came_from, cost_so_far = self.a_star_search(start, goal)
-                    current = goal
-                    count = 0
-                    while current != start:
-                        current = came_from[current]
-                        count += 1
-                    travel_distances_between_blocks[(start, goal)] = count
-                    travel_distances_between_blocks[(goal, start)] = count
-        return travel_distances_between_blocks
-
     def determine_conventional_city_blocks(self):
         """Survey all city lots to instantiate conventional city blocks."""
         for lot in self.lots | self.tracts:
@@ -425,42 +431,13 @@ class CityPlan(object):
                 # Sort one last time to facilitate easy navigation during gameplay
                 street.blocks.sort(key=lambda block: block.number)
 
-    @staticmethod
-    def heuristic(a, b):
-        x1, y1 = a.coords
-        x2, y2 = b.coords
-        return abs(x1 - x2) + abs(y1 - y2)
-
-    def a_star_search(self, start, goal):
-        frontier = PriorityQueue()
-        frontier.put(start, 0)
-        came_from = {}
-        cost_so_far = {}
-        came_from[start] = None
-        cost_so_far[start] = 0
-        while not frontier.empty():
-            current_block = frontier.get()
-            if current_block == goal:
-                break
-            for next_block in current_block.neighbors:
-                new_cost = cost_so_far[current_block] + 1
-                if next_block not in cost_so_far or new_cost < cost_so_far[next_block]:
-                    cost_so_far[next_block] = new_cost
-                    priority = new_cost + self.heuristic(goal, next_block)
-                    frontier.put(next_block, priority)
-                    came_from[next_block] = current_block
-        return came_from, cost_so_far
-
 
 class Street(object):
     """A street in a city."""
 
-    counter = 0
-
-    def __init__(self, city, number, direction, starting_parcel, ending_parcel):
+    def __init__(self, street_id, city, number, direction, starting_parcel, ending_parcel):
         """Initialize a Street object."""
-        self.id = Street.counter
-        Street.counter += 1
+        self.id = street_id
         self.city = city
         self.number = number
         self.direction = direction
@@ -509,17 +486,14 @@ class Street(object):
 class Parcel(object):
     """A collection of between zero and four contiguous lots in a city."""
 
-    counter = 0
-
-    def __init__(self, street, number, coords):
+    def __init__(self, parcel_id, street, number, coordinates):
         """Initialize a Parcel object."""
-        self.id = Parcel.counter
-        Parcel.counter += 1
+        self.id = parcel_id
         self.street = street
         self.number = number
         self.lots = []
         self.neighbors = []
-        self.coords = coords
+        self.coordinates = coordinates
 
     @staticmethod
     def determine_house_numbering(parcel_number, side_of_street):
@@ -569,12 +543,9 @@ class Block(object):
 class Lot(object):
     """A lot on a block in a city, upon which buildings and houses get erected."""
 
-    counter = 0
-
-    def __init__(self, city):
+    def __init__(self, lot_id, city):
         """Initialize a Lot object."""
-        self.id = Lot.counter
-        Lot.counter += 1
+        self.id = lot_id
         self.city = city
         self.streets = []
         self.parcels = []
@@ -634,6 +605,6 @@ class Tract(Lot):
     extensive land are established.
     """
 
-    def __init__(self, city):
+    def __init__(self, lot_id, city):
         """Initialize a Lot object."""
-        super(Tract, self).__init__(city)
+        super(Tract, self).__init__(lot_id, city)

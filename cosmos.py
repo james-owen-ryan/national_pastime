@@ -15,11 +15,13 @@ CHANCE_OF_A_DAY_BEING_SIMULATED = 0.005
 class Cosmos(object):
     """A baseball cosmos."""
 
-    def __init__(self):
+    def __init__(self, debug=True):
         """Initialize a Cosmos object."""
+        self.debug = debug
         # Determine and display an official Baseball Cosmos ID :)
         self.id = self._init_cosmos_id()
-        print "Preparing {self}...".format(self=self)
+        if debug:
+            print "Preparing {self}...".format(self=self)
         # Load the config parameters
         self.config = Config()
         # Prepare Thoughts class
@@ -161,11 +163,15 @@ class Cosmos(object):
         if not until:  # Progress one day
             until = self.ordinal_date + 1
         else:
-            if len(until) == 1:  # Just a year was passed
+            if type(until) is int:  # Just a year was passed
                 until = datetime.date(year=until, month=1, day=1).toordinal()
             else:
                 until = datetime.date(*until).toordinal()
         number_of_timesteps_until_then = max(1, (until-self.ordinal_date)*2)
+        # JOR: TRYING WEIRD MEMORY TRICK HERE
+        while number_of_timesteps_until_then > 1000:
+            self._advance_n_timesteps(n_timesteps=1000)
+            number_of_timesteps_until_then -= 1000
         self._advance_n_timesteps(number_of_timesteps_until_then)
 
     def _advance_n_timesteps(self, n_timesteps=1):
@@ -191,13 +197,15 @@ class Cosmos(object):
                 # Happy New Year
                 self.true_year = new_date_tuple.year
                 self.year = new_date_tuple.year
-                print "Updating each city's nearest cities..."
+                if self.debug:
+                    print "Updating each city's nearest cities..."
                 for city in self.cities:
                     city.set_nearest_cities()
             self.month = new_date_tuple.month
             self.day = new_date_tuple.day
             self.date = self.get_date()
-            print self.date
+            if self.debug:
+                print self.date
             self._handle_any_birthdays_today()
             self._handle_any_city_establishments_today()
         else:  # Nighttime
@@ -227,18 +235,27 @@ class Cosmos(object):
 
     def _simulate_a_timestep_in_a_city(self, city):
         """Simulate a timestep in the given city."""
-        print "Simulating a {} in {}...".format(self.time_of_day, city.full_name)
+        if city.cosmos.debug:
+            print "Simulating a {} in {}...".format(self.time_of_day, city.full_name)
         # Simulate birth, death, retirement, college, and moving out of parents
         for person in list(city.residents):
+            if city.cosmos.debug:
+                print "\t...simulating birth..."
             if person.pregnant and self.ordinal_date >= person.due_date:
                 person.give_birth()
+            if city.cosmos.debug:
+                print "\t...simulating death..."
             if person.age > max(65, random.random() * 100):
                 person.die(cause_of_death="Natural causes")
+            if city.cosmos.debug:
+                print "\t...simulating retirement and degree conferment..."
             elif person.occupation and person.age > max(65, random.random() * 100):
                 person.retire()
             elif person.adult and not person.occupation:
                 if person.age > 22:
                     person.college_graduate = True
+            if city.cosmos.debug:
+                print "\t...simulating new adults moving out..."
             elif person.age > 18 and person not in person.home.owners:
                 person.move_out_of_parents_home()
         days_since_last_simulated_day = self.ordinal_date-city.last_simulated_day
@@ -247,9 +264,13 @@ class Cosmos(object):
             for other_person in person.relationships:
                 person.relationships[other_person].interacted_this_timestep = False
         # Have people go to the location they will be at this timestep
+        if city.cosmos.debug:
+                print "\t...enacting NPC routines..."
         for person in list(city.residents):
             person.routine.enact()
         # Simulate sex  TODO sex outside out marriage
+        if city.cosmos.debug:
+                print "\t...simulating sex..."
         for person in list(city.residents):
             if person.marriage and person.spouse.home is person.home:
                 chance_they_are_trying_to_conceive_this_year = (
@@ -263,6 +284,8 @@ class Cosmos(object):
         # Have people observe their surroundings, which will cause knowledge to
         # build up, and have them socialize with other people also at that location --
         # this will cause relationships to form/progress and knowledge to propagate
+        if city.cosmos.debug:
+                print "\t...simulating social interactions..."
         for person in list(city.residents):
             if person.age > 3:
                 # person.observe()

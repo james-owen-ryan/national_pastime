@@ -101,7 +101,8 @@ class League(object):
     def champion(self):
         """Return the franchise that holds the most recent championship in this league."""
         try:
-            return self.history.seasons[-1].champion.team
+            year_of_most_recent_championship = max(self.history.champions_timeline.keys())
+            return self.history.champions_timeline[year_of_most_recent_championship]
         except IndexError:
             return None
 
@@ -166,11 +167,21 @@ class League(object):
 
     def conduct_offseason_activity(self):
         """Conduct this league's offseason procedures."""
-        # Have each team in the league conduct its offseason procedures
-        for team in self.teams:
+        # Have each team in the league conduct its offseason procedures; because teams could
+        # fold during this procedure, which could change the size of 'self.teams', we need
+        # to copy the list before iterating
+        for team in list(self.teams):
             team.conduct_offseason_activity()
-        # Potentially expand this league
-        self._potentially_expand()
+        if self.history.seasons:
+            # Potentially expand this league
+            self._potentially_expand()
+            if len(self.teams) % 2:
+                # If you have an odd number of teams, force a team to fold  TODO WTF? BETTER
+                worst_team = min(
+                    (t for t in self.teams if t.history.seasons),
+                    key=lambda t: t.history.cumulative_winning_percentage
+                )
+                worst_team._fold()
 
     def _potentially_expand(self):
         """Potentially expand this league by enfranchising additional teams.
@@ -200,6 +211,8 @@ class League(object):
     def _decide_to_expand(self):
         """Decide whether to attempt to expand this league."""
         config = self.cosmos.config
+        if len(self.teams) < 6:  # TODO HAVE LEAGUES GO UNDER
+            return True
         max_number_of_teams_for_a_league_this_year = config.max_number_of_teams_to_expand_to(year=self.cosmos.year)
         max_number_of_teams_that_could_be_accommodated = max_number_of_teams_for_a_league_this_year - len(self.teams)
         if max_number_of_teams_that_could_be_accommodated >= 2:

@@ -34,7 +34,7 @@ class PlayerCareer(Career):
     def finale(self):
         """Return this player's final game."""
         try:
-            return self.statistics.games_played[-1]
+            return self.statistics.games_played[-1] if self.retired else None
         except IndexError:
             return None
 
@@ -45,7 +45,7 @@ class PlayerCareer(Career):
 
     def consider_retirement(self):
         """Consider retirement."""
-        if self.player.person.age > 36:
+        if self.player.person.age > 36 and len(self.statistics.games_played) > 100:
             self.planning_to_retire = True
 
     def retire(self):

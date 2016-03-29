@@ -6385,7 +6385,7 @@ Sellersburg	IN	Clark County	38.387722	-85.75936	-5	1	47172
 Sulphur	IN	Crawford County	38.210303	-86.46657	-5	0	47174		
 Taswell	IN	Crawford County	38.355935	-86.55656	-5	0	47175		
 Underwood	IN	Scott County	38.603451	-85.76711	-5	1	47177		
-Columbus	IN	Bartholomew County	39.185341	-85.9456	-5	0	47201,47202,47203		
+Columbus	IN	Bartholomew County	39.185341	-85.9456	-5	0	47201,47202,47203	1821	
 Brownstown	IN	Jackson County	38.876537	-86.04252	-5	0	47220		
 Butlerville	IN	Jennings County	39.049336	-85.49272	-5	0	47223		
 Canaan	IN	Jefferson County	38.896209	-85.21936	-5	0	47224		
@@ -24262,7 +24262,7 @@ Tannersville	VA	Tazewell County	37.000956	-81.54797	-5	1	24377
 Willis	VA	Floyd County	36.853525	-80.52024	-5	1	24380		
 Woodlawn	VA	Carroll County	36.714663	-80.82602	-5	1	24381		
 Wytheville	VA	Wythe County	36.947446	-81.09439	-5	1	24382		
-Staunton	VA	Staunton City	38.146216	-79.07625	-5	1	24401,24402,24407	1871	
+Staunton	VA	Staunton City	38.146216	-79.07625	-5	1	24401,24402,24407	1871	1747	
 Augusta Springs	VA	Augusta County	38.091705	-79.322363	-5	1	24411		
 Bacova	VA	Bath County	38.054111	-79.84575	-5	1	24412		
 Blue Grass	VA	Highland County	38.521373	-79.58361	-5	1	24413		

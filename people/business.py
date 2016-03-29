@@ -438,10 +438,8 @@ class Business(object):
                 choice = top_three_choices[1]
             else:
                 choice = top_three_choices[2]
-        elif lot_scores:
-            choice = max(lot_scores)
         else:
-            raise Exception("A company attempted to secure an *occupied* lot in town but somehow could not.")
+            choice = max(lot_scores)
         return choice
 
     def _rate_all_occupied_lots(self):
@@ -680,7 +678,7 @@ class Business(object):
             )
         # Collect a few additional candidates from all across the country
         for city in self.city.state.country.cities:
-            if random.random() < 0.02:
+            if random.random() < 0.005:
                 candidates_from_other_cities |= self._assemble_job_candidates(
                     city=city, occupation_of_need=occupation_of_need
                 )
@@ -727,16 +725,20 @@ class Business(object):
 
     def _assemble_job_candidates(self, city, occupation_of_need):
         """Assemble a group of job candidates for an open position."""
+        config = city.cosmos.config
         candidates = set()
         # Consider people that already work in this city -- this will subsume
-        # reasoning over people that could be promoted from within this company
+        # reasoning over people that could be promoted from within this company; make
+        # sure to ignore baseball companies, since the business of baseball is simulated
+        # differently in this game
         for company in city.companies:
-            for position in company.employees:
-                person_is_qualified = self.check_if_person_is_qualified_for_the_position(
-                    candidate=position.person, occupation_of_need=occupation_of_need
-                )
-                if person_is_qualified:
-                    candidates.add(position.person)
+            if company.__class__ not in config.baseball_company_classes:
+                for position in company.employees:
+                    person_is_qualified = self.check_if_person_is_qualified_for_the_position(
+                        candidate=position.person, occupation_of_need=occupation_of_need
+                    )
+                    if person_is_qualified:
+                        candidates.add(position.person)
         # Consider unemployed (mostly young) people if they are qualified
         for person in city.unemployed:
             person_is_qualified = self.check_if_person_is_qualified_for_the_position(

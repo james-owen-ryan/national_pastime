@@ -38,11 +38,10 @@ class Country(object):
 
     def find(self, city_name):
         """Return city with the given name."""
-        if any(c for c in self.cities if c.name == city_name):
-            city = next(c for c in self.cities if c.name == city_name)
-        else:
-            city = None
-        return city
+        try:
+            return max([c for c in self.cities if c.name == city_name], key=lambda city: city.pop)
+        except ValueError:
+            return None
 
     @property
     def companies(self):

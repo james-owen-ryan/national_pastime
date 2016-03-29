@@ -172,29 +172,36 @@ Here's the first season with retirement:
 
 
             >>>
-            >>> print compose_career_leaders(l)
+            >>> print compile_career_leaders(l)
 
 
                     BATTING AVERAGE LEADERS
 
-            1	0.123	William McLaren		LF	1686-1691
+            1	0.123	William McLaren		LF	1686-active
             2	0.118	William Perusse		3B	1670-1676
-            3	0.115	John Bellew		CF	1686-1691
+            3	0.115	John Bellew		CF	1686-active
             4	0.111	Eugene Krause		CF	1682-1687
             5	0.111	Frank Brownfield		RF	1684-1688
             6	0.106	Harry Tape		3B	1675-1679
-            7	0.104	Harold Hough		3B	1687-1691
+            7	0.104	Harold Hough		3B	1687-active
             8	0.104	Warren Keedy		SS	1683-1688
             9	0.098	George Detlefsen		1B	1680-1686
 
                     HOME RUN KINGS
 
-            1	64	Simon Richey		LF	1683-1691
-            2	62	Joe Pons		RF	1683-1691
-            3	50	John Bellew		CF	1686-1691
-            4	47	Harold Hough		3B	1687-1691
-            5	45	Edward McKowen		LF	1682-1691
-            6	35	Fred Bouillion-Skillman		SS	1684-1691
-            7	31	Nicholas Reichenbach		1B	1687-1691
-            8	29	Jim Geoghagan		C	1682-1691
-            9	24	Lee Hanks		3B	1680-1691
+            1	64	Simon Richey		LF	1683-active
+            2	62	Joe Pons		RF	1683-active
+            3	50	John Bellew		CF	1686-active
+            4	47	Harold Hough		3B	1687-active
+            5	45	Edward McKowen		LF	1682-active
+            6	35	Fred Bouillion-Skillman		SS	1684-active
+            7	31	Nicholas Reichenbach		1B	1687-active
+            8	29	Jim Geoghagan		C	1682-active
+            9	24	Lee Hanks		3B	1680-active
+
+
+
+
+            >>> print list(ep.companies)[0]
+Jaycox General Store, 642 Barney Street, Eden Prairie, Minnesota
+Charles Jaycox, 46 years old, Eden Prairie, Minnesota

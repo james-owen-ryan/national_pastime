@@ -565,12 +565,6 @@ class Departure(Event):
     def __init__(self, subjects, reason):
         """Initialize a Departure object."""
         super(Departure, self).__init__(cosmos=subjects[0].cosmos)
-        assert not any(s for s in subjects if s.occupation and s.occupation.vocation == 'magnate'), (
-            "Problem: A magnate named {} is attempting to depart {}, which is where their holding co. is based.".format(
-                next(s for s in subjects if s.occupation and s.occupation.vocation == 'magnate').name,
-                subjects[0].city
-            )
-        )
         self.subjects = subjects
         self.reason = reason
         self.city = subjects[0].city

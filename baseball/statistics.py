@@ -17,6 +17,8 @@ class PlayerStatistics(object):
         self.hits_allowed = []
         self.home_runs_allowed = []
         self.grand_slams_allowed = []
+        self.pitching_wins = []
+        self.pitching_losses = []
         # Batting
         self.batting_strikeouts = []
         self.batting_walks = []

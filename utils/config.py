@@ -41,6 +41,7 @@ class Config(object):
 
         self.chance_baseball_curses_are_real = 0.5
         #       BUSINESS OF BASEBALL
+        self.baseball_company_classes = (BaseballLeagueOffices, BaseballOrganization)
         self.baseball_league_occupations = (BaseballCommissioner, BaseballUmpire)
         self.baseball_franchise_occupations = (
             # Here, we exclude BaseballPlayer, because they are not acquired through the typical
@@ -48,7 +49,7 @@ class Config(object):
             BaseballTeamOwner, BaseballManager, BaseballScout
         )
         #       LEAGUE FORMATION/EXPANSION/ETC.
-        self.city_utility_to_a_league = lambda city: len(city.residents)
+        self.city_utility_to_a_league = lambda city: len(city.residents)*2
         self.city_utility_penalty_for_already_being_in_league = 0.1
         self.chance_a_city_accepts_offer_to_join_league = lambda city: 0.8/(len(city.teams)+1)
         self.number_of_charter_teams_for_a_league = lambda year: random.choice([6, 8, 10, 12])  # TODO make this cooler
@@ -133,6 +134,8 @@ class Config(object):
         self.determine_opening_day = lambda: [4, random.randint(10, 22)]
         self.determine_regular_season_terminus = lambda: [10, random.randint(2, 8)]
         self.chance_of_a_doubleheader = lambda year: 0.1  # TODO GREAT ARTICLES EXIST ABOUT THIS
+        #       BASEBALL FANDOM
+        self.chance_someone_goes_to_a_local_game = 0.1
         #       ATTRIBUTES (this jazz was determined empirically)
         self.set_percentage_above_or_below_average = lambda diff_from_avg: abs(normal(0, diff_from_avg))
         # Intangibles
@@ -380,9 +383,9 @@ class Config(object):
         # Marriage
         self.min_mutual_spark_value_for_someone_to_propose_marriage = 5
         self.chance_one_newlywed_takes_others_name = lambda year: (
-            0.0 if year < 1968 else
-            0.05 if year < 1979 else
-            0.075
+            1.0 if year < 1968 else
+            0.95 if year < 1979 else
+            0.925
         )
         self.chance_newlyweds_decide_children_will_get_hyphenated_surname = 0.4  # Given already not taking same name
         self.chance_a_newlywed_keeps_former_love_interest = 0.01
@@ -1533,6 +1536,321 @@ class Config(object):
         self.set_base_composure = lambda confidence, focus: min(1.0, (confidence+focus)/2)
         self.min_composure = 0.5  # These get used by Mood.clamp_composure(), which gets called during games
         self.max_composure = 1.5
+
+                ############
+                ##  BODY  ##
+                ############
+
+        # HANDEDNESS
+        self.chance_of_being_left_handed = 0.1
+        # PHYSICAL PEAK
+        self.typical_age_of_physical_peak = 27
+        self.determine_age_of_physical_peak = lambda: int(round(normal(27, 1.5)))
+        # HUSTLE
+        self.determine_hustle = lambda: normal(1.0, 0.02)
+        # Height (various sources)
+        self.adult_male_height_mean = lambda year: (
+            67.7 if year < 1800 else
+            67.8 if year < 1820 else
+            68.31 if year < 1830 else
+            67.8 if year < 1840 else
+            67.36 if year < 1850 else
+            67.17 if year < 1860 else
+            67.36 if year < 1870 else
+            66.73 if year < 1880 else
+            66.57 if year < 1890 else
+            66.93 if year < 1900 else
+            67.76 if year < 1910 else
+            68.15 if year < 1920 else
+            68.27 if year < 1930 else
+            69.33 if year < 1940 else
+            69.72 if year < 1950 else
+            69.8 if year < 1960 else
+            70.2 if year < 1970 else
+            70.47
+        )
+        self.adult_male_height_sd = lambda year: self.adult_male_height_mean(year) / 17.5  # s.d. found online
+        self.adult_female_height_mean = lambda year: self.adult_male_height_mean(year) * 0.92
+        self.adult_female_height_sd = lambda year: self.adult_female_height_mean(year) / 18.5  # s.d. found online
+        self.male_percentage_of_eventual_height_at_age = lambda age: (
+            # TODO SHRINKING IN OLD AGE
+            0.281 if age < 0 else
+            0.428 if age < 1 else
+            0.491 if age < 2 else
+            0.538 if age < 3 else
+            0.578 if age < 4 else
+            0.617 if age < 5 else
+            0.653 if age < 6 else
+            0.689 if age < 7 else
+            0.723 if age < 8 else
+            0.753 if age < 9 else
+            0.782 if age < 10 else
+            0.811 if age < 11 else
+            0.842 if age < 12 else
+            0.882 if age < 13 else
+            0.925 if age < 14 else
+            0.961 if age < 15 else
+            0.98 if age < 16 else
+            0.99 if age < 17 else
+            0.993 if age < 18 else
+            0.997 if age < 19 else
+            1.0
+        )
+        self.female_percentage_of_eventual_height_at_age = lambda age: (
+            # TODO SHRINKING IN OLD AGE
+            0.302 if age < 0 else
+            0.454 if age < 1 else
+            0.524 if age < 2 else
+            0.575 if age < 3 else
+            0.614 if age < 4 else
+            0.661 if age < 5 else
+            0.708 if age < 6 else
+            0.742 if age < 7 else
+            0.785 if age < 8 else
+            0.816 if age < 9 else
+            0.848 if age < 10 else
+            0.882 if age < 11 else
+            0.918 if age < 12 else
+            0.96 if age < 13 else
+            0.972 if age < 14 else
+            0.978 if age < 15 else
+            0.995 if age < 16 else
+            0.995 if age < 17 else
+            0.998 if age < 18 else
+            0.998 if age < 19 else
+            1.0
+        )
+        # BMI
+        self.young_adult_male_bmi_mean = lambda year: (
+            19.9 if year < 1880 else
+            20.1 if year < 1910 else
+            22.3 if year < 1940 else
+            22.4 if year < 1960 else
+            23.0 if year < 1970 else
+            24.2 if year < 1980 else
+            27.0
+        )
+        self.young_adult_male_bmi_sd = lambda year: (
+            # These are fabricated
+            1.75 if year < 1880 else
+            1.95 if year < 1910 else
+            2.05 if year < 1940 else
+            2.25 if year < 1960 else
+            2.85 if year < 1970 else
+            3.31 if year < 1980 else
+            4.73
+        )
+        self.young_adult_female_bmi_mean = lambda year: (
+            # These are fabricated
+            21.6 if year < 1880 else
+            22.2 if year < 1910 else
+            22.9 if year < 1940 else
+            23.8 if year < 1960 else
+            24.9 if year < 1970 else
+            25.5 if year < 1980 else
+            26.0
+        )
+        self.young_adult_female_bmi_sd = lambda year: (
+            # These are fabricated
+            2.85 if year < 1880 else
+            3.05 if year < 1910 else
+            3.45 if year < 1940 else
+            3.73 if year < 1960 else
+            4.18 if year < 1970 else
+            4.90 if year < 1980 else
+            5.75
+        )
+
+        # # Weight (various sources) -- SAVE FOR LATER, I GUESS? I FORGOT THAT WEIGHT IS
+        # OBVIOUSLY CORRELATED WITH HEIGHT, SO YOU CAN'T JUST PULL BOTH OUT OF A HAT
+        # INDEPENDENTLY OF ONE ANOTHER
+        # self.determine_height_weight_mapping = lambda: normal(2.45, 0.2)
+        # self.adult_male_weight_mean = lambda year: (
+        #     # Couldn't find data; this is fabricated/estimated
+        #     135 if year < 1820 else
+        #     145 if year < 1900 else
+        #     155 if year < 1960 else
+        #     166 if year < 1970 else
+        #     171 if year < 1980 else
+        #     183
+        # )
+        # self.adult_female_weight_mean = lambda year: (
+        #     # Couldn't find data; this is fabricated/estimated
+        #     106 if year < 1820 else
+        #     111 if year < 1900 else
+        #     116 if year < 1960 else
+        #     126 if year < 1970 else
+        #     139 if year < 1980 else
+        #     149
+        # )
+        # self.adult_male_weight_sd = lambda year: self.adult_male_weight_mean(year) / 6.19
+        # self.adult_female_weight_sd = lambda year: self.adult_female_weight_mean(year) / 5.11
+        # self.male_percentage_of_eventual_weight_at_age = lambda age: (
+        #     0.048 if age < 0 else
+        #     0.137 if age < 1 else
+        #     0.177 if age < 2 else
+        #     0.2 if age < 3 else
+        #     0.232 if age < 4 else
+        #     0.261 if age < 5 else
+        #     0.294 if age < 6 else
+        #     0.326 if age < 7 else
+        #     0.365 if age < 8 else
+        #     0.406 if age < 9 else
+        #     0.455 if age < 10 else
+        #     0.506 if age < 11 else
+        #     0.568 if age < 12 else
+        #     0.645 if age < 13 else
+        #     0.723 if age < 14 else
+        #     0.797 if age < 15 else
+        #     0.865 if age < 16 else
+        #     0.916 if age < 17 else
+        #     0.952 if age < 18 else
+        #     0.981 if age < 19 else
+        #     1.0
+        # )
+        # self.female_percentage_of_eventual_weight_at_age = lambda age: (
+        #     0.057 if age < 0 else
+        #     0.159 if age < 1 else
+        #     0.207 if age < 2 else
+        #     0.246 if age < 3 else
+        #     0.266 if age < 4 else
+        #     0.309 if age < 5 else
+        #     0.344 if age < 6 else
+        #     0.387 if age < 7 else
+        #     0.445 if age < 8 else
+        #     0.484 if age < 9 else
+        #     0.551 if age < 10 else
+        #     0.637 if age < 11 else
+        #     0.715 if age < 12 else
+        #     0.789 if age < 13 else
+        #     0.82 if age < 14 else
+        #     0.898 if age < 15 else
+        #     0.922 if age < 16 else
+        #     0.938 if age < 17 else
+        #     0.977 if age < 18 else
+        #     0.984 if age < 19 else
+        #     1.0
+        # )
+        # COORDINATION
+        self.determine_primitive_coordination = lambda bmi: (21-(bmi-21))/23.
+        self.determine_coordination_propensity = lambda: 1 + normal(0.0, 0.1)
+        # REFLEXES
+        self.determine_reflexes_propensity = lambda coordination_propensity: normal(coordination_propensity, 0.05)
+        self.determine_primitive_reflexes = lambda coordination, reflexes_propensity: coordination * reflexes_propensity
+        self.determine_reflexes = lambda primitive_reflexes: primitive_reflexes**0.3
+        # AGILITY
+        self.determine_primitive_agility = lambda coordination, height: coordination - abs((height-66)/66.)
+        self.determine_agility_propensity = lambda: 1 + normal(0.0, 0.1)
+        # JUMPING
+        self.determine_primitive_jumping = lambda coordination, height: max(0.3, coordination - abs((height-78)/78.))
+        self.determine_base_vertical = lambda primitive_jumping: primitive_jumping**1.5 * 22
+        self.determine_jumping_propensity = lambda: normal(0.0, 3.0)
+        self.clamp_vertical = lambda vertical: max(2 + random.random()*2, vertical)
+        # VERTICAL REACH
+        self.determine_vertical_reach = lambda height: (height * 1.275) / 12.0
+        # FOOTSPEED
+        self.determine_primitive_footspeed = lambda coordination, height: (1.5 * coordination) - abs((height-73)/73.)
+        self.average_footspeed = 1.21
+        self.determine_footspeed_propensity = lambda primitive_footspeed: (
+            abs(normal(0, primitive_footspeed-self.average_footspeed))
+        )
+        self.determine_full_speed_seconds_per_foot = lambda primitive_footspeed, footspeed_propensity: (
+            (7.3 - footspeed_propensity) / 180 if primitive_footspeed-self.average_footspeed >= 0 else
+            (7.3 + footspeed_propensity) / 180
+        )
+        self.determine_full_speed_feet_per_second = lambda primitive_footspeed: 20 + primitive_footspeed*4.05
+        # PROPENSITY CURVES
+        self.coordination_propensity_curve = lambda age: (
+            0.05 if age < 6 else
+            0.07 if age < 7 else
+            0.10 if age < 8 else
+            0.13 if age < 9 else
+            0.16 if age < 10 else
+            0.19 if age < 11 else
+            0.24 if age < 12 else
+            0.30 if age < 13 else
+            0.40 if age < 14 else
+            0.55 if age < 15 else
+            0.65 if age < 16 else
+            0.75 if age < 17 else
+            0.82 if age < 18 else
+            0.85 if age < 19 else
+            0.88 if age < 20 else
+            0.91 if age < 22 else
+            0.94 if age < 24 else
+            0.97 if age < 26 else
+            1.00 if age < 27 else
+            0.98 if age < 28 else
+            0.96 if age < 29 else
+            0.94 if age < 30 else
+            0.92 if age < 31 else
+            0.90 if age < 32 else
+            0.87 if age < 33 else
+            0.84 if age < 34 else
+            0.81 if age < 35 else
+            0.78 if age < 36 else
+            0.74 if age < 37 else
+            0.71 if age < 38 else
+            0.68 if age < 39 else
+            0.65 if age < 40 else
+            0.61 if age < 44 else
+            0.54 if age < 48 else
+            0.40 if age < 55 else
+            0.34 if age < 65 else
+            0.30 if age < 70 else
+            0.25 if age < 75 else
+            0.12 if age < 85 else
+            0.05
+        )
+        self.reflexes_propensity_curve = lambda age: self.coordination_propensity_curve(age)
+        self.agility_propensity_curve = lambda age: (
+            0.05 if age < 6 else
+            0.07 if age < 7 else
+            0.10 if age < 8 else
+            0.13 if age < 9 else
+            0.16 if age < 10 else
+            0.19 if age < 11 else
+            0.24 if age < 12 else
+            0.30 if age < 13 else
+            0.40 if age < 14 else
+            0.55 if age < 15 else
+            0.65 if age < 16 else
+            0.75 if age < 17 else
+            0.82 if age < 18 else
+            0.85 if age < 19 else
+            0.88 if age < 20 else
+            0.91 if age < 22 else
+            0.94 if age < 24 else
+            0.97 if age < 26 else
+            1.00 if age < 27 else
+            0.97 if age < 28 else
+            0.94 if age < 29 else
+            0.91 if age < 30 else
+            0.88 if age < 31 else
+            0.85 if age < 32 else
+            0.82 if age < 33 else
+            0.78 if age < 34 else
+            0.74 if age < 35 else
+            0.70 if age < 36 else
+            0.66 if age < 37 else
+            0.63 if age < 38 else
+            0.60 if age < 39 else
+            0.57 if age < 40 else
+            0.54 if age < 44 else
+            0.51 if age < 48 else
+            0.46 if age < 55 else
+            0.38 if age < 65 else
+            0.30 if age < 70 else
+            0.25 if age < 75 else
+            0.12 if age < 85 else
+            0.05
+        )
+        self.jumping_propensity_curve = lambda age: self.agility_propensity_curve(age)
+        self.footspeed_propensity_curve = lambda age: self.agility_propensity_curve(age)
+        #           -- HERITABILITY --
+        self.heritability_of_handedness = 0.24
+        self.heritability_of_hustle = 0.75
+        self.hustle_mutation_sd = 0.05  # Hustle will be normal(takes_after.hustle, hustle_mutation_sd)
 
                 ##################
                 ##  APPEARANCE  ##

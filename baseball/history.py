@@ -68,12 +68,12 @@ class FranchiseHistory(object):
     @property
     def cumulative_wins(self):
         """Return the cumulative number of wins this franchise has accumulated across its entire history."""
-        return sum(s.wins for s in self.seasons)
+        return sum(len(s.wins) for s in self.seasons)
 
     @property
     def cumulative_losses(self):
         """Return the cumulative number of losses this franchise has accumulated across its entire history."""
-        return sum(s.losses for s in self.seasons)
+        return sum(len(s.losses) for s in self.seasons)
 
     @property
     def cumulative_winning_percentage(self):

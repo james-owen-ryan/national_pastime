@@ -77,7 +77,7 @@ def compose_box_score(game):
     return box_score
 
 
-def compose_league_standings(season):
+def compile_league_standings(season):
     standings = ''
     standings += "\n\n\t\t\tFinal {} {} Standings\n\n".format(season.league.cosmos.year, season.league.name)
     team_order = sorted(season.teams, key=lambda t: len(t.wins), reverse=True)
@@ -86,7 +86,7 @@ def compose_league_standings(season):
     return standings
 
 
-def compose_career_leaders(league):
+def compile_career_leaders(league):
     career_leaders = ''
     # Batting average leaders
     career_leaders += "\n\n\t\tBATTING AVERAGE LEADERS\n"

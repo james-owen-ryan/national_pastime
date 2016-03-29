@@ -4,8 +4,7 @@ import random
 from game import Game
 from schedule import LeagueSchedule
 from award import Pennant
-from printout import compose_league_leaders as COMPOSE_LEAGUE_LEADERS
-from printout import compose_league_standings as COMPOSE_LEAGUE_STANDINGS
+from printout import compile_league_standings as COMPOSE_LEAGUE_STANDINGS
 
 
 class LeagueSeason(object):

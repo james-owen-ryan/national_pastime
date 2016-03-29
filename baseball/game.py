@@ -29,16 +29,24 @@ class Game(Event):
         # Turn debug or trace parameters on or off
         self.debug = debug
         self.trace = trace
-        # Determine the salience of this game
-        self.salience = self._init_determine_salience()
-        # Identify the audience of people that have come to the ballpark for the game
-        self.audience = self._init_attract_audience()
         # Determine ballpark, league, rules of play, and umpire
         self.ballpark = self.home_team.ballpark if not ballpark else ballpark  # In case of neutral field
         self.field = self.ballpark.field
         self.league = self.home_team.league if not league else league  # In case of non-league play
         self.rules = self.league.classification.rules if not rules else rules  # In case of weird rules jazz
         self.umpire = self.league.assign_umpire()
+        # Determine the salience of this game
+        self.salience = self._init_determine_salience()
+        # Attract an audience of people to come to the ballpark for the game
+        self._init_attract_audience()
+        # Record that audience (include stadium workers, but not players/members of the
+        # teams themselves, who can be recognized by their routine.occasion being set
+        # to 'baseball')
+        self.audience = {
+            p.fan for p in self.ballpark.people_here_now if p.routine.occasion != 'baseball'
+        }
+        for fan in self.audience:
+            fan.attend_game(game=self)
         # Prepare for game
         self.score = [0, 0]  # [away_team_score, home_team_score]
         self.winner = None
@@ -67,7 +75,14 @@ class Game(Event):
         # Potentially print the box score
         if self.trace:
             print self.box_score
-        print "{} defeated {} {}-{}".format(self.winner.name, self.loser.name, max(self.score), min(self.score))
+        if self.cosmos.debug:
+            print "{winner} defeated {loser} {winner_score}-{loser_score} (att. {attendance})".format(
+                winner=self.winner.name,
+                loser=self.loser.name,
+                winner_score=max(self.score),
+                loser_score=min(self.score),
+                attendance=len(self.audience)
+            )
 
     def __str__(self):
         """Return string representation."""
@@ -88,7 +103,13 @@ class Game(Event):
     def _init_attract_audience(self):
         """Attract an audience of people to come to the ballpark for the game."""
         # TODO USE SALIENCE HERE
-        pass
+        config = self.cosmos.config
+        cities_near_the_ballpark = {self.ballpark.city} | set(self.ballpark.city.nearest_cities)
+        for city in cities_near_the_ballpark:
+            for person in city.residents:
+                if person.location.city in cities_near_the_ballpark:
+                    if random.random() < config.chance_someone_goes_to_a_local_game:
+                        person.go_to(destination=self.ballpark, occasion="leisure")
 
     def transpire(self):
         """Have this game be played."""
@@ -100,11 +121,19 @@ class Game(Event):
         while self.score[0] == self.score[1]:
             inning_number += 1
             Inning(game=self, number=inning_number)
+        # Review
+        self._review()
+
+    def _review(self):
+        """Review this game to record statistics and effect outcomes."""
         # Determine the winner
         self.winner = self.home_team if self.score[1] > self.score[0] else self.away_team
         self.loser = self.away_team if self.home_team is self.winner else self.home_team
         # Effect the consequences of this game
         self._evolve_player_confidence_and_composure()
+        # Record statistics
+        self.winner.roster.pitcher.career.statistics.pitching_wins.append(self)
+        self.loser.roster.pitcher.career.statistics.pitching_losses.append(self)
 
     def _evolve_player_confidence_and_composure(self):
         """Effect the consequences of this game."""

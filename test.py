@@ -54,10 +54,9 @@ from baseball.league import League
 c = Cosmos()
 usa = c.countries[0]
 # c.progress(until=(1670, 2, 19))
-c.progress(until=(1870, 2, 19))
-l = League(usa.cities[-1], c.baseball_classifications[0])
-while len(l.history.champions_timeline) < 100:
-    c.progress()
+c.progress(until=(1854, 2, 19))
+l = League(usa.find('New York'), c.baseball_classifications[0])
+c.progress(until=(1901, 1, 1))
 
 # from baseball.league import League
 # c.leagues = []

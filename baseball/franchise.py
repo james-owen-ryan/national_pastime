@@ -160,6 +160,8 @@ class Team(object):
         self.scout = Scout(person=scout_person, team=self) if not scout_person.scout else scout_person.scout
         # Set personnel attribute
         self.personnel = {self.owner, self.manager, self.scout}
+        for p in self.personnel:
+            p.team = self
 
     def _sign_players(self):
         """Sign players until you have a full roster."""
