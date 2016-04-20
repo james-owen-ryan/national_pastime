@@ -87,4 +87,4 @@ class ThoughtPrototype(object):
         # Effects are represented as a tuple of lambda expressions that will be
         # executed by Thought.execute() (an object that will be passed the effects
         # of a ThoughtPrototype object)
-        self.effects = effects  # A tuple of lambda expressionists
+        self.effects = effects  # A tuple of lambda expressions
