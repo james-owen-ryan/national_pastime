@@ -8,7 +8,10 @@
     go wrongly in the obverse).
 
 
-1. Generate coats of arms procedurally; their specifications seem very operationalizable in
+1. Superstitious players carry lucky charms.
+
+
+2. Generate coats of arms procedurally; their specifications seem very operationalizable in
     Tracery or Expressionist. E.g.:
         Quarterly: 1st and 4th, or, on a fesse, dancettée, with plain cotises
         between three billets, sa., each charged with a lion, rampant, of the
